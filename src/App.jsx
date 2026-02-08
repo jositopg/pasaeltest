@@ -901,21 +901,14 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     try {
       setIsSearching(true);
       
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      // Llamada a nuestra función serverless en lugar de directamente a Anthropic
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4000,
-          tools: [{
-            type: "web_search_20250305",
-            name: "web_search"
-          }],
-          messages: [{
-            role: "user",
-            content: `Busca información completa y oficial sobre: "${theme.name}" para preparar una oposición en España.
+          prompt: `Busca información completa y oficial sobre: "${theme.name}" para preparar una oposición en España.
 
 INSTRUCCIONES:
 1. Busca fuentes oficiales (BOE, leyes, temarios oficiales)
@@ -923,8 +916,9 @@ INSTRUCCIONES:
 3. Prioriza documentos con artículos, procedimientos y normativa
 4. Resume los puntos clave de forma estructurada
 
-Busca: ${searchQuery}`
-          }]
+Busca: ${searchQuery}`,
+          useWebSearch: true,
+          maxTokens: 4000
         })
       });
 
@@ -1037,17 +1031,14 @@ Busca: ${searchQuery}`
       setGenerationProgress(`🤖 Generando ${numToGenerate} preguntas...`);
       setGenerationPercent(30);
       
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      // Llamada a nuestra función serverless
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 8000,
-          messages: [{
-            role: "user",
-            content: `Eres un experto creador de preguntas tipo test para oposiciones sobre "${theme.name}".
+          prompt: `Eres un experto creador de preguntas tipo test para oposiciones sobre "${theme.name}".
 
 Tu objetivo: Crear ${numToGenerate} preguntas de máxima calidad, precisión y utilidad.
 
@@ -1136,8 +1127,9 @@ DISTRIBUCIÓN: 30% fácil, 50% media, 20% difícil
 □ JSON válido sin texto adicional
 □ EXACTAMENTE ${numToGenerate} preguntas
 
-Responde SOLO con el JSON de las preguntas.`
-          }]
+Responde SOLO con el JSON de las preguntas.`,
+          useWebSearch: false,
+          maxTokens: 8000
         })
       });
 
@@ -1301,21 +1293,13 @@ Responde SOLO con el JSON de las preguntas.`
     
     try {
       // UNA SOLA LLAMADA - Buscar Y procesar en un solo paso
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 8000, // Más tokens para obtener todo en una llamada
-          tools: [{
-            type: "web_search_20250305",
-            name: "web_search"
-          }],
-          messages: [{
-            role: "user",
-            content: `Busca información sobre: "${docContent}" para el tema de oposiciones "${theme.name}".
+          prompt: `Busca información sobre: "${docContent}" para el tema de oposiciones "${theme.name}".
 
 Después de buscar, crea un REPOSITORIO ESTRUCTURADO para generar preguntas de examen.
 
@@ -1341,8 +1325,9 @@ ESTRUCTURA REQUERIDA:
 ## PUNTOS CRÍTICOS DE EXAMEN
 [Aspectos frecuentes en tests, diferencias sutiles, confusiones comunes]
 
-Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y precisión.`
-          }]
+Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y precisión.`,
+          useWebSearch: true,
+          maxTokens: 8000
         })
       });
 
@@ -1500,17 +1485,13 @@ Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y 
       setGenerationPercent(20);
       
       try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        const response = await fetch("/api/generate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 8000,
-            messages: [{
-              role: "user",
-              content: `Obtén el contenido de esta URL y estructúralo para el tema "${theme.name}":
+            prompt: `Obtén el contenido de esta URL y estructúralo para el tema "${theme.name}":
 
 URL: ${docContent}
 
@@ -1527,8 +1508,9 @@ Extrae y estructura la información relevante:
 ## INFORMACIÓN COMPLEMENTARIA
 [Casos prácticos, ejemplos]
 
-Proporciona un documento completo con TODA la información del enlace.`
-            }]
+Proporciona un documento completo con TODA la información del enlace.`,
+            useWebSearch: true,
+            maxTokens: 8000
           })
         });
 
