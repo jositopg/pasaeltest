@@ -1,20 +1,18 @@
 /**
- * Función Serverless para llamar a Anthropic API
+ * Función Serverless para Google Gemini Flash
  * 
- * Esta función se ejecuta en el SERVIDOR (Vercel), no en el navegador.
- * Soporta:
- * - Generación de preguntas
- * - Búsqueda web con IA
- * - Procesamiento de documentos
+ * GRATIS: 1,500 peticiones/día, 1M tokens/mes
+ * Modelo: gemini-1.5-flash-latest
  * 
- * Ventajas:
- * - API key segura (nunca expuesta al público)
- * - Sin problemas de CORS
- * - Validación y control en servidor
+ * Ventajas vs Claude:
+ * - ✅ Gratis (dentro de límites generosos)
+ * - ✅ Muy rápido (1-2 segundos)
+ * - ✅ Buena calidad para preguntas
+ * - ✅ 40x más barato si excedes límite gratis
  */
 
 export default async function handler(req, res) {
-  // Solo permitir POST requests
+  // Solo permitir POST
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       error: 'Method not allowed',
@@ -23,14 +21,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Leer los datos que envió el frontend
+    // 1. Leer datos del frontend
     const { 
-      prompt,           // El prompt completo para Claude
-      useWebSearch,     // Si debe usar web_search tool
-      maxTokens = 4096  // Tokens máximos de respuesta
+      prompt,           // El prompt completo
+      maxTokens = 4096  // Tokens máximos
     } = req.body;
 
-    // 2. Validar que se envió prompt
+    // 2. Validar prompt
     if (!prompt || prompt.trim().length === 0) {
       return res.status(400).json({ 
         error: 'Bad request',
@@ -38,71 +35,86 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Validar que existe la API key en las variables de entorno
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // 3. Validar API key
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('❌ ANTHROPIC_API_KEY no configurada en Vercel');
+      console.error('❌ GEMINI_API_KEY no configurada en Vercel');
       return res.status(500).json({ 
         error: 'Server configuration error',
-        message: 'API key no configurada en el servidor' 
+        message: 'API key de Gemini no configurada' 
       });
     }
 
-    console.log('🤖 Llamando a Anthropic API...');
+    console.log('🤖 Llamando a Gemini Flash...');
     console.log(`📝 Prompt (primeros 100 chars): ${prompt.substring(0, 100)}...`);
-    console.log(`🔍 Web Search: ${useWebSearch ? 'SÍ' : 'NO'}`);
     console.log(`📊 Max Tokens: ${maxTokens}`);
 
-    // 4. Preparar el body de la petición a Anthropic
+    // 4. Preparar petición a Gemini
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
     const requestBody = {
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: maxTokens,
+      }
     };
 
-    // 5. Añadir web_search tool si es necesario
-    if (useWebSearch) {
-      requestBody.tools = [{
-        type: 'web_search_20250305',
-        name: 'web_search'
-      }];
-    }
-
-    // 6. Llamar a la API de Anthropic (servidor → servidor, sin CORS)
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // 5. Llamar a Gemini API
+    const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,  // ← API key SEGURA (solo en servidor)
-        'anthropic-version': '2023-06-01'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
 
-    // 7. Verificar si la llamada fue exitosa
-    if (!anthropicResponse.ok) {
-      const errorData = await anthropicResponse.json();
-      console.error('❌ Error de Anthropic API:', errorData);
+    // 6. Verificar respuesta
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.json();
+      console.error('❌ Error de Gemini API:', errorData);
       
-      return res.status(anthropicResponse.status).json({ 
-        error: 'Anthropic API error',
-        message: errorData.error?.message || 'Error en la llamada a la IA',
+      return res.status(geminiResponse.status).json({ 
+        error: 'Gemini API error',
+        message: errorData.error?.message || 'Error en la llamada a Gemini',
         details: errorData
       });
     }
 
-    // 8. Parsear y devolver la respuesta completa
-    const data = await anthropicResponse.json();
-    console.log('✅ Respuesta recibida de Claude');
+    // 7. Parsear respuesta
+    const data = await geminiResponse.json();
+    console.log('✅ Respuesta recibida de Gemini');
 
-    // 9. Devolver la respuesta tal cual al frontend
-    // El frontend ya sabe cómo procesarla
-    return res.status(200).json(data);
+    // 8. Extraer el texto de la respuesta
+    // Gemini devuelve: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+    if (!data.candidates || data.candidates.length === 0) {
+      return res.status(500).json({
+        error: 'Empty response',
+        message: 'Gemini no devolvió contenido'
+      });
+    }
+
+    const responseText = data.candidates[0].content.parts[0].text;
+    
+    // 9. Convertir respuesta de Gemini a formato compatible con Claude
+    // Para que el frontend no necesite cambios
+    const claudeFormatResponse = {
+      content: [{
+        type: 'text',
+        text: responseText
+      }]
+    };
+
+    console.log('✅ Respuesta formateada y lista');
+
+    // 10. Devolver en formato compatible con Claude
+    return res.status(200).json(claudeFormatResponse);
 
   } catch (error) {
     // Error general

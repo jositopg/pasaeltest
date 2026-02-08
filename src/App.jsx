@@ -902,7 +902,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setIsSearching(true);
       
       // Llamada a nuestra función serverless en lugar de directamente a Anthropic
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate-gemini", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1032,7 +1032,7 @@ Busca: ${searchQuery}`,
       setGenerationPercent(30);
       
       // Llamada a nuestra función serverless
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate-gemini", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1293,7 +1293,7 @@ Responde SOLO con el JSON de las preguntas.`,
     
     try {
       // UNA SOLA LLAMADA - Buscar Y procesar en un solo paso
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/generate-gemini", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1485,7 +1485,7 @@ Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y 
       setGenerationPercent(20);
       
       try {
-        const response = await fetch("/api/generate", {
+        const response = await fetch("/api/generate-gemini", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
