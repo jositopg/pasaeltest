@@ -908,16 +908,17 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `Busca información completa y oficial sobre: "${theme.name}" para preparar una oposición en España.
+          prompt: `Proporciona información completa y detallada sobre: "${theme.name}" para preparar una oposición en España.
 
 INSTRUCCIONES:
-1. Busca fuentes oficiales (BOE, leyes, temarios oficiales)
-2. Enfócate en contenido relevante para oposiciones
-3. Prioriza documentos con artículos, procedimientos y normativa
-4. Resume los puntos clave de forma estructurada
+1. Incluye normativa oficial relevante (leyes, BOE, artículos)
+2. Enfócate en contenido esencial para oposiciones
+3. Estructura: conceptos clave, normativa, procedimientos, datos importantes
+4. Proporciona información precisa y actualizada
 
-Busca: ${searchQuery}`,
-          useWebSearch: true,
+Tema específico: ${searchQuery}
+
+Genera un documento completo con toda la información relevante para estudiar este tema de oposición.`,
           maxTokens: 4000
         })
       });
@@ -1299,9 +1300,9 @@ Responde SOLO con el JSON de las preguntas.`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `Busca información sobre: "${docContent}" para el tema de oposiciones "${theme.name}".
+          prompt: `Genera información completa sobre: "${docContent}" relacionado con el tema de oposiciones "${theme.name}".
 
-Después de buscar, crea un REPOSITORIO ESTRUCTURADO para generar preguntas de examen.
+Crea un REPOSITORIO ESTRUCTURADO para generar preguntas de examen.
 
 ESTRUCTURA REQUERIDA:
 
@@ -1325,8 +1326,7 @@ ESTRUCTURA REQUERIDA:
 ## PUNTOS CRÍTICOS DE EXAMEN
 [Aspectos frecuentes en tests, diferencias sutiles, confusiones comunes]
 
-Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y precisión.`,
-          useWebSearch: true,
+Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y precisión utilizando tu conocimiento sobre el tema.`,
           maxTokens: 8000
         })
       });
@@ -1479,6 +1479,13 @@ Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y 
         alert('❌ URL inválida. Debe empezar con http:// o https://');
         return;
       }
+      
+      // Gemini no puede acceder directamente a URLs
+      // Mostrar mensaje informativo
+      if (showToast) {
+        showToast('⚠️ La función de URLs requiere procesamiento especial. Por favor, copia el contenido de la página y pégalo en "Texto personalizado", o sube un archivo PDF/Word.', 'warning');
+      }
+      return;
       
       setIsSearching(true);
       setGenerationProgress('🌐 Obteniendo contenido de la web...');
