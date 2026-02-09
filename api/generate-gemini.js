@@ -2,7 +2,7 @@
  * Función Serverless para Google Gemini Flash
  * 
  * GRATIS: 1,500 peticiones/día, 1M tokens/mes
- * Modelo: gemini-1.5-flash-latest
+ * Modelo: gemini-1.5-flash
  * 
  * Ventajas vs Claude:
  * - ✅ Gratis (dentro de límites generosos)
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     console.log(`📊 Max Tokens: ${maxTokens}`);
 
     // 4. Preparar petición a Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const requestBody = {
       contents: [{
