@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     // 4. Inicializar Supabase (para caché)
     const supabase = createClient(
       process.env.VITE_SUPABASE_URL,
-      process.env.VITE_SUPABASE_ANON_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
     // 5. BUSCAR EN CACHÉ si está habilitado
