@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, authHelpers, dbHelpers } from './supabaseClient';
-import { chunkDocument, estimateQuestions, formatEstimatedTime } from './utils/textChunking';
-import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate } from './utils/questionImporter';
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN
