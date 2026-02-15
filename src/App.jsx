@@ -698,7 +698,7 @@ const Icons = {
 
 function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-28">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-36">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Banner modo invitado */}
         {user?.isGuest && (
