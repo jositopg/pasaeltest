@@ -698,7 +698,7 @@ const Icons = {
 
 function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Banner modo invitado */}
         {user?.isGuest && (
@@ -2294,7 +2294,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2473,7 +2473,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
     .reduce((sum, t) => sum + (t.questions?.length || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2711,7 +2711,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const isAnswered = answeredQuestions.has(current);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-3 sm:p-4 md:p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-3 sm:p-4 md:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
         <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4">
           <div className="flex justify-between mb-2 gap-2">
@@ -2912,7 +2912,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
   }).reverse();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
@@ -3129,7 +3129,7 @@ function HeatmapScreen({ themes, onNavigate }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
