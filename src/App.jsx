@@ -698,7 +698,7 @@ const Icons = {
 
 function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-40">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-28">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Banner modo invitado */}
         {user?.isGuest && (
@@ -3527,7 +3527,7 @@ function BottomNav({ current, onNavigate }) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-2 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom">
+    <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-2 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom z-50 h-20">
       <div className="flex justify-around max-w-2xl mx-auto">
         {items.map(item => (
           <button 
