@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase, authHelpers, dbHelpers } from './supabaseClient';
 import { chunkDocument, estimateQuestions, formatEstimatedTime } from './utils/textChunking';
 import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate } from './utils/questionImporter';
-import { analyzeDocument, determineQuestionTypes } from './utils/documentAnalyzer';
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN
@@ -699,7 +698,7 @@ const Icons = {
 
 function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Banner modo invitado */}
         {user?.isGuest && (
@@ -977,182 +976,123 @@ Genera un documento completo con toda la información relevante para estudiar es
     }
   };
 
-// ═══════════════════════════════════════════════════════════════════════
-// FUNCIÓN FASE 2: GENERACIÓN CON ANÁLISIS INTELIGENTE
-// ═══════════════════════════════════════════════════════════════════════
-//
-// Esta función reemplaza a handleGenerateQuestions (o generateQuestionsFromDocuments)
-// 
-// Mejoras sobre Fase 1:
-// - Analiza estructura del documento
-// - Prioriza secciones importantes
-// - Genera tipos variados de preguntas
-// - Muestra reporte pre-generación
-// ═══════════════════════════════════════════════════════════════════════
-
-const generateQuestionsFromDocuments = async () => {
-  if (!theme || !theme.documents || theme.documents.length === 0) {
-    if (showToast) showToast('❌ No hay documentos. Añade contenido primero.', 'error');
-    return;
-  }
-
-  try {
-    setIsGenerating(true);
-    setGenerationProgress('📊 Analizando estructura del documento...');
-    setGenerationPercent(5);
-
-    // Recopilar TODO el contenido
-    let fullContent = '';
-    
-    for (const doc of theme.documents) {
-      let docText = '';
-      
-      if (doc.processedContent) {
-        docText = `\n═══ ${doc.fileName || 'DOCUMENTO'} ═══\n\n${doc.processedContent}\n`;
-      } else if (doc.searchResults?.processedContent) {
-        docText = `\n═══ BÚSQUEDA IA ═══\n\n${doc.searchResults.processedContent}\n`;
-      } else if (doc.content) {
-        docText = `\n═══ ${doc.fileName || 'TEXTO'} ═══\n\n${doc.content}\n`;
-      }
-      
-      fullContent += docText;
-    }
-
-    if (fullContent.trim().length < 100) {
-      throw new Error('No hay suficiente contenido para generar preguntas.');
-    }
-
-    console.log(`📊 Contenido total: ${fullContent.length.toLocaleString()} caracteres`);
-
-    setGenerationProgress('🔍 Identificando secciones importantes...');
-    setGenerationPercent(10);
-
-    // ANÁLISIS INTELIGENTE DEL DOCUMENTO
-    const { sections, report } = analyzeDocument(fullContent);
-
-    console.log('📋 Reporte de análisis:', report);
-
-    setGenerationProgress('📋 Preparando plan de generación...');
-    setGenerationPercent(15);
-
-    // MOSTRAR REPORTE AL USUARIO
-    const sectionList = report.sections
-      .map(s => {
-        const icon = s.level === 'critical' ? '🔴' :
-                    s.level === 'high' ? '🟠' :
-                    s.level === 'medium' ? '🟡' : '⚪';
-        return `  ${icon} ${s.title} (${s.level.toUpperCase()}) → ${s.questions} preguntas`;
-      })
-      .join('\n');
-
-    const confirmed = window.confirm(
-`📊 ANÁLISIS INTELIGENTE DEL DOCUMENTO
-
-✅ Secciones detectadas: ${report.totalSections}
-  🔴 Críticas: ${report.breakdown.critical}
-  🟠 Importantes: ${report.breakdown.high}
-  🟡 Medias: ${report.breakdown.medium}
-  ⚪ Secundarias: ${report.breakdown.low}
-
-📝 Plan de generación:
-${sectionList}
-
-💯 Total estimado: ${report.totalQuestions} preguntas
-⏱️  Tiempo estimado: ${report.estimatedTime} minutos
-
-¿Continuar con este plan?`
-    );
-
-    if (!confirmed) {
-      setIsGenerating(false);
-      setGenerationProgress('');
-      setGenerationPercent(0);
+  const generateQuestionsFromDocuments = async () => {
+    if (!theme.documents || theme.documents.length === 0) {
+      if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
       return;
     }
 
-    setGenerationProgress(`🚀 Generando ${report.totalQuestions} preguntas inteligentemente...`);
-    setGenerationPercent(20);
+    setIsGeneratingQuestions(true);
+    setGenerationProgress('📚 Recopilando contenido de documentos...');
+    setGenerationPercent(5);
 
-    // Obtener preguntas existentes
-    let existingQuestions = (theme.questions || [])
-      .map(q => q.text.substring(0, 80))
-      .join('\n');
-
-    let allGeneratedQuestions = [];
-    let currentProgress = 20;
-    const progressPerSection = 70 / sections.length;
-
-    // GENERAR PREGUNTAS POR CADA SECCIÓN
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      currentProgress += progressPerSection;
+    try {
+      // Recopilar contenido - usar contenido procesado/optimizado cuando esté disponible
+      let documentContents = '';
+      let charCount = 0;
+      const maxChars = 100000; // Aumentado significativamente para manejar documentos largos (leyes completas, temarios extensos)
       
-      setGenerationProgress(
-        `🤖 Sección ${i + 1}/${sections.length}: "${section.title.substring(0, 40)}..." (${section.recommendedQuestions} preguntas)`
-      );
-      setGenerationPercent(Math.round(currentProgress));
+      setGenerationProgress('📖 Procesando repositorio completo...');
+      setGenerationPercent(10);
+      
+      for (const doc of theme.documents) {
+        if (charCount >= maxChars) break;
+        
+        let docText = '';
+        
+        // Priorizar contenido procesado (optimizado para preguntas)
+        if (doc.processedContent) {
+          docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || doc.content.substring(0, 100)}\n\n${doc.processedContent}\n`;
+        } else if (doc.searchResults?.processedContent) {
+          docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
+        } else if (doc.searchResults?.content) {
+          docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
+        } else if (doc.content) {
+          docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
+        }
+        
+        const remaining = maxChars - charCount;
+        documentContents += docText.substring(0, remaining);
+        charCount += docText.length;
+      }
 
-      console.log(`📝 Procesando sección ${i + 1}: ${section.title}`);
+      if (documentContents.trim().length < 100) {
+        throw new Error('No hay suficiente contenido. Añade documentos o usa búsqueda IA.');
+      }
 
-      // Determinar tipos de preguntas para esta sección
-      const questionTypes = determineQuestionTypes(section);
+      console.log(`📊 Contenido recopilado: ${charCount.toLocaleString()} caracteres de ${theme.documents.length} documentos`);
 
-      try {
-        const response = await fetch("/api/generate-gemini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: `Eres un experto creador de preguntas tipo test para oposiciones sobre "${theme.name}".
+      setGenerationProgress('🤖 Enviando a IA para generar preguntas...');
+      setGenerationPercent(20);
 
-SECCIÓN ${i + 1} de ${sections.length}: "${section.title}"
-TIPO DE CONTENIDO: ${section.type}
-NIVEL DE IMPORTANCIA: ${section.level.toUpperCase()}
+      // Obtener preguntas existentes
+      const existingQuestions = (theme.questions || []).map(q => q.text.substring(0, 80)).join('\n');
 
-Tu objetivo: Crear EXACTAMENTE ${section.recommendedQuestions} preguntas de máxima calidad sobre ESTA SECCIÓN específica.
+      // OPTIMIZADO: 25 preguntas en lugar de 50 para velocidad 2x
+      const numToGenerate = 25;
+      
+      setGenerationProgress(`🤖 Generando ${numToGenerate} preguntas...`);
+      setGenerationPercent(30);
+      
+      // Llamada a nuestra función serverless
+      const response = await fetch("/api/generate-gemini", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: `Eres un experto creador de preguntas tipo test para oposiciones sobre "${theme.name}".
+
+Tu objetivo: Crear ${numToGenerate} preguntas de máxima calidad, precisión y utilidad.
 
 ═══════════════════════════════════════════════════════════════════════
-📚 CONTENIDO DE ESTA SECCIÓN (${section.length} caracteres):
-${section.content.substring(0, 20000)}
-${section.content.length > 20000 ? '\n[...contenido truncado por longitud...]' : ''}
+📚 CONTENIDO FUENTE (USA SOLO ESTA INFORMACIÓN):
+${documentContents.substring(0, 35000)}
 ═══════════════════════════════════════════════════════════════════════
 
 ${existingQuestions.length > 0 ? `
-🚫 PREGUNTAS YA GENERADAS - NO REPETIR NI REFORMULAR:
-${existingQuestions.substring(0, 5000)}
+🚫 PREGUNTAS YA EXISTENTES - NO REPETIR NI REFORMULAR:
+${existingQuestions}
 
 ⚠️ OBLIGATORIO: Cubre aspectos COMPLETAMENTE DIFERENTES del contenido.
 ` : ''}
 
 ═══════════════════════════════════════════════════════════════════════
-🎯 DISTRIBUCIÓN DE TIPOS PARA ESTA SECCIÓN:
+🎯 CRITERIOS DE CALIDAD OBLIGATORIOS:
 ═══════════════════════════════════════════════════════════════════════
 
-${questionTypes.map(qt => 
-  `- ${qt.type}: ${qt.percentage}% (${Math.round(section.recommendedQuestions * qt.percentage / 100)} preguntas) - Dificultad: ${qt.difficulty}`
-).join('\n')}
+1. PRECISIÓN ABSOLUTA:
+   ✓ Solo datos EXACTOS del contenido proporcionado
+   ✓ Cita artículos/números/fechas LITERALMENTE como aparecen
+   ✓ NUNCA inventes, supongas o aproximes información
+   ✓ Si no estás 100% seguro de un dato, NO crees pregunta sobre eso
 
-═══════════════════════════════════════════════════════════════════════
-🎯 CRITERIOS DE CALIDAD:
-═══════════════════════════════════════════════════════════════════════
+2. INFORMACIÓN VERIFICABLE:
+   ✓ Cada pregunta debe tener respuesta clara en el contenido
+   ✓ Números, fechas, porcentajes: EXACTOS del texto fuente
+   ✓ Nombres propios: escritura exacta del documento
+   ✓ Artículos de ley: numeración precisa
 
-1. PRECISIÓN ABSOLUTA: Solo datos EXACTOS del contenido
-2. INFORMACIÓN VERIFICABLE: Cada pregunta debe tener respuesta clara
-3. OPCIONES PLAUSIBLES: Incorrectas deben ser realistas, no absurdas
-4. VARIEDAD: Cubre diferentes aspectos de esta sección según los tipos indicados
+3. OPCIONES PLAUSIBLES:
+   ✓ Opciones incorrectas deben ser realistas (no absurdas)
+   ✓ Usa datos reales del contenido para opciones falsas
+   ✓ Diferencias sutiles entre opciones (típico de oposiciones)
+   ✓ Longitud similar en todas las opciones
 
-TIPOS DE PREGUNTAS SEGÚN SECCIÓN:
-- article: Sobre artículos específicos de leyes
-- definition: Definiciones de conceptos
-- application: Aplicación práctica de conceptos
-- sequence: Orden de pasos en procedimientos
-- requirements: Requisitos y condiciones
-- exceptions: Casos especiales y excepciones
-- numeric: Datos numéricos exactos
-- dates: Fechas importantes
-- comparison: Diferencias entre conceptos
-- differentiation: Distinciones sutiles
+4. TIPOS DE PREGUNTAS EFECTIVAS:
+   ✓ Conceptos clave y definiciones técnicas
+   ✓ Artículos específicos y su contenido exacto
+   ✓ Diferencias entre conceptos similares
+   ✓ Plazos, procedimientos, requisitos
+   ✓ Excepciones y casos especiales
+   ✓ Fechas de vigencia, modificaciones
+
+5. EVITAR:
+   ✗ Preguntas triviales o demasiado genéricas
+   ✗ Datos que no aparecen en el contenido
+   ✗ Interpretaciones o deducciones tuyas
+   ✗ Negaciones dobles ("no es incorrecto que...")
+   ✗ Opciones obviamente falsas
 
 ═══════════════════════════════════════════════════════════════════════
 📝 FORMATO DE RESPUESTA (JSON PURO - SIN TEXTO ADICIONAL):
@@ -1160,162 +1100,189 @@ TIPOS DE PREGUNTAS SEGÚN SECCIÓN:
 
 [
   {
-    "pregunta": "Según el artículo X, ¿cuál es...?",
-    "opciones": ["Opción A", "Opción B", "Opción C"],
+    "pregunta": "Según el artículo X de [ley], ¿cuál es...?",
+    "opciones": [
+      "Opción A con datos específicos",
+      "Opción B con datos específicos", 
+      "Opción C con datos específicos"
+    ],
     "correcta": 0,
     "dificultad": "media"
   }
 ]
 
-DIFICULTADES: ${questionTypes.map(qt => qt.difficulty).join(', ')}
+DIFICULTADES:
+- "fácil": Definiciones básicas, conceptos directos
+- "media": Aplicación de conceptos, artículos específicos
+- "difícil": Casos complejos, diferencias sutiles, excepciones
 
-Responde SOLO con el JSON de ${section.recommendedQuestions} preguntas.`,
-            maxTokens: 8000
-          })
-        });
+DISTRIBUCIÓN: 30% fácil, 50% media, 20% difícil
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ Error en sección ${i + 1}:`, errorText.substring(0, 200));
-          throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
-        }
+═══════════════════════════════════════════════════════════════════════
+✅ CHECKLIST ANTES DE RESPONDER:
+═══════════════════════════════════════════════════════════════════════
 
-        const data = await response.json();
-        
-        // Procesar respuesta
-        let textContent = '';
-        for (const block of data.content) {
-          if (block.type === 'text') {
-            textContent += block.text;
-          }
-        }
+□ Todas las preguntas tienen respuesta VERIFICABLE en el contenido
+□ Todos los datos (números, fechas, nombres) son EXACTOS
+□ Opciones incorrectas son PLAUSIBLES, no absurdas
+□ CERO inventos o suposiciones
+□ Cada pregunta aporta valor educativo
+□ JSON válido sin texto adicional
+□ EXACTAMENTE ${numToGenerate} preguntas
 
-        if (!textContent) {
-          throw new Error(`Sección ${i + 1}: La IA no devolvió contenido`);
-        }
+Responde SOLO con el JSON de las preguntas.`,
+          useWebSearch: false,
+          maxTokens: 8000
+        })
+      });
 
-        // Extraer JSON
-        let cleanedResponse = textContent.trim()
-          .replace(/```json\s*/g, '')
-          .replace(/```\s*/g, '')
-          .replace(/^[^[]*/, '')
-          .replace(/[^\]]*$/, '');
-        
-        const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-          console.error(`Sección ${i + 1} respuesta:`, textContent.substring(0, 300));
-          throw new Error(`Sección ${i + 1}: No se pudo extraer JSON`);
-        }
+      setGenerationProgress('📝 Procesando respuesta...');
+      setGenerationPercent(60);
 
-        let sectionQuestions;
-        try {
-          sectionQuestions = JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          throw new Error(`Sección ${i + 1}: JSON inválido - ${e.message}`);
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
+      }
 
-        if (!Array.isArray(sectionQuestions) || sectionQuestions.length === 0) {
-          throw new Error(`Sección ${i + 1}: No se generaron preguntas válidas`);
-        }
+      const data = await response.json();
+      
+      setGenerationProgress('📝 Procesando respuesta...');
+      setGenerationPercent(70);
 
-        // Convertir a formato de la app
-        const formattedQuestions = sectionQuestions.map((q, idx) => ({
-          id: `${theme.number}-gen-${Date.now()}-${i}-${idx}`,
-          text: q.pregunta || q.text || 'Pregunta sin texto',
-          options: q.opciones || q.options || ['A', 'B', 'C'],
-          correct: typeof q.correcta !== 'undefined' ? q.correcta : (q.correct || 0),
-          difficulty: q.dificultad || q.difficulty || 'media',
-          section: section.title.substring(0, 100),
-          sectionType: section.type,
-          sectionLevel: section.level,
-          stats: {
-            timesAnswered: 0,
-            timesCorrect: 0,
-            averageTime: 0
-          }
-        }));
-
-        // Validar preguntas
-        const validQuestions = formattedQuestions.filter(q => {
-          return q.text && 
-                 q.text.length > 10 && 
-                 Array.isArray(q.options) && 
-                 q.options.length === 3 &&
-                 q.correct >= 0 && 
-                 q.correct <= 2;
-        });
-
-        if (validQuestions.length === 0) {
-          throw new Error(`Sección ${i + 1}: Ninguna pregunta pasó la validación`);
-        }
-
-        console.log(`✅ Sección ${i + 1}: ${validQuestions.length} preguntas generadas`);
-
-        allGeneratedQuestions = [...allGeneratedQuestions, ...validQuestions];
-        
-        // Actualizar lista de existentes
-        const newExisting = validQuestions
-          .map(q => q.text.substring(0, 80))
-          .join('\n');
-        existingQuestions = existingQuestions ? `${existingQuestions}\n${newExisting}` : newExisting;
-
-      } catch (sectionError) {
-        console.error(`Error en sección ${i + 1}:`, sectionError);
-        if (showToast) {
-          showToast(`⚠️ Error en sección "${section.title.substring(0, 30)}...", continuando...`, 'warning');
+      let textContent = '';
+      for (const block of data.content) {
+        if (block.type === 'text') {
+          textContent += block.text;
         }
       }
-    }
 
-    // Verificar que se generaron preguntas
-    if (allGeneratedQuestions.length === 0) {
-      throw new Error('No se pudo generar ninguna pregunta válida');
-    }
+      if (!textContent) {
+        throw new Error('La IA no devolvió contenido');
+      }
 
-    // Guardar todas las preguntas
-    setGenerationProgress('💾 Guardando preguntas...');
-    setGenerationPercent(95);
+      // Extraer JSON
+      setGenerationProgress('🔍 Extrayendo preguntas...');
+      setGenerationPercent(80);
+      
+      let cleanedResponse = textContent.trim()
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/^[^[]*/, '') // Quitar texto antes del [
+        .replace(/[^\]]*$/, ''); // Quitar texto después del ]
+      
+      const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.error('Respuesta:', textContent.substring(0, 500));
+        throw new Error('No se pudo extraer JSON. La IA respondió con texto no estructurado.');
+      }
 
-    const updatedTheme = {
-      ...theme,
-      questions: [...(theme.questions || []), ...allGeneratedQuestions]
-    };
+      setGenerationProgress('✓ Validando formato...');
+      setGenerationPercent(90);
 
-    onUpdate(updatedTheme);
+      let generatedQuestions;
+      try {
+        generatedQuestions = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        throw new Error('JSON inválido: ' + e.message);
+      }
 
-    setGenerationProgress(`✅ ¡${allGeneratedQuestions.length} preguntas generadas!`);
-    setGenerationPercent(100);
+      if (!Array.isArray(generatedQuestions) || generatedQuestions.length === 0) {
+        throw new Error('La IA no generó preguntas válidas');
+      }
 
-    if (showToast) {
-      showToast(
-        `🎉 ${allGeneratedQuestions.length} preguntas generadas con análisis inteligente (${sections.length} secciones procesadas)`,
-        'success'
+      setGenerationProgress('💾 Validando y guardando...');
+      setGenerationPercent(95);
+
+      // Convertir preguntas generadas
+      const newQuestionsRaw = generatedQuestions.map((q, i) => ({
+        id: `${theme.number}-ai-${Date.now()}-${i}`,
+        text: q.pregunta || q.text || 'Pregunta sin texto',
+        options: q.opciones || q.options || ['A', 'B', 'C'],
+        correct: q.correcta ?? q.correct ?? 0,
+        source: 'IA',
+        difficulty: q.dificultad || q.difficulty || 'media',
+        explanation: q.explicacion || q.explanation || '',
+        needsReview: true,
+        createdAt: new Date().toISOString()
+      }));
+
+      // FILTRAR DUPLICADOS: comparar con preguntas existentes
+      const existingTexts = (theme.questions || []).map(q => 
+        q.text.toLowerCase().trim()
       );
-    }
+      
+      const newQuestions = newQuestionsRaw.filter(newQ => {
+        const newText = newQ.text.toLowerCase().trim();
+        
+        // Verificar si es duplicado exacto
+        if (existingTexts.includes(newText)) {
+          console.log('❌ Duplicado exacto detectado:', newQ.text.substring(0, 50));
+          return false;
+        }
+        
+        // Verificar si es muy similar (>80% igual)
+        const isTooSimilar = existingTexts.some(existingText => {
+          const similarity = calculateSimilarity(newText, existingText);
+          if (similarity > 0.8) {
+            console.log('❌ Duplicado similar detectado:', newQ.text.substring(0, 50), `(${(similarity * 100).toFixed(0)}% similar)`);
+            return true;
+          }
+          return false;
+        });
+        
+        return !isTooSimilar;
+      });
+      
+      // Función auxiliar para calcular similitud
+      function calculateSimilarity(str1, str2) {
+        const words1 = str1.split(/\s+/);
+        const words2 = str2.split(/\s+/);
+        const commonWords = words1.filter(w => words2.includes(w));
+        return commonWords.length / Math.max(words1.length, words2.length);
+      }
 
-    console.log(`🎉 Generación Fase 2 completa: ${allGeneratedQuestions.length} preguntas de ${sections.length} secciones`);
+      if (newQuestions.length === 0) {
+        throw new Error('Todas las preguntas generadas eran duplicadas. Intenta de nuevo.');
+      }
 
-    setTimeout(() => {
-      setIsGenerating(false);
+      const updatedTheme = {
+        ...theme,
+        questions: [...(theme.questions || []), ...newQuestions],
+        lastGenerated: new Date().toISOString()
+      };
+
+      onUpdate(updatedTheme);
+
+      const duplicatesFound = newQuestionsRaw.length - newQuestions.length;
+      const message = duplicatesFound > 0 
+        ? `✅ ${newQuestions.length} preguntas nuevas (${duplicatesFound} duplicadas filtradas)`
+        : `✅ ¡${newQuestions.length} preguntas generadas!`;
+      
+      setGenerationProgress(message);
+      setGenerationPercent(100);
+
+      setTimeout(() => {
+        setIsGeneratingQuestions(false);
+        setGenerationProgress('');
+        setGenerationPercent(0);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error completo:', error);
+      setIsGeneratingQuestions(false);
       setGenerationProgress('');
       setGenerationPercent(0);
-    }, 2000);
-
-  } catch (error) {
-    console.error('❌ Error en generación Fase 2:', error);
-    setGenerationProgress(`❌ Error: ${error.message}`);
-    
-    if (showToast) {
-      showToast(`Error: ${error.message}`, 'error');
+      
+      let errorMsg = error.message;
+      if (errorMsg.includes('fetch')) {
+        errorMsg = 'Error de conexión. Verifica tu internet.';
+      } else if (errorMsg.includes('JSON')) {
+        errorMsg = 'Error procesando respuesta. Intenta con menos contenido.';
+      }
+      
+      alert(`❌ Error: ${errorMsg}\n\nSugerencias:\n- Usa "Buscar con IA" en lugar de subir PDF\n- Asegúrate de que los documentos tengan contenido de texto\n- Intenta con documentos más pequeños`);
     }
-
-    setTimeout(() => {
-      setIsGenerating(false);
-      setGenerationProgress('');
-      setGenerationPercent(0);
-    }, 3000);
-  }
-};
+  };
 
   const handleAISearch = async () => {
     if (!docContent.trim()) {
@@ -2327,7 +2294,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2506,7 +2473,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
     .reduce((sum, t) => sum + (t.questions?.length || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2744,7 +2711,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const isAnswered = answeredQuestions.has(current);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-3 sm:p-4 md:p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-3 sm:p-4 md:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
         <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4">
           <div className="flex justify-between mb-2 gap-2">
@@ -2945,7 +2912,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
   }).reverse();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
@@ -3162,7 +3129,7 @@ function HeatmapScreen({ themes, onNavigate }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6 pb-32">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -3377,7 +3344,7 @@ function SettingsScreen({ onNavigate }) {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900'} p-4 sm:p-6 pb-24 transition-colors duration-300`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900'} p-4 sm:p-6 pb-32 transition-colors duration-300`}>
       <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
@@ -3819,6 +3786,7 @@ export default function App() {
       setExamHistory([]);
       setProfile(null);
       setScreen('home');
+      setLoading(false); // Reset loading
     } catch (error) {
       console.error('Error logging out:', error);
       // Forzar logout local incluso si falla en Supabase
@@ -3828,6 +3796,7 @@ export default function App() {
       setExamHistory([]);
       setProfile(null);
       setScreen('home');
+      setLoading(false); // Reset loading
     }
   };
 
