@@ -190,150 +190,111 @@ function AuthScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-            PasaElTest
-          </h1>
-          <p className="text-gray-400">Tu asistente inteligente de estudio</p>
+    <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center p-5"
+      style={{ background: 'radial-gradient(ellipse at top, #0F1F3D 0%, #080C14 60%)' }}>
+      
+      {/* Logo */}
+      <div className="text-center mb-8 animate-fade-in">
+        <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 8px 32px rgba(37,99,235,0.4)' }}>
+          <span className="text-white text-3xl font-black" style={{ fontFamily: 'Sora, system-ui' }}>P</span>
+        </div>
+        <h1 className="text-4xl font-black" style={{ fontFamily: 'Sora, system-ui', background: 'linear-gradient(135deg, #60A5FA, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          PasaElTest
+        </h1>
+        <p className="text-slate-500 text-sm mt-1">Tu asistente inteligente de oposiciones</p>
+      </div>
+
+      {/* Card */}
+      <div className="w-full max-w-sm bg-[#0F172A] border border-[#1E293B] rounded-3xl p-6 shadow-2xl animate-fade-in-up">
+        
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 p-1 rounded-2xl bg-[#080C14]">
+          {[['login', 'Entrar'], ['register', 'Registrarse']].map(([mode, label]) => (
+            <button key={mode}
+              onClick={() => setIsLogin(mode === 'login')}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
+                ${(mode === 'login') === isLogin
+                  ? 'text-white shadow-lg'
+                  : 'text-slate-500 hover:text-slate-300'}`}
+              style={(mode === 'login') === isLogin
+                ? { background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }
+                : {}}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Formulario */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${
-                isLogin 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
-              }`}
-            >
-              Iniciar Sesión
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 px-4 rounded-xl font-semibold transition-all ${
-                !isLogin 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
-              }`}
-            >
-              Registrarse
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <>
-                <div>
-                  <label className="block text-gray-300 text-sm mb-2">Nombre</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors"
-                    placeholder="Tu nombre"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm mb-2">Oposición</label>
-                  <select
-                    required
-                    value={formData.oposicion}
-                    onChange={(e) => setFormData({...formData, oposicion: e.target.value})}
-                    className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10 focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">Selecciona tu oposición</option>
-                    <option value="Guardia Civil">Guardia Civil</option>
-                    <option value="Policía Nacional">Policía Nacional</option>
-                    <option value="Administración General">Administración General</option>
-                    <option value="Justicia">Justicia</option>
-                    <option value="Correos">Correos</option>
-                    <option value="Hacienda">Hacienda</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Sanidad">Sanidad</option>
-                    <option value="Otra">Otra</option>
-                  </select>
-                </div>
-              </>
-            )}
-            
-            <div>
-              <label className="block text-gray-300 text-sm mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder={MVP_MODE ? "cualquier@email.com (o déjalo vacío)" : "tu@email.com"}
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-300 text-sm mb-2">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder={MVP_MODE ? "cualquier cosa (o déjalo vacío)" : "••••••••"}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                <p className="text-red-400 text-sm">{error}</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {!isLogin && (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Nombre</label>
+                <input type="text" required value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Tu nombre completo"
+                  className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
               </div>
-            )}
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Oposición</label>
+                <select required value={formData.oposicion}
+                  onChange={(e) => setFormData({...formData, oposicion: e.target.value})}
+                  className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors">
+                  <option value="" className="bg-slate-800">Selecciona tu oposición</option>
+                  {['Guardia Civil','Policía Nacional','Administración General','Justicia','Correos','Hacienda','Educación','Sanidad','Otra'].map(o => (
+                    <option key={o} value={o} className="bg-slate-800">{o}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-slate-800 text-gray-400">o</span>
-            </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Email</label>
+            <input type="email" required value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder="tu@email.com"
+              className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
           </div>
 
-          {/* Modo Invitado */}
-          <button
-            onClick={handleGuestMode}
-            className="w-full bg-white/5 border border-white/10 text-white py-3 rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-          >
-            <span className="text-xl">👤</span>
-            <span className="font-semibold">Probar sin registrarme</span>
+          <div>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Contraseña</label>
+            <input type="password" required value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              placeholder="••••••••"
+              className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+          </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-50 transition-all active:scale-[0.98] mt-1"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 4px 20px rgba(37,99,235,0.3)', fontFamily: 'Sora, system-ui' }}>
+            {loading ? '⏳ Procesando...' : (isLogin ? 'Iniciar sesión →' : 'Crear cuenta →')}
           </button>
+        </form>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mt-4">
-            <p className="text-yellow-400 text-xs text-center">
-              ⚠️ <strong>Modo invitado:</strong> Tus datos no se guardarán al cerrar la app
-            </p>
-          </div>
-
-          <p className="text-gray-500 text-xs text-center mt-6">
-            Al continuar, aceptas nuestros Términos y Condiciones
-          </p>
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-[#1E293B]" />
+          <span className="text-xs text-slate-600">o</span>
+          <div className="flex-1 h-px bg-[#1E293B]" />
         </div>
+
+        {/* Demo */}
+        <button onClick={handleGuestMode}
+          className="w-full py-3 rounded-xl border border-[#334155] text-slate-400 text-sm font-semibold hover:border-slate-500 hover:text-slate-300 transition-all active:scale-[0.98]">
+          👤 Probar sin registrarme
+        </button>
+
+        <p className="text-slate-700 text-xs text-center mt-4">
+          Modo demo: los datos no se guardan
+        </p>
       </div>
     </div>
   );
@@ -2360,7 +2321,8 @@ Proporciona un documento completo con TODA la información del enlace.`,
   );
 }
 
-function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
+function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }) {
+  const dm = darkMode;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -2421,7 +2383,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6" style={{ paddingBottom: '200px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2585,7 +2547,8 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   );
 }
 
-function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
+function ExamConfigScreen({ themes, onStartExam, onNavigate, darkMode }) {
+  const dm = darkMode;
   const [numQuestions, setNumQuestions] = useState(20);
   const [selectedThemes, setSelectedThemes] = useState([]);
 
@@ -2600,7 +2563,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
     .reduce((sum, t) => sum + (t.questions?.length || 0), 0);
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6" style={{ paddingBottom: '200px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
@@ -2703,7 +2666,8 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
   );
 }
 
-function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
+function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, darkMode }) {
+  const dm = darkMode;
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
@@ -2838,7 +2802,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const isAnswered = answeredQuestions.has(current);
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-3 sm:p-4 md:p-6" style={{ paddingBottom: '200px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
         <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4">
           <div className="flex justify-between mb-2 gap-2">
@@ -2943,222 +2907,145 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   );
 }
 
-function StatsScreen({ examHistory, onNavigate, themes }) {
+function StatsScreen({ examHistory, onNavigate, themes, darkMode }) {
+  const dm = darkMode;
   const totalExams = examHistory.length;
   const avg = totalExams > 0 
     ? (examHistory.reduce((s, e) => s + parseFloat(e.percentage), 0) / totalExams).toFixed(1) 
     : 0;
-  
-  // Calcular estadísticas avanzadas
   const totalQuestions = examHistory.reduce((s, e) => s + (e.numQuestions || 0), 0);
-  const bestScore = totalExams > 0 
-    ? Math.max(...examHistory.map(e => parseFloat(e.percentage))) 
-    : 0;
-  const worstScore = totalExams > 0 
-    ? Math.min(...examHistory.map(e => parseFloat(e.percentage))) 
-    : 0;
-  
-  // Calcular racha actual
+  const bestScore = totalExams > 0 ? Math.max(...examHistory.map(e => parseFloat(e.percentage))) : 0;
   const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
   const hasStudiedToday = examHistory.some(e => new Date(e.date).toDateString() === today);
-  const hasStudiedYesterday = examHistory.some(e => new Date(e.date).toDateString() === yesterday);
-  const currentStreak = hasStudiedToday ? (hasStudiedYesterday ? 2 : 1) : 0;
-  
-  // Nivel y experiencia
   const level = Math.floor(totalQuestions / 100) + 1;
   const xpInLevel = totalQuestions % 100;
-  const xpToNextLevel = 100;
-  
-  // Logros
+
   const achievements = [
-    { 
-      id: 'first_exam', 
-      name: 'Primer Paso', 
-      desc: 'Completa tu primer examen',
-      icon: '🎯',
-      unlocked: totalExams >= 1,
-      progress: totalExams >= 1 ? 100 : 0
-    },
-    { 
-      id: 'perfect_score', 
-      name: 'Perfección', 
-      desc: 'Saca un 100% en un examen',
-      icon: '💯',
-      unlocked: bestScore >= 100,
-      progress: Math.min(bestScore, 100)
-    },
-    { 
-      id: 'questions_100', 
-      name: 'Centenario', 
-      desc: 'Responde 100 preguntas',
-      icon: '📚',
-      unlocked: totalQuestions >= 100,
-      progress: Math.min((totalQuestions / 100) * 100, 100)
-    },
-    { 
-      id: 'questions_500', 
-      name: 'Experto', 
-      desc: 'Responde 500 preguntas',
-      icon: '🎓',
-      unlocked: totalQuestions >= 500,
-      progress: Math.min((totalQuestions / 500) * 100, 100)
-    },
-    { 
-      id: 'streak_7', 
-      name: 'Semana Perfecta', 
-      desc: 'Estudia 7 días seguidos',
-      icon: '🔥',
-      unlocked: currentStreak >= 7,
-      progress: Math.min((currentStreak / 7) * 100, 100)
-    },
-    { 
-      id: 'exams_10', 
-      name: 'Veterano', 
-      desc: 'Completa 10 exámenes',
-      icon: '⭐',
-      unlocked: totalExams >= 10,
-      progress: Math.min((totalExams / 10) * 100, 100)
-    }
+    { id: 'first_exam', name: 'Primer Paso', desc: 'Completa tu primer examen', icon: '🎯', unlocked: totalExams >= 1, progress: Math.min(totalExams * 100, 100) },
+    { id: 'perfect_score', name: 'Perfección', desc: 'Saca un 100%', icon: '💯', unlocked: bestScore >= 100, progress: Math.min(bestScore, 100) },
+    { id: 'questions_100', name: 'Centenario', desc: 'Responde 100 preguntas', icon: '📚', unlocked: totalQuestions >= 100, progress: Math.min((totalQuestions / 100) * 100, 100) },
+    { id: 'questions_500', name: 'Experto', desc: 'Responde 500 preguntas', icon: '🎓', unlocked: totalQuestions >= 500, progress: Math.min((totalQuestions / 500) * 100, 100) },
   ];
-  
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
-  
-  // Últimos 7 días de actividad
+
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(Date.now() - i * 86400000);
     const dateStr = date.toDateString();
-    const examsToday = examHistory.filter(e => new Date(e.date).toDateString() === dateStr);
+    const examsDay = examHistory.filter(e => new Date(e.date).toDateString() === dateStr);
     return {
       date: date.toLocaleDateString('es-ES', { weekday: 'short' }),
-      count: examsToday.length,
-      avgScore: examsToday.length > 0 
-        ? (examsToday.reduce((s, e) => s + parseFloat(e.percentage), 0) / examsToday.length).toFixed(0)
-        : 0
+      count: examsDay.length,
+      avgScore: examsDay.length > 0 ? Math.round(examsDay.reduce((s, e) => s + parseFloat(e.percentage), 0) / examsDay.length) : 0
     };
   }).reverse();
 
+  const cardClass = `rounded-2xl p-5 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
+  const maxBar = Math.max(...last7Days.map(d => d.count), 1);
+
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6" style={{ paddingBottom: '200px' }}>
-      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+      style={{ paddingBottom: '100px' }}>
+
+      {/* HEADER */}
+      <div className={`sticky top-0 z-10 px-4 pt-12 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`}>
+        <div className="flex items-center gap-3 max-w-lg mx-auto">
+          <button onClick={() => onNavigate('home')}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}>
             <Icons.ChevronLeft />
           </button>
-          <h1 className="text-white font-bold text-xl sm:text-2xl">Estadísticas</h1>
+          <h1 className={`font-bold text-xl ${dm ? 'text-slate-100' : 'text-slate-800'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Estadísticas
+          </h1>
         </div>
-        
-        {/* Nivel y XP */}
-        <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+      </div>
+
+      <div className="px-4 max-w-lg mx-auto space-y-4">
+
+        {/* NIVEL + XP */}
+        <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-gray-400 text-xs sm:text-sm">Nivel de Opositor</p>
-              <h2 className="text-white font-bold text-2xl sm:text-3xl">Nivel {level}</h2>
+              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide">Nivel de opositor</p>
+              <p className="text-3xl font-black mt-0.5" style={{ fontFamily: 'Sora, system-ui' }}>Nivel {level}</p>
             </div>
-            <div className="text-4xl sm:text-5xl">🎖️</div>
+            <span className="text-4xl">🎖️</span>
           </div>
-          <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden">
-            <div 
-              className="absolute h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${(xpInLevel / xpToNextLevel) * 100}%` }}
-            ></div>
+          <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+            <div className="h-full rounded-full bg-white transition-all duration-700"
+              style={{ width: `${(xpInLevel / 100) * 100}%` }} />
           </div>
-          <p className="text-gray-300 text-xs sm:text-sm mt-2 text-center">
-            {xpInLevel} / {xpToNextLevel} XP hasta nivel {level + 1}
-          </p>
+          <p className="text-blue-200 text-xs mt-2">{xpInLevel}/100 XP → Nivel {level + 1}</p>
         </div>
 
-        {/* Racha */}
-        <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+        {/* STATS GRID */}
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Media', value: `${avg}%`, color: '#2563EB', icon: '🎯' },
+            { label: 'Mejor', value: `${bestScore.toFixed(0)}%`, color: '#10B981', icon: '🏆' },
+            { label: 'Exámenes', value: totalExams, color: '#7C3AED', icon: '📝' },
+            { label: 'Preguntas', value: totalQuestions, color: '#F59E0B', icon: '❓' },
+          ].map((s, i) => (
+            <div key={i} className={`${cardClass} text-center`}>
+              <div className="text-xl mb-1">{s.icon}</div>
+              <div className="text-2xl font-black" style={{ fontFamily: 'Sora, system-ui', color: s.color }}>{s.value}</div>
+              <div className={`text-xs mt-0.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* RACHA */}
+        <div className={cardClass}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-xs sm:text-sm">Racha actual</p>
-              <h2 className="text-white font-bold text-2xl sm:text-3xl">{currentStreak} días</h2>
-              <p className="text-orange-300 text-xs sm:text-sm mt-1">
-                {hasStudiedToday ? '✅ Ya estudiaste hoy!' : '⏰ ¡Estudia hoy para mantener la racha!'}
+              <p className={`text-xs font-semibold uppercase tracking-wide ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Racha de estudio</p>
+              <p className="text-2xl font-black mt-1" style={{ fontFamily: 'Sora, system-ui', color: '#F59E0B' }}>
+                {hasStudiedToday ? '🔥 Activo' : '💤 Inactivo'}
+              </p>
+              <p className={`text-xs mt-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                {hasStudiedToday ? '¡Ya estudiaste hoy!' : 'Haz un examen para mantener la racha'}
               </p>
             </div>
-            <div className="text-4xl sm:text-5xl">🔥</div>
+            <span className="text-4xl">{hasStudiedToday ? '🔥' : '⏰'}</span>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              {avg}%
-            </div>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">Media</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <div className="text-3xl sm:text-4xl font-bold text-green-400">{bestScore.toFixed(0)}%</div>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">Mejor</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <div className="text-3xl sm:text-4xl font-bold text-blue-400">{totalExams}</div>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">Exámenes</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <div className="text-3xl sm:text-4xl font-bold text-purple-400">{totalQuestions}</div>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">Preguntas</p>
-          </div>
-        </div>
-
-        {/* Actividad Semanal */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h3 className="text-white font-semibold mb-4 text-sm sm:text-base">📊 Últimos 7 días</h3>
-          <div className="flex justify-between items-end gap-2">
+        {/* ACTIVIDAD 7 DÍAS */}
+        <div className={cardClass}>
+          <p className={`text-sm font-bold mb-4 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Últimos 7 días
+          </p>
+          <div className="flex items-end gap-2 h-20">
             {last7Days.map((day, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full bg-white/10 rounded-lg overflow-hidden" style={{ height: '100px' }}>
-                  <div 
-                    className={`w-full bg-gradient-to-t rounded-lg transition-all ${
-                      day.count > 0 ? 'from-blue-500 to-purple-500' : 'from-gray-600 to-gray-700'
-                    }`}
-                    style={{ 
-                      height: `${Math.max(day.count * 20, day.count > 0 ? 20 : 10)}%`,
-                      marginTop: 'auto'
-                    }}
-                  ></div>
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className={`w-full rounded-lg transition-all ${dm ? 'bg-[#1E293B]' : 'bg-slate-100'}`} style={{ height: '64px', position: 'relative' }}>
+                  {day.count > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 rounded-lg"
+                      style={{ height: `${(day.count / maxBar) * 100}%`, background: 'linear-gradient(to top, #2563EB, #7C3AED)' }} />
+                  )}
                 </div>
-                <p className="text-gray-400 text-xs">{day.date}</p>
-                {day.count > 0 && (
-                  <p className="text-blue-400 text-xs font-bold">{day.avgScore}%</p>
-                )}
+                <p className={`text-[10px] ${dm ? 'text-slate-600' : 'text-slate-400'}`}>{day.date}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Logros */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold text-sm sm:text-base">🏆 Logros</h3>
-            <span className="text-gray-400 text-xs sm:text-sm">{unlockedCount}/{achievements.length}</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {achievements.map(achievement => (
-              <div 
-                key={achievement.id}
-                className={`p-3 sm:p-4 rounded-xl border transition-all ${
-                  achievement.unlocked 
-                    ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30 scale-105' 
-                    : 'bg-white/5 border-white/10 opacity-50'
-                }`}
-              >
-                <div className="text-2xl sm:text-3xl mb-2 text-center">{achievement.icon}</div>
-                <h4 className={`font-semibold text-xs sm:text-sm text-center mb-1 ${
-                  achievement.unlocked ? 'text-yellow-300' : 'text-gray-400'
+        {/* LOGROS */}
+        <div className={cardClass}>
+          <p className={`text-sm font-bold mb-3 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Logros · {achievements.filter(a => a.unlocked).length}/{achievements.length}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {achievements.map(a => (
+              <div key={a.id} className={`p-3 rounded-xl border transition-all
+                ${a.unlocked
+                  ? dm ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'
+                  : dm ? 'bg-[#1E293B] border-[#334155] opacity-50' : 'bg-slate-50 border-slate-200 opacity-50'
                 }`}>
-                  {achievement.name}
-                </h4>
-                <p className="text-gray-500 text-[10px] sm:text-xs text-center mb-2">{achievement.desc}</p>
-                {!achievement.unlocked && (
-                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{ width: `${achievement.progress}%` }}
-                    ></div>
+                <div className="text-2xl text-center mb-1">{a.icon}</div>
+                <p className={`text-xs font-bold text-center ${a.unlocked ? 'text-amber-500' : dm ? 'text-slate-500' : 'text-slate-400'}`}>{a.name}</p>
+                <p className={`text-[10px] text-center mt-0.5 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>{a.desc}</p>
+                {!a.unlocked && (
+                  <div className={`h-1 rounded-full mt-2 overflow-hidden ${dm ? 'bg-[#334155]' : 'bg-slate-200'}`}>
+                    <div className="h-full rounded-full" style={{ width: `${a.progress}%`, background: 'linear-gradient(90deg, #2563EB, #7C3AED)' }} />
                   </div>
                 )}
               </div>
@@ -3166,55 +3053,48 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
           </div>
         </div>
 
-        {/* Historial */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h3 className="text-white font-semibold mb-4 text-sm sm:text-base">📋 Historial Reciente</h3>
+        {/* HISTORIAL */}
+        <div className={cardClass}>
+          <p className={`text-sm font-bold mb-3 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Historial reciente
+          </p>
           {totalExams > 0 ? (
             <div className="space-y-2">
-              {examHistory.slice(0, 10).map((e, i) => (
-                <div key={i} className="bg-white/5 rounded-lg p-3 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${
-                      parseFloat(e.percentage) >= 80 ? 'bg-green-500' :
-                      parseFloat(e.percentage) >= 50 ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}></div>
-                    <span className="text-gray-300 text-xs sm:text-sm">
-                      {new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
-                    </span>
+              {examHistory.slice(0, 8).map((e, i) => {
+                const pct = parseFloat(e.percentage);
+                const color = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+                return (
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl
+                    ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                      <span className={`text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{e.numQuestions || 0} preg.</span>
+                      <span className="font-bold text-sm" style={{ color }}>{e.percentage}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-xs">{e.numQuestions || 0}p</span>
-                    <span className={`font-bold text-sm sm:text-base ${
-                      parseFloat(e.percentage) >= 80 ? 'text-green-400' :
-                      parseFloat(e.percentage) >= 50 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {e.percentage}%
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="text-4xl sm:text-5xl mb-3">📝</div>
-              <p className="text-gray-400 font-medium text-sm sm:text-base">No has hecho exámenes aún</p>
-              <p className="text-gray-600 text-xs sm:text-sm mt-1">¡Haz tu primer examen para empezar!</p>
+            <div className="text-center py-10">
+              <p className="text-4xl mb-2">📝</p>
+              <p className={`text-sm font-semibold ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Sin exámenes aún</p>
+              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>¡Haz tu primer examen!</p>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
-}
 
-// ============================================================================
-// HEATMAP SCREEN - MAPA DE CALOR COGNITIVO
-// ============================================================================
-
-function HeatmapScreen({ themes, onNavigate }) {
-  // Calcular estadísticas por tema
+function HeatmapScreen({ themes, onNavigate, darkMode }) {
+  const dm = darkMode;
   const themeStats = themes.map(theme => {
     const questions = theme.questions || [];
     const total = questions.length;
@@ -3222,145 +3102,109 @@ function HeatmapScreen({ themes, onNavigate }) {
     const errors = questions.reduce((sum, q) => sum + (q.errors || 0), 0);
     const attempts = questions.reduce((sum, q) => sum + (q.attempts || 0), 0);
     const errorRate = attempts > 0 ? (errors / attempts) * 100 : 0;
-    
-    return {
-      number: theme.number,
-      name: theme.name,
-      total,
-      attempted,
-      errors,
-      attempts,
-      errorRate: Math.round(errorRate)
-    };
-  }).filter(t => t.attempts > 0); // Solo temas con intentos
+    return { number: theme.number, name: theme.name, total, attempted, errors, attempts, errorRate: Math.round(errorRate) };
+  }).filter(t => t.attempts > 0);
 
-  // Ordenar por tasa de error (descendente)
   const sortedByError = [...themeStats].sort((a, b) => b.errorRate - a.errorRate);
   const top10Critical = sortedByError.slice(0, 10);
 
-  // Función para obtener color según error rate
   const getHeatColor = (errorRate) => {
-    if (errorRate >= 70) return 'bg-red-500 text-white';
-    if (errorRate >= 50) return 'bg-orange-500 text-white';
-    if (errorRate >= 30) return 'bg-yellow-500 text-black';
-    if (errorRate >= 10) return 'bg-green-500 text-white';
-    return 'bg-blue-500 text-white';
+    if (errorRate >= 70) return { bg: '#EF4444', text: 'white' };
+    if (errorRate >= 50) return { bg: '#F97316', text: 'white' };
+    if (errorRate >= 30) return { bg: '#F59E0B', text: 'white' };
+    if (errorRate >= 10) return { bg: '#10B981', text: 'white' };
+    return { bg: '#2563EB', text: 'white' };
   };
 
-  const getHeatLabel = (errorRate) => {
-    if (errorRate >= 70) return 'Crítico';
-    if (errorRate >= 50) return 'Difícil';
-    if (errorRate >= 30) return 'Medio';
-    if (errorRate >= 10) return 'Bien';
-    return 'Excelente';
-  };
+  const cardClass = `rounded-2xl p-5 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-6" style={{ paddingBottom: '200px' }}>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+      style={{ paddingBottom: '100px' }}>
+
+      {/* HEADER */}
+      <div className={`sticky top-0 z-10 px-4 pt-12 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`}>
+        <div className="flex items-center gap-3 max-w-lg mx-auto">
+          <button onClick={() => onNavigate('home')}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}>
             <Icons.ChevronLeft />
           </button>
-          <h1 className="text-white font-bold text-xl sm:text-2xl">Mapa de Calor</h1>
+          <h1 className={`font-bold text-xl ${dm ? 'text-slate-100' : 'text-slate-800'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Mapa de Calor
+          </h1>
         </div>
+      </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h2 className="text-white font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
-            🔥 Top 10 Temas Críticos
-          </h2>
-          {top10Critical.length > 0 ? (
-            <div className="space-y-2 sm:space-y-3">
-              {top10Critical.map((stat, idx) => (
-                <div key={stat.number} className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-400 min-w-[40px] sm:min-w-[50px]">#{idx + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1 sm:mb-2 gap-2">
-                        <h3 className="text-white font-semibold text-sm sm:text-base truncate">Tema {stat.number}</h3>
-                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${getHeatColor(stat.errorRate)}`}>
-                          {stat.errorRate}%
-                        </span>
-                      </div>
-                      <p className="text-gray-300 text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-1">{stat.name}</p>
-                      <div className="flex gap-2 sm:gap-4 text-xs flex-wrap">
-                        <span className="text-gray-400">
-                          {stat.errors}/{stat.attempts} errores
-                        </span>
-                        <span className="text-gray-400">
-                          {stat.attempted}/{stat.total} preguntas vistas
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📊</div>
-              <p className="text-gray-400">Completa exámenes para ver tu mapa de calor</p>
-            </div>
-          )}
-        </div>
+      <div className="px-4 max-w-lg mx-auto space-y-4">
 
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h2 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Vista General por Tema</h2>
-          {/* Grid adaptativo: 6 cols en móvil, 9 en tablet, 10 en desktop */}
-          <div className="grid grid-cols-6 sm:grid-cols-9 lg:grid-cols-10 gap-1.5 sm:gap-2">
+        {/* GRID DE TEMAS */}
+        <div className={cardClass}>
+          <p className={`text-sm font-bold mb-4 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            Vista general · {themes.length} temas
+          </p>
+          <div className="grid grid-cols-9 gap-1.5">
             {themes.map(theme => {
               const stat = themeStats.find(s => s.number === theme.number);
-              const errorRate = stat ? stat.errorRate : 0;
               const hasData = stat && stat.attempts > 0;
-              
+              const colors = hasData ? getHeatColor(stat.errorRate) : null;
               return (
-                <div
-                  key={theme.number}
-                  className={`aspect-square rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all cursor-pointer hover:scale-110 active:scale-95 ${
-                    hasData ? getHeatColor(errorRate) : 'bg-gray-700 text-gray-500'
-                  }`}
-                  title={`Tema ${theme.number}: ${theme.name} - ${errorRate}% error`}
-                >
+                <div key={theme.number}
+                  className={`aspect-square rounded-lg flex items-center justify-center text-[9px] font-bold transition-all hover:scale-110 active:scale-95 cursor-default`}
+                  style={hasData ? { background: colors.bg, color: colors.text } : { background: dm ? '#1E293B' : '#E2E8F0', color: dm ? '#475569' : '#94A3B8' }}
+                  title={`Tema ${theme.number}: ${theme.name}${hasData ? ` - ${stat.errorRate}% error` : ''}`}>
                   {theme.number}
                 </div>
               );
             })}
           </div>
-          
-          {/* Leyenda responsive */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-4 sm:mt-6">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-blue-500"></div>
-              <span className="text-[10px] sm:text-xs text-gray-400">Excelente</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-500"></div>
-              <span className="text-[10px] sm:text-xs text-gray-400">Bien</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-yellow-500"></div>
-              <span className="text-[10px] sm:text-xs text-gray-400">Medio</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-500"></div>
-              <span className="text-[10px] sm:text-xs text-gray-400">Difícil</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-red-500"></div>
-              <span className="text-[10px] sm:text-xs text-gray-400">Crítico</span>
-            </div>
+          {/* Leyenda */}
+          <div className="flex flex-wrap gap-3 mt-4">
+            {[['#2563EB','Excelente'],['#10B981','Bien'],['#F59E0B','Medio'],['#F97316','Difícil'],['#EF4444','Crítico']].map(([c, l]) => (
+              <div key={l} className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm" style={{ background: c }} />
+                <span className={`text-[10px] ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{l}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h3 className="text-blue-400 font-semibold mb-2 sm:mb-3 text-sm sm:text-base">💡 ¿Cómo usar el mapa de calor?</h3>
-          <ul className="text-gray-300 text-xs sm:text-sm space-y-1.5 sm:space-y-2">
-            <li>• <span className="text-red-400 font-semibold">Rojo</span>: Temas que necesitas repasar urgentemente</li>
-            <li>• <span className="text-yellow-500 font-semibold">Amarillo</span>: Temas que requieren más práctica</li>
-            <li>• <span className="text-green-400 font-semibold">Verde</span>: Temas que dominas bien</li>
-            <li>• <span className="text-gray-400 font-semibold">Gris</span>: Temas sin datos todavía</li>
-          </ul>
+        {/* TOP 10 CRÍTICOS */}
+        <div className={cardClass}>
+          <p className={`text-sm font-bold mb-3 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+            🔥 Top críticos
+          </p>
+          {top10Critical.length > 0 ? (
+            <div className="space-y-2">
+              {top10Critical.map((stat, idx) => {
+                const colors = getHeatColor(stat.errorRate);
+                return (
+                  <div key={stat.number} className={`flex items-center gap-3 p-3 rounded-xl ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+                    <span className={`text-lg font-black w-7 text-center ${dm ? 'text-slate-600' : 'text-slate-300'}`}>#{idx+1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold truncate ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
+                        T{stat.number} · {stat.name}
+                      </p>
+                      <p className={`text-[10px] mt-0.5 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>
+                        {stat.errors}/{stat.attempts} errores
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                      style={{ background: colors.bg }}>
+                      {stat.errorRate}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-4xl mb-2">📊</p>
+              <p className={`text-sm font-semibold ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Sin datos aún</p>
+              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>Completa exámenes para ver el mapa</p>
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );
@@ -3370,272 +3214,207 @@ function HeatmapScreen({ themes, onNavigate }) {
 // SETTINGS SCREEN
 // ============================================================================
 
-function SettingsScreen({ onNavigate }) {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+function SettingsScreen({ onNavigate, darkMode, onToggleDark }) {
+  const dm = darkMode;
+  const [profile, setProfile] = useState({
+    name: '',
+    examName: '',
+    numThemes: 90,
+    penaltySystem: 'classic'
+  });
   const [notifications, setNotifications] = useState(false);
+  const [saved, setSaved] = useState(false);
 
+  // Cargar perfil sin bloquear - NO usa loading state
   useEffect(() => {
     (async () => {
-      const p = await storage.get('user-profile');
-      const savedProfile = p || {
-        name: 'Usuario',
-        examName: 'Mi Oposición',
-        numThemes: 90,
-        penaltySystem: 'classic'
-      };
-      setProfile(savedProfile);
-      setDarkMode(savedProfile.darkMode || false);
-      setNotifications(savedProfile.notifications || false);
-      setLoading(false);
+      try {
+        const p = await storage.get('user-profile');
+        if (p) {
+          setProfile(p);
+          setNotifications(p.notifications || false);
+        }
+      } catch (e) {
+        // En modo demo, storage puede fallar - continuar con defaults
+        console.log('Settings: usando valores por defecto');
+      }
     })();
   }, []);
 
   const handleSave = async () => {
-    const updatedProfile = {
-      ...profile,
-      darkMode,
-      notifications
-    };
-    await storage.set('user-profile', updatedProfile);
-    alert('✅ Configuración guardada correctamente');
-  };
-
-  const handleExportToExcel = async () => {
     try {
-      // Obtener todos los temas con preguntas
-      const allThemes = await storage.get('pasaeltest-themes');
-      if (!allThemes || allThemes.length === 0) {
-        alert('❌ No hay temas para exportar');
-        return;
-      }
-
-      // Contar preguntas totales
-      let totalQuestions = 0;
-      allThemes.forEach(theme => {
-        totalQuestions += theme.questions?.length || 0;
-      });
-
-      if (totalQuestions === 0) {
-        alert('❌ No hay preguntas generadas para exportar');
-        return;
-      }
-
-      // Crear CSV (Excel compatible)
-      let csvContent = "Tema,Número Tema,Pregunta,Opción A,Opción B,Opción C,Correcta,Dificultad,Explicación\n";
-      
-      allThemes.forEach(theme => {
-        if (theme.questions && theme.questions.length > 0) {
-          theme.questions.forEach(q => {
-            const row = [
-              `"${theme.name}"`,
-              theme.number,
-              `"${q.text}"`,
-              `"${q.options[0] || ''}"`,
-              `"${q.options[1] || ''}"`,
-              `"${q.options[2] || ''}"`,
-              q.correct === 0 ? 'A' : q.correct === 1 ? 'B' : 'C',
-              q.difficulty || 'media',
-              `"${q.explanation || ''}"`
-            ].join(',');
-            csvContent += row + "\n";
-          });
-        }
-      });
-
-      // Crear blob y descargar
-      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `opositia_preguntas_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      alert(`✅ ${totalQuestions} preguntas exportadas correctamente\n\nArchivo: opositia_preguntas_${new Date().toISOString().split('T')[0]}.csv`);
-    } catch (error) {
-      console.error('Error exportando:', error);
-      alert('❌ Error al exportar. Intenta de nuevo.');
+      const updatedProfile = { ...profile, darkMode: dm, notifications };
+      await storage.set('user-profile', updatedProfile);
+    } catch (e) {
+      console.log('Settings: no se pudo guardar en storage');
     }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Cargando...</div>
-      </div>
-    );
-  }
+  const inputClass = `w-full rounded-xl px-4 py-3 text-sm outline-none transition-all
+    ${dm
+      ? 'bg-[#1E293B] border border-[#334155] text-slate-100 focus:border-blue-500'
+      : 'bg-[#F8FAFF] border border-slate-200 text-slate-800 focus:border-blue-500'
+    }`;
+
+  const cardClass = `rounded-2xl p-5 space-y-4
+    ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
+
+  const labelClass = `text-xs font-semibold uppercase tracking-wide mb-1.5 block
+    ${dm ? 'text-slate-400' : 'text-slate-500'}`;
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900'} p-4 sm:p-6" style={{ paddingBottom: '200px' }} transition-colors duration-300`}>
-      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+      style={{ paddingBottom: '100px' }}>
+
+      {/* HEADER */}
+      <div className={`sticky top-0 z-10 px-4 pt-12 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`}>
+        <div className="flex items-center gap-3 max-w-lg mx-auto">
+          <button
+            onClick={() => onNavigate('home')}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all
+              ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}
+          >
             <Icons.ChevronLeft />
           </button>
-          <h1 className="text-white font-bold text-xl sm:text-2xl">Configuración</h1>
+          <div>
+            <h1 className={`font-bold text-xl ${dm ? 'text-slate-100' : 'text-slate-800'}`}
+              style={{ fontFamily: 'Sora, system-ui' }}>
+              Ajustes
+            </h1>
+          </div>
         </div>
+      </div>
+
+      <div className="px-4 max-w-lg mx-auto space-y-4">
 
         {/* PERFIL */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4">
-          <div>
-            <h2 className="text-white font-semibold text-base sm:text-lg mb-1">👤 Perfil</h2>
-            <p className="text-gray-400 text-xs sm:text-sm">Personaliza tu información</p>
+        <div className={cardClass}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">👤</span>
+            <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
+              style={{ fontFamily: 'Sora, system-ui' }}>Perfil</h2>
           </div>
-          
+
           <div>
-            <label className="text-gray-300 text-sm mb-2 block">Tu nombre</label>
-            <input
-              type="text"
-              value={profile.name || ''}
+            <label className={labelClass}>Nombre</label>
+            <input type="text" value={profile.name || ''} placeholder="Tu nombre"
               onChange={(e) => setProfile({...profile, name: e.target.value})}
-              placeholder="¿Cómo te llamas?"
-              className="w-full bg-white/5 text-white rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors text-sm sm:text-base"
-            />
+              className={inputClass} />
           </div>
 
           <div>
-            <label className="text-gray-300 text-sm mb-2 block">Oposición que estudias</label>
-            <input
-              type="text"
-              value={profile.examName || ''}
+            <label className={labelClass}>Oposición</label>
+            <input type="text" value={profile.examName || ''} placeholder="Ej: Guardia Civil, Administrativo..."
               onChange={(e) => setProfile({...profile, examName: e.target.value})}
-              placeholder="Ej: Guardia Civil, Administrativo Estado..."
-              className="w-full bg-white/5 text-white rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors text-sm sm:text-base"
-            />
-            <p className="text-gray-500 text-xs mt-1">Esto aparecerá en tu pantalla principal</p>
+              className={inputClass} />
           </div>
 
           <div>
-            <label className="text-gray-300 text-sm mb-2 block">Número de temas</label>
-            <input
-              type="number"
-              min="1"
-              max="200"
-              value={profile.numThemes || 90}
+            <label className={labelClass}>Número de temas</label>
+            <input type="number" min="1" max="200" value={profile.numThemes || 90}
               onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (value >= 1 && value <= 200) {
-                  setProfile({...profile, numThemes: value});
-                }
+                const v = parseInt(e.target.value);
+                if (v >= 1 && v <= 200) setProfile({...profile, numThemes: v});
               }}
-              className="w-full bg-white/5 text-white rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors text-sm sm:text-base"
-              placeholder="Ej: 90"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              Introduce el número de temas de tu oposición (entre 1 y 200)
-            </p>
+              className={inputClass} />
           </div>
 
           <div>
-            <label className="text-gray-300 text-sm mb-2 block">Sistema de penalización</label>
-            <select
-              value={profile.penaltySystem || 'classic'}
+            <label className={labelClass}>Sistema de penalización</label>
+            <select value={profile.penaltySystem || 'classic'}
               onChange={(e) => setProfile({...profile, penaltySystem: e.target.value})}
-              className="w-full bg-white/5 text-white rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors text-sm sm:text-base"
-            >
-              <option value="classic">Clásico: Cada 3 incorrectas resta 1</option>
-              <option value="each2">Cada 2 incorrectas resta 1</option>
-              <option value="each4">Cada 4 incorrectas resta 1</option>
-              <option value="none">Sin penalización</option>
+              className={inputClass}>
+              <option value="classic" className="bg-slate-800 text-white">Clásico: 3 incorrectas = -1</option>
+              <option value="each2" className="bg-slate-800 text-white">Estricto: 2 incorrectas = -1</option>
+              <option value="each4" className="bg-slate-800 text-white">Permisivo: 4 incorrectas = -1</option>
+              <option value="none" className="bg-slate-800 text-white">Sin penalización</option>
             </select>
-            <p className="text-gray-500 text-xs mt-1">
-              {profile.penaltySystem === 'classic' && '3 fallos = -1 punto (estándar oposiciones)'}
-              {profile.penaltySystem === 'each2' && '2 fallos = -1 punto (más estricto)'}
-              {profile.penaltySystem === 'each4' && '4 fallos = -1 punto (más permisivo)'}
-              {profile.penaltySystem === 'none' && 'Solo cuentan los aciertos'}
-            </p>
           </div>
         </div>
 
         {/* APARIENCIA */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4">
-          <div>
-            <h2 className="text-white font-semibold text-base sm:text-lg mb-1">🎨 Apariencia</h2>
-            <p className="text-gray-400 text-xs sm:text-sm">Personaliza la interfaz</p>
+        <div className={cardClass}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">🎨</span>
+            <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
+              style={{ fontFamily: 'Sora, system-ui' }}>Apariencia</h2>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+
+          <div className={`flex items-center justify-between p-3 rounded-xl
+            ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
             <div>
-              <span className="text-white text-sm sm:text-base font-medium">Modo oscuro</span>
-              <p className="text-gray-400 text-xs">Reduce la fatiga visual</p>
+              <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Modo oscuro</p>
+              <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Reduce la fatiga visual</p>
             </div>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${darkMode ? 'bg-blue-500' : 'bg-gray-600'}`}
-            >
-              <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-7' : ''}`}></div>
+            <button onClick={onToggleDark}
+              className={`relative w-12 h-6 rounded-full transition-all duration-300
+                ${dm ? 'bg-blue-500' : 'bg-slate-300'}`}>
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300
+                ${dm ? 'translate-x-6' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* NOTIFICACIONES */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4">
-          <div>
-            <h2 className="text-white font-semibold text-base sm:text-lg mb-1">🔔 Notificaciones</h2>
-            <p className="text-gray-400 text-xs sm:text-sm">Mantente al día con tu estudio</p>
+        <div className={cardClass}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">🔔</span>
+            <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
+              style={{ fontFamily: 'Sora, system-ui' }}>Notificaciones</h2>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+
+          <div className={`flex items-center justify-between p-3 rounded-xl
+            ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
             <div>
-              <span className="text-white text-sm sm:text-base font-medium">Recordatorios diarios</span>
-              <p className="text-gray-400 text-xs">Te avisaremos para estudiar</p>
+              <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Recordatorio diario</p>
+              <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Recordatorio a las 20:00h</p>
             </div>
-            <button
-              onClick={() => setNotifications(!notifications)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${notifications ? 'bg-green-500' : 'bg-gray-600'}`}
-            >
-              <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${notifications ? 'translate-x-7' : ''}`}></div>
+            <button onClick={() => setNotifications(!notifications)}
+              className={`relative w-12 h-6 rounded-full transition-all duration-300
+                ${notifications ? 'bg-green-500' : dm ? 'bg-slate-700' : 'bg-slate-300'}`}>
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300
+                ${notifications ? 'translate-x-6' : ''}`} />
             </button>
           </div>
-          {notifications && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-              <p className="text-green-400 text-xs sm:text-sm">✅ Recibirás un recordatorio diario a las 20:00h</p>
-            </div>
-          )}
         </div>
-
-        {/* EXPORTAR DATOS */}
-        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 space-y-4">
-          <div>
-            <h2 className="text-white font-semibold text-base sm:text-lg mb-1">📊 Exportar Datos</h2>
-            <p className="text-gray-400 text-xs sm:text-sm">Descarga tus preguntas generadas</p>
-          </div>
-          
-          <button
-            onClick={handleExportToExcel}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <span className="text-lg">📥</span>
-            Exportar Preguntas a Excel (.csv)
-          </button>
-          <p className="text-gray-500 text-xs text-center">
-            El archivo se puede abrir en Excel, Google Sheets o cualquier editor de hojas de cálculo
-          </p>
-        </div>
-
-        {/* BOTÓN GUARDAR */}
-        <button
-          onClick={handleSave}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all active:scale-[0.98] text-sm sm:text-base shadow-lg"
-        >
-          💾 Guardar Todos los Cambios
-        </button>
 
         {/* INFO */}
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <h3 className="text-blue-400 font-semibold mb-2 text-sm sm:text-base">💡 Sobre PasaElTest</h3>
-          <ul className="text-gray-300 text-xs sm:text-sm space-y-1.5 sm:space-y-2">
-            <li>• <strong>Versión:</strong> 2.2 Full Features</li>
-            <li>• <strong>Preguntas por generación:</strong> 25</li>
-            <li>• <strong>Almacenamiento:</strong> Nube (persistente)</li>
-            <li>• <strong>Búsquedas IA:</strong> Web search integrado</li>
-          </ul>
+        <div className={cardClass}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">💡</span>
+            <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
+              style={{ fontFamily: 'Sora, system-ui' }}>Sobre PasaElTest</h2>
+          </div>
+          <div className="space-y-2">
+            {[
+              ['Versión', '2.3 Redesign'],
+              ['Generación', 'Análisis inteligente Fase 2'],
+              ['Almacenamiento', 'Nube (Supabase)'],
+              ['IA', 'Gemini 2.0 Flash'],
+            ].map(([k, v]) => (
+              <div key={k} className="flex justify-between items-center">
+                <span className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{k}</span>
+                <span className={`text-xs font-semibold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{v}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* GUARDAR */}
+        <button onClick={handleSave}
+          className="w-full py-4 rounded-2xl text-white font-bold text-sm transition-all active:scale-[0.98]"
+          style={{ 
+            background: saved 
+              ? '#10B981'
+              : 'linear-gradient(135deg, #2563EB, #7C3AED)',
+            boxShadow: '0 4px 20px rgba(37,99,235,0.3)',
+            fontFamily: 'Sora, system-ui'
+          }}>
+          {saved ? '✅ ¡Guardado!' : '💾 Guardar cambios'}
+        </button>
+
       </div>
     </div>
   );
