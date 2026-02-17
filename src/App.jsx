@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase, authHelpers, dbHelpers } from './supabaseClient';
 import { chunkDocument, estimateQuestions, formatEstimatedTime } from './utils/textChunking';
 import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate } from './utils/questionImporter';
+import { analyzeDocument, determineQuestionTypes } from './utils/documentAnalyzer';
+import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from './utils/optimizedPrompts';
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN
@@ -910,17 +912,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `Proporciona información completa y detallada sobre: "${theme.name}" para preparar una oposición en España.
-
-INSTRUCCIONES:
-1. Incluye normativa oficial relevante (leyes, BOE, artículos)
-2. Enfócate en contenido esencial para oposiciones
-3. Estructura: conceptos clave, normativa, procedimientos, datos importantes
-4. Proporciona información precisa y actualizada
-
-Tema específico: ${searchQuery}
-
-Genera un documento completo con toda la información relevante para estudiar este tema de oposición.`,
+          prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name),
           maxTokens: 4000
         })
       });
@@ -1041,96 +1033,12 @@ Genera un documento completo con toda la información relevante para estudiar es
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `Eres un experto creador de preguntas tipo test para oposiciones sobre "${theme.name}".
-
-Tu objetivo: Crear ${numToGenerate} preguntas de máxima calidad, precisión y utilidad.
-
-═══════════════════════════════════════════════════════════════════════
-📚 CONTENIDO FUENTE (USA SOLO ESTA INFORMACIÓN):
-${documentContents.substring(0, 35000)}
-═══════════════════════════════════════════════════════════════════════
-
-${existingQuestions.length > 0 ? `
-🚫 PREGUNTAS YA EXISTENTES - NO REPETIR NI REFORMULAR:
-${existingQuestions}
-
-⚠️ OBLIGATORIO: Cubre aspectos COMPLETAMENTE DIFERENTES del contenido.
-` : ''}
-
-═══════════════════════════════════════════════════════════════════════
-🎯 CRITERIOS DE CALIDAD OBLIGATORIOS:
-═══════════════════════════════════════════════════════════════════════
-
-1. PRECISIÓN ABSOLUTA:
-   ✓ Solo datos EXACTOS del contenido proporcionado
-   ✓ Cita artículos/números/fechas LITERALMENTE como aparecen
-   ✓ NUNCA inventes, supongas o aproximes información
-   ✓ Si no estás 100% seguro de un dato, NO crees pregunta sobre eso
-
-2. INFORMACIÓN VERIFICABLE:
-   ✓ Cada pregunta debe tener respuesta clara en el contenido
-   ✓ Números, fechas, porcentajes: EXACTOS del texto fuente
-   ✓ Nombres propios: escritura exacta del documento
-   ✓ Artículos de ley: numeración precisa
-
-3. OPCIONES PLAUSIBLES:
-   ✓ Opciones incorrectas deben ser realistas (no absurdas)
-   ✓ Usa datos reales del contenido para opciones falsas
-   ✓ Diferencias sutiles entre opciones (típico de oposiciones)
-   ✓ Longitud similar en todas las opciones
-
-4. TIPOS DE PREGUNTAS EFECTIVAS:
-   ✓ Conceptos clave y definiciones técnicas
-   ✓ Artículos específicos y su contenido exacto
-   ✓ Diferencias entre conceptos similares
-   ✓ Plazos, procedimientos, requisitos
-   ✓ Excepciones y casos especiales
-   ✓ Fechas de vigencia, modificaciones
-
-5. EVITAR:
-   ✗ Preguntas triviales o demasiado genéricas
-   ✗ Datos que no aparecen en el contenido
-   ✗ Interpretaciones o deducciones tuyas
-   ✗ Negaciones dobles ("no es incorrecto que...")
-   ✗ Opciones obviamente falsas
-
-═══════════════════════════════════════════════════════════════════════
-📝 FORMATO DE RESPUESTA (JSON PURO - SIN TEXTO ADICIONAL):
-═══════════════════════════════════════════════════════════════════════
-
-[
-  {
-    "pregunta": "Según el artículo X de [ley], ¿cuál es...?",
-    "opciones": [
-      "Opción A con datos específicos",
-      "Opción B con datos específicos", 
-      "Opción C con datos específicos"
-    ],
-    "correcta": 0,
-    "dificultad": "media"
-  }
-]
-
-DIFICULTADES:
-- "fácil": Definiciones básicas, conceptos directos
-- "media": Aplicación de conceptos, artículos específicos
-- "difícil": Casos complejos, diferencias sutiles, excepciones
-
-DISTRIBUCIÓN: 30% fácil, 50% media, 20% difícil
-
-═══════════════════════════════════════════════════════════════════════
-✅ CHECKLIST ANTES DE RESPONDER:
-═══════════════════════════════════════════════════════════════════════
-
-□ Todas las preguntas tienen respuesta VERIFICABLE en el contenido
-□ Todos los datos (números, fechas, nombres) son EXACTOS
-□ Opciones incorrectas son PLAUSIBLES, no absurdas
-□ CERO inventos o suposiciones
-□ Cada pregunta aporta valor educativo
-□ JSON válido sin texto adicional
-□ EXACTAMENTE ${numToGenerate} preguntas
-
-Responde SOLO con el JSON de las preguntas.`,
+          prompt: OPTIMIZED_QUESTION_PROMPT(
+            theme.name,
+            numToGenerate,
+            documentContents.substring(0, 35000),
+            existingQuestions
+          ),
           useWebSearch: false,
           maxTokens: 8000
         })
@@ -1302,33 +1210,7 @@ Responde SOLO con el JSON de las preguntas.`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `Genera información completa sobre: "${docContent}" relacionado con el tema de oposiciones "${theme.name}".
-
-Crea un REPOSITORIO ESTRUCTURADO para generar preguntas de examen.
-
-ESTRUCTURA REQUERIDA:
-
-# ${theme.name}
-
-## CONCEPTOS CLAVE
-[Definiciones precisas, terminología técnica]
-
-## NORMATIVA Y LEGISLACIÓN
-[Leyes, artículos, fechas, vigencias]
-
-## DATOS IMPORTANTES
-[Cifras exactas, porcentajes, plazos, umbrales]
-
-## PROCEDIMIENTOS
-[Pasos secuenciales, requisitos, excepciones]
-
-## CASOS PRÁCTICOS
-[Ejemplos de aplicación real]
-
-## PUNTOS CRÍTICOS DE EXAMEN
-[Aspectos frecuentes en tests, diferencias sutiles, confusiones comunes]
-
-Proporciona un documento COMPLETO (mínimo 1500 palabras) con máximo detalle y precisión utilizando tu conocimiento sobre el tema.`,
+          prompt: OPTIMIZED_SEARCH_PROMPT(docContent, theme.name),
           maxTokens: 8000
         })
       });
@@ -1807,11 +1689,11 @@ Proporciona un documento completo con TODA la información del enlace.`,
             
             {showAddDoc && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3">
-                <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10">
-                  <option value="ai-search">🤖 Buscar con IA (Recomendado)</option>
-                  <option value="text">📝 Pegar Texto Directamente</option>
-                  <option value="url">🔗 Enlace Web</option>
-                  <option value="pdf">📄 Subir Archivo (PDF/TXT)</option>
+                <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 border border-white/10">
+                  <option value="ai-search" className="bg-slate-800 text-white">🤖 Buscar con IA (Recomendado)</option>
+                  <option value="text" className="bg-slate-800 text-white">📝 Pegar Texto Directamente</option>
+                  <option value="url" className="bg-slate-800 text-white">🔗 Enlace Web</option>
+                  <option value="pdf" className="bg-slate-800 text-white">📄 Subir Archivo (PDF/TXT)</option>
                 </select>
 
                 {(isSearching || isGeneratingQuestions) && generationProgress && (
@@ -2065,6 +1947,181 @@ Proporciona un documento completo con TODA la información del enlace.`,
                       style={{ width: `${generationPercent}%` }}
                     ></div>
                   </div>
+                </div>
+              )}
+            </div>
+            {/* COMPONENTE DE IMPORTACIÓN DE PREGUNTAS */}
+            <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-2 border-purple-300/30 rounded-xl p-6 mb-4">
+              <h3 className="text-lg font-semibold mb-4 text-purple-300 flex items-center gap-2">
+                📥 Importar Preguntas
+              </h3>
+              
+              {/* Plantillas */}
+              <div className="mb-4 bg-white/5 rounded-lg p-4 border border-white/10">
+                <p className="text-sm font-semibold text-gray-300 mb-2">
+                  📋 Descargar plantillas:
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => downloadExcelTemplate()}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2 text-sm font-medium shadow-sm"
+                  >
+                    📊 Excel (.xlsx)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const template = generatePDFTemplate();
+                      const blob = new Blob([template], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'plantilla_preguntas.txt';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      if (showToast) showToast('📄 Plantilla de texto descargada', 'success');
+                    }}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2 text-sm font-medium shadow-sm"
+                  >
+                    📄 Texto (.txt)
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Descarga la plantilla, rellénala con tus preguntas y súbela abajo
+                </p>
+              </div>
+
+              {/* Input de archivo */}
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <p className="text-sm font-semibold text-gray-300 mb-2">
+                  📂 Subir archivo con preguntas:
+                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.txt"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    try {
+                      setIsGeneratingQuestions(true);
+                      setGenerationProgress('📥 Leyendo archivo...');
+                      setGenerationPercent(10);
+
+                      let questions;
+                      
+                      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        setGenerationProgress('📊 Procesando Excel...');
+                        setGenerationPercent(30);
+                        questions = await parseExcelQuestions(file);
+                      } else if (file.name.endsWith('.txt')) {
+                        setGenerationProgress('📄 Procesando texto...');
+                        setGenerationPercent(30);
+                        const text = await file.text();
+                        questions = await parsePDFQuestions(text);
+                      } else {
+                        throw new Error('Formato no soportado. Usa .xlsx o .txt');
+                      }
+
+                      if (!questions || questions.length === 0) {
+                        throw new Error('No se encontraron preguntas válidas en el archivo');
+                      }
+
+                      setGenerationProgress('✓ Validando preguntas...');
+                      setGenerationPercent(70);
+
+                      const validQuestions = questions.filter(q => {
+                        return q.text && 
+                               q.text.length > 10 && 
+                               Array.isArray(q.options) && 
+                               q.options.length === 3 &&
+                               q.correct >= 0 && 
+                               q.correct <= 2;
+                      });
+
+                      if (validQuestions.length === 0) {
+                        throw new Error('Ninguna pregunta pasó la validación. Revisa el formato.');
+                      }
+
+                      if (validQuestions.length < questions.length) {
+                        const invalid = questions.length - validQuestions.length;
+                        if (showToast) {
+                          showToast(
+                            `⚠️ ${invalid} pregunta${invalid > 1 ? 's' : ''} no válida${invalid > 1 ? 's' : ''} (formato incorrecto)`,
+                            'warning'
+                          );
+                        }
+                      }
+
+                      setGenerationProgress('💾 Guardando preguntas...');
+                      setGenerationPercent(90);
+
+                      const updatedTheme = {
+                        ...theme,
+                        questions: [...(theme.questions || []), ...validQuestions]
+                      };
+                      onUpdate(updatedTheme);
+                      
+                      setGenerationProgress(`✅ ${validQuestions.length} preguntas importadas`);
+                      setGenerationPercent(100);
+
+                      if (showToast) {
+                        showToast(
+                          `✅ ${validQuestions.length} pregunta${validQuestions.length > 1 ? 's' : ''} importada${validQuestions.length > 1 ? 's' : ''} exitosamente`,
+                          'success'
+                        );
+                      }
+
+                      setTimeout(() => {
+                        setIsGeneratingQuestions(false);
+                        setGenerationProgress('');
+                        setGenerationPercent(0);
+                      }, 2000);
+
+                    } catch (error) {
+                      console.error('Error importando preguntas:', error);
+                      
+                      setGenerationProgress(`❌ Error: ${error.message}`);
+                      
+                      if (showToast) {
+                        showToast(`❌ Error: ${error.message}`, 'error');
+                      }
+
+                      setTimeout(() => {
+                        setIsGeneratingQuestions(false);
+                        setGenerationProgress('');
+                        setGenerationPercent(0);
+                      }, 3000);
+                    }
+                    
+                    e.target.value = '';
+                  }}
+                  className="block w-full text-sm text-gray-300
+                             file:mr-4 file:py-2.5 file:px-4 
+                             file:rounded-lg file:border-0 
+                             file:text-sm file:font-semibold 
+                             file:bg-purple-500/20 file:text-purple-300 
+                             hover:file:bg-purple-500/30 
+                             file:cursor-pointer file:transition
+                             cursor-pointer border-2 border-dashed border-purple-400/30 rounded-lg p-3
+                             hover:border-purple-400/50 transition"
+                />
+                
+                <div className="mt-3 bg-blue-500/10 border border-blue-400/30 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-300 mb-1">
+                    📝 Formatos soportados:
+                  </p>
+                  <ul className="text-xs text-blue-200 space-y-1">
+                    <li>• <strong>Excel (.xlsx, .xls):</strong> Columnas: Pregunta | Opción A | Opción B | Opción C | Correcta | Dificultad</li>
+                    <li>• <strong>Texto (.txt):</strong> Formato: PREGUNTA: ... / A) ... / B) ... / C) ... / CORRECTA: A / ---</li>
+                  </ul>
+                </div>
+              </div>
+
+              {theme.questions && theme.questions.length > 0 && (
+                <div className="mt-4 bg-white/5 rounded-lg p-3 border border-white/10">
+                  <p className="text-sm text-gray-300">
+                    📊 Total de preguntas: <strong className="text-purple-300">{theme.questions.length}</strong>
+                  </p>
                 </div>
               )}
             </div>
