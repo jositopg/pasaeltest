@@ -3092,6 +3092,7 @@ function StatsScreen({ examHistory, onNavigate, themes, darkMode }) {
       </div>
     </div>
   );
+}
 
 function HeatmapScreen({ themes, onNavigate, darkMode }) {
   const dm = darkMode;
