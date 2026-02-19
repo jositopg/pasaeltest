@@ -10,23 +10,12 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState('');
   
-  // Wrapper para actualizar tanto el tema global como el selectedTheme
   const handleUpdateTheme = (updatedTheme) => {
-    console.log('🔄 handleUpdateTheme llamado');
-    console.log('📁 Tema actualizado:', updatedTheme);
-    console.log('📁 Tema seleccionado actual:', selectedTheme);
-    
     onUpdateTheme(updatedTheme);
-    console.log('✅ onUpdateTheme llamado');
-    
-    // Cerrar modal temporalmente para forzar refresh
     const wasOpen = selectedTheme !== null;
     if (wasOpen && selectedTheme.number === updatedTheme.number) {
-      console.log('🔄 Cerrando y reabriendo modal...');
       setSelectedTheme(null);
-      // Reabrir con datos actualizados
       setTimeout(() => {
-        console.log('🔄 Reabriendo modal con datos frescos');
         setSelectedTheme(updatedTheme);
       }, 50);
     }
@@ -42,11 +31,6 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
     const updates = [];
     
     lines.forEach(line => {
-      // Soporta formatos:
-      // "1. Nombre del tema"
-      // "Tema 1: Nombre del tema"
-      // "1,Nombre del tema"
-      // "1|Nombre del tema"
       const match = line.match(/(?:Tema\s*)?(\d+)[\s.:,|]+(.+)/i);
       if (match) {
         const number = parseInt(match[1]);
@@ -58,7 +42,6 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
       }
     });
     
-    // Aplicar todos los cambios
     updates.forEach(theme => onUpdateTheme(theme));
     setShowBulkImport(false);
     setBulkText('');
@@ -67,39 +50,48 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
       <div className="max-w-2xl mx-auto space-y-4">
+        {/* Header */}
         <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('home')} className="p-2 bg-white/5 rounded-xl">
+          <button 
+            onClick={() => onNavigate('home')} 
+            className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}
+          >
             <Icons.ChevronLeft />
           </button>
-          <h1 className="text-white font-bold text-2xl flex-1">Temas</h1>
+          <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
           <button 
             onClick={() => setShowBulkImport(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
             <Icons.Plus />
             Importar Nombres
           </button>
         </div>
         
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+        {/* Search */}
+        <div className={`rounded-2xl p-4 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white shadow-sm border border-slate-200'}`}>
           <div className="relative">
             <input 
               type="text" 
               placeholder="Buscar..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
-              className="w-full bg-white/5 text-white rounded-xl px-4 py-3 pl-12 border border-white/10" 
+              className={`w-full rounded-xl px-4 py-3 pl-12 ${
+                dm 
+                  ? 'bg-white/5 text-white border border-white/10 placeholder-gray-500' 
+                  : 'bg-slate-50 text-slate-800 border border-slate-200 placeholder-slate-400'
+              }`} 
             />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${dm ? 'text-gray-400' : 'text-slate-400'}`}>
               <Icons.Search />
             </div>
           </div>
         </div>
         
+        {/* Theme list */}
         <div className="space-y-2">
           {filteredThemes.map(theme => {
             const questionCount = theme.questions?.length || 0;
-            // Progreso basado en hitos: 0-25 (naranja), 25-50 (amarillo), 50+ (verde)
             const progressPercent = Math.min((questionCount / 50) * 100, 100);
             const hasDocuments = theme.documents?.length > 0;
             
@@ -107,45 +99,60 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
               <div 
                 key={theme.number} 
                 onClick={() => setSelectedTheme(theme)} 
-                className="bg-white/5 border border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]"
+                className={`rounded-xl p-4 cursor-pointer transition-all active:scale-[0.98] ${
+                  dm 
+                    ? 'bg-white/5 border border-white/10 hover:bg-white/10' 
+                    : 'bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md shadow-sm'
+                }`}
               >
                 <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold text-sm sm:text-base">Tema {theme.number}</h3>
-                    <p className="text-gray-300 text-xs sm:text-sm mt-1 line-clamp-1">{theme.name}</p>
+                    <h3 className={`font-semibold text-sm sm:text-base ${dm ? 'text-white' : 'text-slate-800'}`}>
+                      Tema {theme.number}
+                    </h3>
+                    <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${dm ? 'text-gray-300' : 'text-slate-500'}`}>
+                      {theme.name}
+                    </p>
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
-                      questionCount >= 50 ? 'bg-green-500/20 text-green-400' :
-                      questionCount >= 25 ? 'bg-yellow-500/20 text-yellow-400' :
-                      questionCount > 0 ? 'bg-orange-500/20 text-orange-400' :
-                      'bg-gray-500/20 text-gray-400'
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
+                      questionCount >= 50 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' 
+                        : questionCount >= 25 
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
+                          : questionCount > 0 
+                            ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
+                            : dm 
+                              ? 'bg-gray-500/20 text-gray-400' 
+                              : 'bg-slate-100 text-slate-500'
                     }`}>
                       {questionCount} pregunta{questionCount !== 1 ? 's' : ''}
                     </span>
                     {hasDocuments && (
-                      <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-xs">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                        dm ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+                      }`}>
                         {theme.documents.length} doc{theme.documents.length !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
                 </div>
                 
-                {/* Barra de progreso */}
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                {/* Progress bar */}
+                <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
                   <div 
                     className={`h-full rounded-full transition-all duration-500 ${
                       progressPercent >= 50 ? 'bg-gradient-to-r from-green-500 to-green-400' :
                       progressPercent >= 25 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
                       progressPercent > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-400' :
-                      'bg-gray-600'
+                      dm ? 'bg-gray-600' : 'bg-slate-200'
                     }`}
                     style={{ width: `${progressPercent}%` }}
                   ></div>
                 </div>
                 
                 {questionCount === 0 && !hasDocuments && (
-                  <p className="text-gray-500 text-xs mt-2">Sin contenido añadido</p>
+                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Sin contenido añadido</p>
                 )}
               </div>
             );
@@ -162,24 +169,31 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
           />
         )}
 
-        {/* Modal de importación masiva */}
+        {/* Bulk import modal */}
         {showBulkImport && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-white/10 rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
-              <div className="sticky top-0 bg-slate-800 p-6 border-b border-white/10 flex items-center justify-between">
+            <div className={`border rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto ${
+              dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
+            }`}>
+              <div className={`sticky top-0 p-6 border-b flex items-center justify-between ${
+                dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
+              }`}>
                 <div>
-                  <h2 className="text-white font-bold text-xl">Importar Nombres de Temas</h2>
-                  <p className="text-gray-400 text-sm mt-1">Pega la lista completa de tus temas</p>
+                  <h2 className={`font-bold text-xl ${dm ? 'text-white' : 'text-slate-800'}`}>Importar Nombres de Temas</h2>
+                  <p className={`text-sm mt-1 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Pega la lista completa de tus temas</p>
                 </div>
-                <button onClick={() => setShowBulkImport(false)} className="bg-white/5 hover:bg-white/10 p-2 rounded-xl">
+                <button 
+                  onClick={() => setShowBulkImport(false)} 
+                  className={`p-2 rounded-xl ${dm ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                >
                   <Icons.X />
                 </button>
               </div>
               
               <div className="p-6 space-y-4">
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                  <h3 className="text-blue-400 font-semibold text-sm mb-2">📝 Formatos aceptados:</h3>
-                  <div className="text-gray-300 text-xs space-y-1 font-mono">
+                <div className={`border rounded-xl p-4 ${dm ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+                  <h3 className="text-blue-600 dark:text-blue-400 font-semibold text-sm mb-2">📝 Formatos aceptados:</h3>
+                  <div className={`text-xs space-y-1 font-mono ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
                     <div>1. Constitución Española</div>
                     <div>Tema 2: Derechos Fundamentales</div>
                     <div>3, Organización Territorial</div>
@@ -188,16 +202,20 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                 </div>
 
                 <div>
-                  <label className="text-gray-300 text-sm mb-2 block font-semibold">
+                  <label className={`text-sm mb-2 block font-semibold ${dm ? 'text-gray-300' : 'text-slate-700'}`}>
                     Pega aquí tu lista (un tema por línea):
                   </label>
                   <textarea
                     value={bulkText}
                     onChange={(e) => setBulkText(e.target.value)}
                     placeholder="1. Constitución Española&#10;2. Derechos Fundamentales&#10;3. Organización Territorial&#10;..."
-                    className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10 font-mono text-sm min-h-[300px] resize-vertical"
+                    className={`w-full rounded-xl px-4 py-3 font-mono text-sm min-h-[300px] resize-vertical ${
+                      dm 
+                        ? 'bg-white/5 text-white border border-white/10' 
+                        : 'bg-slate-50 text-slate-800 border border-slate-200'
+                    }`}
                   />
-                  <p className="text-gray-500 text-xs mt-2">
+                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                     {bulkText.split('\n').filter(l => l.trim()).length} líneas detectadas
                   </p>
                 </div>
@@ -208,14 +226,16 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                       setShowBulkImport(false);
                       setBulkText('');
                     }}
-                    className="flex-1 bg-white/5 text-white font-semibold py-3 rounded-xl"
+                    className={`flex-1 font-semibold py-3 rounded-xl ${
+                      dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleBulkImport}
                     disabled={!bulkText.trim()}
-                    className="flex-1 bg-blue-500 text-white font-semibold py-3 rounded-xl disabled:opacity-50"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50 transition-colors"
                   >
                     Importar Nombres
                   </button>
