@@ -93,7 +93,7 @@ function SettingsScreen({ onNavigate, darkMode, onToggleDark }) {
           </div>
 
           <div>
-            <label className={labelClass}>Oposición</label>
+            <label className={labelClass}>Tipo de examen</label>
             <input type="text" value={profile.examName || ''} placeholder="Ej: Guardia Civil, Administrativo..."
               onChange={(e) => setProfile({...profile, examName: e.target.value})}
               className={inputClass} />

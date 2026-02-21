@@ -13,7 +13,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, darkMode 
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <p className={`text-xs font-semibold uppercase tracking-widest ${dm ? 'text-blue-400' : 'text-blue-600'}`}>
-              {profile?.examName || 'Mi Oposición'}
+              {profile?.examName || 'Mi Examen'}
             </p>
             <h1 className="font-display text-2xl font-bold mt-0.5" style={{ fontFamily: 'Sora, system-ui' }}>
               <span style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>

@@ -118,7 +118,7 @@ function AuthScreen({ onLogin }) {
         <h1 className="text-4xl font-black" style={{ fontFamily: 'Sora, system-ui', background: 'linear-gradient(135deg, #60A5FA, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           PasaElTest
         </h1>
-        <p className="text-slate-500 text-sm mt-1">Tu asistente inteligente de oposiciones</p>
+        <p className="text-slate-500 text-sm mt-1">Tu asistente inteligente de estudio</p>
       </div>
 
       {/* Card */}
@@ -153,15 +153,11 @@ function AuthScreen({ onLogin }) {
                   className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Oposición</label>
-                <select required value={formData.oposicion}
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Tipo de examen</label>
+                <input type="text" required value={formData.oposicion}
                   onChange={(e) => setFormData({...formData, oposicion: e.target.value})}
-                  className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors">
-                  <option value="" className="bg-slate-800">Selecciona tu oposición</option>
-                  {['Guardia Civil','Policía Nacional','Administración General','Justicia','Correos','Hacienda','Educación','Sanidad','Otra'].map(o => (
-                    <option key={o} value={o} className="bg-slate-800">{o}</option>
-                  ))}
-                </select>
+                  placeholder="Ej: Oposición Justicia, Selectividad, Grado Medicina..."
+                  className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
               </div>
             </>
           )}

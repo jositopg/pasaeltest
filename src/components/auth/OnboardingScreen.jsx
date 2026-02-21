@@ -40,7 +40,7 @@ function OnboardingScreen({ user, onComplete }) {
       icon: '🎉'
     },
     {
-      title: 'Configura tu oposición',
+      title: 'Configura tu examen',
       description: 'Cuéntanos más sobre tu proceso de estudio',
       icon: '📚'
     },

@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 // Hooks
 import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
 import useUserData from './hooks/useUserData';
+
+// Utils
+import { getSRSStats, getDueQuestions } from './utils/srs';
 
 // Common components
 import ToastContainer from './components/common/ToastContainer';
@@ -17,6 +20,7 @@ import HomeScreen from './components/home/HomeScreen';
 import ThemesScreen from './components/themes/ThemesScreen';
 import ExamConfigScreen from './components/exam/ExamConfigScreen';
 import ExamScreen from './components/exam/ExamScreen';
+import ReviewScreen from './components/review/ReviewScreen';
 import StatsScreen from './components/stats/StatsScreen';
 import HeatmapScreen from './components/stats/HeatmapScreen';
 import SettingsScreen from './components/settings/SettingsScreen';
@@ -44,6 +48,11 @@ export default function App() {
   const { toasts, showToast, removeToast } = useToast();
   const auth = useAuth();
   const userData = useUserData(auth.isAuthenticated, auth.currentUser);
+
+  // ─── SRS ───────────────────────────────────────────────────
+  const srsStats = useMemo(() => {
+    return getSRSStats(userData.themes);
+  }, [userData.themes]);
 
   // ─── Handlers ──────────────────────────────────────────────
   const handleLogin = (user) => {
@@ -127,6 +136,7 @@ export default function App() {
           user={auth.currentUser}
           onShowProfile={() => setShowUserProfile(true)}
           darkMode={dm}
+          srsStats={srsStats}
         />
       )}
       {screen === 'themes' && (
@@ -153,6 +163,16 @@ export default function App() {
           onFinish={finishExam} 
           onNavigate={setScreen} 
           onUpdateThemes={userData.updateTheme}
+          darkMode={dm}
+        />
+      )}
+      {screen === 'review' && (
+        <ReviewScreen
+          dueQuestions={srsStats.dueQuestions}
+          themes={userData.themes}
+          onUpdateTheme={userData.updateTheme}
+          onNavigate={setScreen}
+          showToast={showToast}
           darkMode={dm}
         />
       )}

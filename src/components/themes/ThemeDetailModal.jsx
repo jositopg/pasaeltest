@@ -103,7 +103,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     setIsAutoGenerating(true);
     setShowAutoGenerate(false);
     
-    const searchQuery = `${theme.name} oposición España temario completo`;
+    const searchQuery = `${theme.name} temario examen completo`;
     
     if (showToast) showToast(`Generando repositorio para "${theme.name}"...`, 'info');
     
