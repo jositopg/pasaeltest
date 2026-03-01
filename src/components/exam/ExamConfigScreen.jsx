@@ -106,7 +106,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, darkMode }) {
                     ? 'bg-blue-500 text-white scale-105 shadow-md' 
                     : dm 
                       ? 'bg-white/5 text-gray-400 hover:bg-white/10' 
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {t.number}

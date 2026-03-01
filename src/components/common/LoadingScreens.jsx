@@ -12,7 +12,7 @@ export const AuthLoadingScreen = ({ darkMode }) => (
       }}>
         PasaElTest
       </div>
-      <p className={`mt-2 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Verificando sesión...</p>
+      <p className={`mt-2 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>Verificando sesión...</p>
     </div>
   </div>
 );

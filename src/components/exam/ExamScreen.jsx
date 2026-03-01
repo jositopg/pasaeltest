@@ -168,7 +168,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, dark
               } else if (isSelected) {
                 buttonClass = 'bg-red-500 text-white border-2 border-red-400';
               } else {
-                buttonClass = dm ? 'bg-white/5 text-gray-500' : 'bg-slate-50 text-slate-400 border border-slate-100';
+                buttonClass = dm ? 'bg-white/5 text-gray-500' : 'bg-slate-50 text-slate-500 border border-slate-200';
               }
             }
             

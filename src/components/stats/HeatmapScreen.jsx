@@ -71,7 +71,7 @@ function HeatmapScreen({ themes, onNavigate, darkMode }) {
             {[['#2563EB','Excelente'],['#10B981','Bien'],['#F59E0B','Medio'],['#F97316','Difícil'],['#EF4444','Crítico']].map(([c, l]) => (
               <div key={l} className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-sm" style={{ background: c }} />
-                <span className={`text-[10px] ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{l}</span>
+                <span className={`text-[10px] ${dm ? 'text-slate-500' : 'text-slate-600'}`}>{l}</span>
               </div>
             ))}
           </div>
@@ -88,12 +88,12 @@ function HeatmapScreen({ themes, onNavigate, darkMode }) {
                 const colors = getHeatColor(stat.errorRate);
                 return (
                   <div key={stat.number} className={`flex items-center gap-3 p-3 rounded-xl ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
-                    <span className={`text-lg font-black w-7 text-center ${dm ? 'text-slate-600' : 'text-slate-300'}`}>#{idx+1}</span>
+                    <span className={`text-lg font-black w-7 text-center ${dm ? 'text-slate-400' : 'text-slate-600'}`}>#{idx+1}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-semibold truncate ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
                         T{stat.number} · {stat.name}
                       </p>
-                      <p className={`text-[10px] mt-0.5 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className={`text-[10px] mt-0.5 ${dm ? 'text-slate-500' : 'text-slate-500'}`}>
                         {stat.errors}/{stat.attempts} errores
                       </p>
                     </div>

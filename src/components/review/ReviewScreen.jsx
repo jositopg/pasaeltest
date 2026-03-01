@@ -194,7 +194,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               } else if (isSelected) {
                 buttonClass = 'bg-red-500 text-white border-2 border-red-400 shadow-lg shadow-red-500/20';
               } else {
-                buttonClass = dm ? 'bg-white/3 text-gray-600 border border-white/5' : 'bg-slate-50 text-slate-400 border border-slate-100';
+                buttonClass = dm ? 'bg-white/3 text-gray-500 border border-white/5' : 'bg-slate-50 text-slate-500 border border-slate-200';
               }
             }
             
@@ -253,7 +253,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
                 <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
                   📊 Dificultad: {(calculateNextReview(q, wasCorrect).srs_difficulty || 5).toFixed(1)}/10
                 </span>
-                <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}>
                   🔄 Próximo repaso: {formatNextReview(calculateNextReview(q, wasCorrect).next_review)}
                 </span>
                 {!wasCorrect && (

@@ -110,7 +110,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                     <h3 className={`font-semibold text-sm sm:text-base ${dm ? 'text-white' : 'text-slate-800'}`}>
                       Tema {theme.number}
                     </h3>
-                    <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${dm ? 'text-gray-300' : 'text-slate-500'}`}>
+                    <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
                       {theme.name}
                     </p>
                   </div>
@@ -124,7 +124,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                             ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
                             : dm 
                               ? 'bg-gray-500/20 text-gray-400' 
-                              : 'bg-slate-100 text-slate-500'
+                              : 'bg-slate-100 text-slate-600'
                     }`}>
                       {questionCount} pregunta{questionCount !== 1 ? 's' : ''}
                     </span>
@@ -152,7 +152,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                 </div>
                 
                 {questionCount === 0 && !hasDocuments && (
-                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Sin contenido añadido</p>
+                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-500'}`}>Sin contenido añadido</p>
                 )}
               </div>
             );

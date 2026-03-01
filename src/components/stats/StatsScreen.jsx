@@ -136,8 +136,8 @@ function StatsScreen({ examHistory, onNavigate, themes, darkMode }) {
                   : dm ? 'bg-[#1E293B] border-[#334155] opacity-50' : 'bg-slate-50 border-slate-200 opacity-50'
                 }`}>
                 <div className="text-2xl text-center mb-1">{a.icon}</div>
-                <p className={`text-xs font-bold text-center ${a.unlocked ? 'text-amber-500' : dm ? 'text-slate-500' : 'text-slate-400'}`}>{a.name}</p>
-                <p className={`text-[10px] text-center mt-0.5 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>{a.desc}</p>
+                <p className={`text-xs font-bold text-center ${a.unlocked ? 'text-amber-500' : dm ? 'text-slate-500' : 'text-slate-600'}`}>{a.name}</p>
+                <p className={`text-[10px] text-center mt-0.5 ${dm ? 'text-slate-500' : 'text-slate-500'}`}>{a.desc}</p>
                 {!a.unlocked && (
                   <div className={`h-1 rounded-full mt-2 overflow-hidden ${dm ? 'bg-[#334155]' : 'bg-slate-200'}`}>
                     <div className="h-full rounded-full" style={{ width: `${a.progress}%`, background: 'linear-gradient(90deg, #2563EB, #7C3AED)' }} />

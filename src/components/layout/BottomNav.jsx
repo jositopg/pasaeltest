@@ -27,7 +27,7 @@ function BottomNav({ current, onNavigate, darkMode }) {
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl min-w-[64px] transition-all duration-200 active:scale-90
                 ${isActive
                   ? 'text-white'
-                  : darkMode ? 'text-slate-600' : 'text-slate-400'
+                  : darkMode ? 'text-slate-500' : 'text-slate-500'
                 }`}
               style={isActive ? {
                 background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
