@@ -24,9 +24,9 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 border border-white/10 rounded-3xl w-full max-w-md">
+      <div className="bg-slate-800 border border-white/10 rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
           <h2 className="text-white font-bold text-xl">Mi Perfil</h2>
           <button onClick={onClose} className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors">
             <Icons.X />
@@ -34,7 +34,7 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto">
           {/* Avatar */}
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-4xl font-bold text-white mb-3">
