@@ -69,17 +69,14 @@ const useUserData = (isAuthenticated, currentUser) => {
           questions: theme.questions || []
         })));
       } else {
-        // Create initial themes in Supabase
+        // Create initial themes in Supabase with a single batch insert
         const initialThemes = createInitialThemes();
-        for (const theme of initialThemes) {
-          await dbHelpers.createTheme(currentUser.id, {
-            number: theme.number,
-            name: theme.name
-          });
-        }
-        const { data: newThemesData } = await dbHelpers.getThemes(currentUser.id);
-        if (newThemesData) {
-          setThemes(newThemesData.map(theme => ({
+        const { data: created, error: createError } = await dbHelpers.createThemesBatch(currentUser.id, initialThemes);
+        if (createError) {
+          console.error('Error creating initial themes:', createError);
+          setThemes(initialThemes);
+        } else if (created) {
+          setThemes(created.map(theme => ({
             id: theme.id,
             number: theme.number,
             name: theme.name,

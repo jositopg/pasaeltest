@@ -65,6 +65,14 @@ export const dbHelpers = {
     return { data, error }
   },
 
+  async createThemesBatch(userId, themesData) {
+    const { data, error } = await supabase
+      .from('themes')
+      .insert(themesData.map(t => ({ user_id: userId, number: t.number, name: t.name })))
+      .select()
+    return { data, error }
+  },
+
   async updateTheme(themeId, updates) {
     const { data, error } = await supabase
       .from('themes')
