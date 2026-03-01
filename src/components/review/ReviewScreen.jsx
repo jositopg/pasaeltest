@@ -10,7 +10,10 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: dueQuestions.length });
   const [sessionComplete, setSessionComplete] = useState(false);
 
-  const questions = dueQuestions;
+  const questions = dueQuestions.map(q => ({
+    ...q,
+    text: q.text || q.pregunta || 'Pregunta sin texto'
+  }));
 
   if (!questions || questions.length === 0) {
     return (
@@ -167,7 +170,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
         {/* Question */}
         <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
           <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${dm ? 'text-white' : 'text-slate-800'}`}>
-            {q.text || q.pregunta}
+            {q.text}
           </p>
           <p className={`text-xs mt-3 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
             {q.themeName || `Tema ${q.themeNumber}`}

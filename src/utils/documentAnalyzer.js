@@ -1,12 +1,14 @@
 /**
  * ANALIZADOR INTELIGENTE DE DOCUMENTOS
- * 
+ *
  * Analiza la estructura de documentos y determina:
  * - Secciones principales
  * - Nivel de importancia de cada sección
  * - Tipo de contenido (normativa, conceptos, ejemplos)
  * - Recomendaciones de número de preguntas
  */
+
+import { DEBUG } from './constants';
 
 /**
  * Detectar tipo de sección basado en el contenido
@@ -246,16 +248,16 @@ export const generateAnalysisReport = (sections) => {
  * Función principal de análisis
  */
 export const analyzeDocument = (text) => {
-  console.log('📊 Analizando estructura del documento...');
-  
+  if (DEBUG) console.log('📊 Analizando estructura del documento...');
+
   const sections = analyzeSections(text);
-  console.log(`✅ ${sections.length} secciones detectadas`);
-  
+  if (DEBUG) console.log(`✅ ${sections.length} secciones detectadas`);
+
   const withDistribution = calculateQuestionDistribution(sections);
-  console.log('✅ Distribución de preguntas calculada');
-  
+  if (DEBUG) console.log('✅ Distribución de preguntas calculada');
+
   const report = generateAnalysisReport(withDistribution);
-  console.log('✅ Reporte generado');
+  if (DEBUG) console.log('✅ Reporte generado');
   
   return {
     sections: withDistribution,

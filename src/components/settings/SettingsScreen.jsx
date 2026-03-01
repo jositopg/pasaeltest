@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
 
-function SettingsScreen({ onNavigate, darkMode, onToggleDark }) {
+function SettingsScreen({ onNavigate, darkMode, onToggleDark, profile: profileProp, onUpdateProfile }) {
   const dm = darkMode;
   const [profile, setProfile] = useState({
     name: '',
@@ -13,29 +13,17 @@ function SettingsScreen({ onNavigate, darkMode, onToggleDark }) {
   const [notifications, setNotifications] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Cargar perfil sin bloquear - NO usa loading state
+  // Cargar perfil desde props
   useEffect(() => {
-    (async () => {
-      try {
-        const p = await storage.get('user-profile');
-        if (p) {
-          setProfile(p);
-          setNotifications(p.notifications || false);
-        }
-      } catch (e) {
-        // En modo demo, storage puede fallar - continuar con defaults
-        console.log('Settings: usando valores por defecto');
-      }
-    })();
-  }, []);
+    if (profileProp) {
+      setProfile(prev => ({ ...prev, ...profileProp }));
+      setNotifications(profileProp.notifications || false);
+    }
+  }, [profileProp]);
 
   const handleSave = async () => {
-    try {
-      const updatedProfile = { ...profile, darkMode: dm, notifications };
-      await storage.set('user-profile', updatedProfile);
-    } catch (e) {
-      console.log('Settings: no se pudo guardar en storage');
-    }
+    const updatedProfile = { ...profile, darkMode: dm, notifications };
+    if (onUpdateProfile) onUpdateProfile(updatedProfile);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

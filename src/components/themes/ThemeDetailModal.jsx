@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icons from '../common/Icons';
-import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
+import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate } from '../../utils/questionImporter';
-import { DEBUG } from '../../utils/constants';
+import { analyzeDocument, determineQuestionTypes } from '../../utils/documentAnalyzer';
+import { DEBUG, MAX_CHARS, QUESTIONS_PER_BATCH } from '../../utils/constants';
 
 function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
   const [showAddDoc, setShowAddDoc] = useState(false);
@@ -130,14 +131,15 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       
       // Procesar respuesta y extraer contenido
       let searchContent = '';
-      let toolResults = [];
-      
+
       for (const block of data.content) {
         if (block.type === 'text') {
           searchContent += block.text + '\n';
-        } else if (block.type === 'tool_use') {
-          toolResults.push(block);
         }
+      }
+
+      if (searchContent.trim().length < 50) {
+        throw new Error('La IA no devolvió contenido suficiente para crear el repositorio');
       }
 
       // Crear documento con los resultados
@@ -187,7 +189,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       // Recopilar contenido - usar contenido procesado/optimizado cuando esté disponible
       let documentContents = '';
       let charCount = 0;
-      const maxChars = 100000; // Aumentado significativamente para manejar documentos largos (leyes completas, temarios extensos)
+      const maxChars = MAX_CHARS;
       
       setGenerationProgress('📖 Procesando repositorio completo...');
       setGenerationPercent(10);
@@ -217,7 +219,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         throw new Error('No hay suficiente contenido. Añade documentos o usa búsqueda IA.');
       }
 
-      console.log(`📊 Contenido recopilado: ${charCount.toLocaleString()} caracteres de ${theme.documents.length} documentos`);
+      if (DEBUG) console.log(`📊 Contenido recopilado: ${charCount.toLocaleString()} caracteres de ${theme.documents.length} documentos`);
 
       setGenerationProgress('🤖 Enviando a IA para generar preguntas...');
       setGenerationPercent(20);
@@ -225,12 +227,47 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       // Obtener preguntas existentes
       const existingQuestions = (theme.questions || []).map(q => q.text.substring(0, 80)).join('\n');
 
-      // OPTIMIZADO: 25 preguntas en lugar de 50 para velocidad 2x
-      const numToGenerate = 25;
-      
+      const numToGenerate = QUESTIONS_PER_BATCH;
+
+      // Analizar estructura del documento para mejorar calidad
+      const analysis = analyzeDocument(documentContents);
+      const significantSections = analysis.sections.filter(
+        s => s.level === 'critical' || s.level === 'high'
+      );
+      const usePhase2 = significantSections.length >= 2;
+
       setGenerationProgress(`🤖 Generando ${numToGenerate} preguntas...`);
       setGenerationPercent(30);
-      
+
+      let promptToUse;
+      if (usePhase2) {
+        // Elegir la sección más importante para el prompt enriquecido
+        const topSection = significantSections[0];
+        const sectionMeta = {
+          index: 0,
+          total: significantSections.length,
+          title: topSection.title,
+          type: topSection.type,
+          level: topSection.level
+        };
+        const questionTypes = determineQuestionTypes(topSection);
+        promptToUse = OPTIMIZED_PHASE2_PROMPT(
+          theme.name,
+          sectionMeta,
+          numToGenerate,
+          documentContents.substring(0, 35000),
+          existingQuestions,
+          questionTypes
+        );
+      } else {
+        promptToUse = OPTIMIZED_QUESTION_PROMPT(
+          theme.name,
+          numToGenerate,
+          documentContents.substring(0, 35000),
+          existingQuestions
+        );
+      }
+
       // Llamada a nuestra función serverless
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
@@ -238,12 +275,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: OPTIMIZED_QUESTION_PROMPT(
-            theme.name,
-            numToGenerate,
-            documentContents.substring(0, 35000),
-            existingQuestions
-          ),
+          prompt: promptToUse,
           useWebSearch: false,
           maxTokens: 8000
         })
@@ -329,7 +361,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         
         // Verificar si es duplicado exacto
         if (existingTexts.includes(newText)) {
-          console.log('❌ Duplicado exacto detectado:', newQ.text.substring(0, 50));
+          if (DEBUG) console.log('❌ Duplicado exacto detectado:', newQ.text.substring(0, 50));
           return false;
         }
         
@@ -337,7 +369,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         const isTooSimilar = existingTexts.some(existingText => {
           const similarity = calculateSimilarity(newText, existingText);
           if (similarity > 0.8) {
-            console.log('❌ Duplicado similar detectado:', newQ.text.substring(0, 50), `(${(similarity * 100).toFixed(0)}% similar)`);
+            if (DEBUG) console.log('❌ Duplicado similar detectado:', newQ.text.substring(0, 50), `(${(similarity * 100).toFixed(0)}% similar)`);
             return true;
           }
           return false;
@@ -1056,7 +1088,7 @@ Proporciona un documento completo con TODA la información del enlace.`,
                           e.stopPropagation();
                           e.preventDefault();
                           
-                          console.log('Click en borrar - mostrando diálogo personalizado');
+                          if (DEBUG) console.log('Click en borrar - mostrando diálogo personalizado');
                           const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
                           
                           setDeleteConfirm({

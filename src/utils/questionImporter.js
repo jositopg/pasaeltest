@@ -194,26 +194,36 @@ export const parsePDFQuestions = async (text) => {
  * Extraer texto de PDF usando PDF.js
  */
 export const extractPDFText = async (file) => {
-  // Esta función requiere pdf.js
-  // Por simplicidad, aquí asumimos que el usuario copia/pega el texto
-  // o usamos una librería de extracción
-  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = async (e) => {
       try {
-        // Aquí iría la lógica de pdf.js
-        // Por ahora, devolvemos el texto crudo
-        const text = e.target.result;
-        resolve(text);
+        const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
+        GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).toString();
+
+        const typedArray = new Uint8Array(e.target.result);
+        const pdf = await getDocument({ data: typedArray }).promise;
+
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+
+        resolve(fullText);
       } catch (error) {
-        reject(error);
+        reject(new Error('Error al extraer texto del PDF: ' + error.message));
       }
     };
-    
+
     reader.onerror = () => reject(new Error('Error al leer el archivo PDF'));
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   });
 };
 

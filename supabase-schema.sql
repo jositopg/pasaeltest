@@ -297,5 +297,23 @@ comment on table public.exam_history is 'Record of completed exams and scores';
 comment on table public.public_content is 'User-contributed content for sharing (future feature)';
 
 -- ============================================================================
+-- TABLA: ai_cache (caché de respuestas de IA para reducir costos)
+-- ============================================================================
+create table public.ai_cache (
+  id uuid default uuid_generate_v4() primary key,
+  prompt_hash text unique not null,
+  prompt text,
+  response jsonb not null,
+  model text default 'gemini-2.0-flash',
+  used_count integer default 1,
+  last_used_at timestamp with time zone default now(),
+  created_at timestamp with time zone default now()
+);
+-- Sin RLS (acceso solo vía SERVICE_ROLE_KEY desde serverless)
+create index ai_cache_prompt_hash_idx on public.ai_cache(prompt_hash);
+
+comment on table public.ai_cache is 'Cache of AI responses to reduce API costs';
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================

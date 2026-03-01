@@ -11,26 +11,13 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
   });
 
   const handleSave = async () => {
-    const updatedUser = { ...user, ...formData };
-    await storage.set('current-user', updatedUser);
-    
-    const users = await storage.get('users') || [];
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = updatedUser;
-      await storage.set('users', users);
-    }
-
     const updatedProfile = { ...profile, name: formData.name, examName: formData.oposicion };
-    await storage.set('user-profile', updatedProfile);
-    
     onUpdateProfile(updatedProfile);
     setEditing(false);
   };
 
   const handleLogout = async () => {
     if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
-      await storage.set('user-session', null);
       onLogout();
     }
   };

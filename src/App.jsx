@@ -192,10 +192,12 @@ export default function App() {
         />
       )}
       {screen === 'settings' && (
-        <SettingsScreen 
-          onNavigate={setScreen} 
-          darkMode={dm} 
-          onToggleDark={() => setDarkMode(!dm)} 
+        <SettingsScreen
+          onNavigate={setScreen}
+          darkMode={dm}
+          onToggleDark={() => setDarkMode(!dm)}
+          profile={userData.profile}
+          onUpdateProfile={userData.setProfile}
         />
       )}
       <BottomNav current={screen} onNavigate={setScreen} darkMode={dm} />
