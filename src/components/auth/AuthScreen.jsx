@@ -47,9 +47,13 @@ function AuthScreen({ onLogin }) {
         );
         
         if (error) {
-          setError(error.message === 'Invalid login credentials' 
-            ? 'Email o contraseña incorrectos'
-            : 'Error al iniciar sesión');
+          if (error.message === 'Invalid login credentials') {
+            setError('Email o contraseña incorrectos');
+          } else if (error.message?.toLowerCase().includes('email not confirmed')) {
+            setError('Confirma tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
+          } else {
+            setError(error.message || 'Error al iniciar sesión');
+          }
           setLoading(false);
           return;
         }
