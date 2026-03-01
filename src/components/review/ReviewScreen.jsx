@@ -85,7 +85,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
   const q = questions[current];
   const progress = ((current + 1) / questions.length) * 100;
-  const diffColor = getDifficultyColor(q.difficulty);
+  const diffColor = getDifficultyColor(q.srs_difficulty);
   const wasCorrect = selectedAnswer === q.correct;
 
   const handleAnswer = (index) => {
@@ -105,7 +105,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
     // Calculate new SRS values and update the theme
     const updatedQuestion = calculateNextReview(q, correct);
-    
+
     const theme = themes.find(t => t.number === q.themeNumber);
     if (theme) {
       const updatedQuestions = theme.questions.map(tq => {
@@ -113,16 +113,16 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
           return {
             ...tq,
             stability: updatedQuestion.stability,
-            difficulty: updatedQuestion.difficulty,
-            nextReview: updatedQuestion.nextReview,
-            lastReview: updatedQuestion.lastReview,
+            srs_difficulty: updatedQuestion.srs_difficulty,
+            next_review: updatedQuestion.next_review,
+            last_review: updatedQuestion.last_review,
             attempts: updatedQuestion.attempts,
-            errors: updatedQuestion.errors,
+            errors_count: updatedQuestion.errors_count,
           };
         }
         return tq;
       });
-      
+
       onUpdateTheme({ ...theme, questions: updatedQuestions });
     }
   };
@@ -239,14 +239,22 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               </div>
             )}
             
+            {/* Explicación pedagógica */}
+            {q.explanation && (
+              <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${dm ? 'text-blue-400' : 'text-blue-600'}`}>💡 Explicación</p>
+                <p className={`text-sm leading-relaxed ${dm ? 'text-gray-300' : 'text-slate-600'}`}>{q.explanation}</p>
+              </div>
+            )}
+
             {/* SRS feedback */}
             <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
-                  📊 Dificultad: {(calculateNextReview(q, wasCorrect).difficulty || 5).toFixed(1)}/10
+                  📊 Dificultad: {(calculateNextReview(q, wasCorrect).srs_difficulty || 5).toFixed(1)}/10
                 </span>
                 <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
-                  🔄 Próximo repaso: {formatNextReview(calculateNextReview(q, wasCorrect).nextReview)}
+                  🔄 Próximo repaso: {formatNextReview(calculateNextReview(q, wasCorrect).next_review)}
                 </span>
                 {!wasCorrect && (
                   <span className={`text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400`}>

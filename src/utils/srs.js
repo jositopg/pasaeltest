@@ -1,14 +1,14 @@
 /**
  * SISTEMA DE REPETICIÓN ESPACIADA (SRS)
  * Basado en FSRS (Free Spaced Repetition Scheduler)
- * 
+ *
  * Cada pregunta tiene:
  * - stability: días hasta próximo repaso (empieza en 1)
- * - difficulty: dificultad 1-10 (empieza en 5)
- * - nextReview: fecha ISO del próximo repaso
- * - lastReview: fecha ISO del último repaso
+ * - srs_difficulty: dificultad 1-10 (empieza en 5)
+ * - next_review: fecha ISO del próximo repaso
+ * - last_review: fecha ISO del último repaso
  * - attempts: total de intentos
- * - errors: total de errores
+ * - errors_count: total de errores
  */
 
 /**
@@ -17,20 +17,20 @@
 export const calculateNextReview = (question, wasCorrect) => {
   const now = new Date();
   const stability = question.stability || 1;
-  const difficulty = question.difficulty || 5;
+  const srs_difficulty = question.srs_difficulty || 5;
   const attempts = (question.attempts || 0) + 1;
-  const errors = (question.errors || 0) + (wasCorrect ? 0 : 1);
+  const errors_count = (question.errors_count || 0) + (wasCorrect ? 0 : 1);
 
-  let newStability, newDifficulty;
+  let newStability, newSrsDifficulty;
 
   if (wasCorrect) {
     // Acierto: aumentar estabilidad, reducir dificultad
-    newStability = Math.min(stability * (2.5 - 0.15 * difficulty), 365);
-    newDifficulty = Math.max(1, difficulty - 0.3);
+    newStability = Math.min(stability * (2.5 - 0.15 * srs_difficulty), 365);
+    newSrsDifficulty = Math.max(1, srs_difficulty - 0.3);
   } else {
     // Fallo: resetear estabilidad, aumentar dificultad
     newStability = Math.max(0.5, stability * 0.3);
-    newDifficulty = Math.min(10, difficulty + 0.5);
+    newSrsDifficulty = Math.min(10, srs_difficulty + 0.5);
   }
 
   // Calcular fecha del próximo repaso
@@ -40,11 +40,11 @@ export const calculateNextReview = (question, wasCorrect) => {
   return {
     ...question,
     stability: Math.round(newStability * 100) / 100,
-    difficulty: Math.round(newDifficulty * 100) / 100,
-    nextReview: nextReviewDate.toISOString(),
-    lastReview: now.toISOString(),
+    srs_difficulty: Math.round(newSrsDifficulty * 100) / 100,
+    next_review: nextReviewDate.toISOString(),
+    last_review: now.toISOString(),
     attempts,
-    errors,
+    errors_count,
   };
 };
 
@@ -58,28 +58,28 @@ export const getDueQuestions = (themes) => {
 
   themes.forEach(theme => {
     if (!theme.questions) return;
-    
+
     theme.questions.forEach(q => {
       // Si nunca se ha respondido, no entra en SRS todavía
       if (!q.attempts || q.attempts === 0) return;
-      
-      // Si no tiene nextReview, considerarla como pendiente
-      if (!q.nextReview) {
+
+      // Si no tiene next_review, considerarla como pendiente
+      if (!q.next_review) {
         due.push({ ...q, themeNumber: theme.number, themeName: theme.name });
         return;
       }
 
-      const reviewDate = new Date(q.nextReview);
+      const reviewDate = new Date(q.next_review);
       const reviewDay = new Date(reviewDate.getFullYear(), reviewDate.getMonth(), reviewDate.getDate());
-      
+
       if (reviewDay <= today) {
         due.push({ ...q, themeNumber: theme.number, themeName: theme.name });
       }
     });
   });
 
-  // Ordenar por dificultad descendente (las más difíciles primero)
-  due.sort((a, b) => (b.difficulty || 5) - (a.difficulty || 5));
+  // Ordenar por srs_difficulty descendente (las más difíciles primero)
+  due.sort((a, b) => (b.srs_difficulty || 5) - (a.srs_difficulty || 5));
 
   return due;
 };
@@ -121,14 +121,14 @@ export const getSRSStats = (themes) => {
 /**
  * Formatear días hasta próximo repaso
  */
-export const formatNextReview = (nextReview) => {
-  if (!nextReview) return 'Sin programar';
-  
+export const formatNextReview = (next_review) => {
+  if (!next_review) return 'Sin programar';
+
   const now = new Date();
-  const review = new Date(nextReview);
+  const review = new Date(next_review);
   const diffMs = review - now;
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays <= 0) return 'Hoy';
   if (diffDays === 1) return 'Mañana';
   if (diffDays < 7) return `En ${diffDays} días`;
@@ -137,12 +137,12 @@ export const formatNextReview = (nextReview) => {
 };
 
 /**
- * Obtener color de dificultad
+ * Obtener color según dificultad SRS numérica (1-10)
  */
-export const getDifficultyColor = (difficulty) => {
-  if (!difficulty) return { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Sin datos' };
-  if (difficulty <= 3) return { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Fácil' };
-  if (difficulty <= 6) return { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'Media' };
-  if (difficulty <= 8) return { bg: 'bg-orange-500/20', text: 'text-orange-500', label: 'Difícil' };
+export const getDifficultyColor = (srs_difficulty) => {
+  if (srs_difficulty == null) return { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Sin datos' };
+  if (srs_difficulty <= 3) return { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Fácil' };
+  if (srs_difficulty <= 6) return { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'Media' };
+  if (srs_difficulty <= 8) return { bg: 'bg-orange-500/20', text: 'text-orange-500', label: 'Difícil' };
   return { bg: 'bg-red-500/20', text: 'text-red-500', label: 'Muy difícil' };
 };

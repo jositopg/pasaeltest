@@ -191,7 +191,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, dark
 
         {/* Feedback */}
         {isAnswered && (
-          <div className={`border rounded-2xl p-4 ${userAnswer === q.correct ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+          <div className={`border rounded-2xl p-4 space-y-3 ${userAnswer === q.correct ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
             {userAnswer === q.correct ? (
               <div>
                 <p className="text-green-600 dark:text-green-400 font-semibold mb-2">✓ ¡Correcto!</p>
@@ -208,6 +208,12 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, dark
                 <p className={`text-sm mt-1 ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
                   La correcta es: <span className="font-semibold text-green-500">{q.options[q.correct]}</span>
                 </p>
+              </div>
+            )}
+            {q.explanation && (
+              <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${dm ? 'text-blue-400' : 'text-blue-600'}`}>💡 Explicación</p>
+                <p className={`text-sm leading-relaxed ${dm ? 'text-gray-300' : 'text-slate-600'}`}>{q.explanation}</p>
               </div>
             )}
           </div>

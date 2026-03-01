@@ -140,8 +140,16 @@ create table public.questions (
   options jsonb not null, -- ['opción 1', 'opción 2', 'opción 3', 'opción 4']
   correct_answer integer not null,
   difficulty text default 'media',
+  explanation text,
+  -- SRS (Spaced Repetition System)
+  stability float default 1,
+  srs_difficulty float default 5,
+  next_review timestamp with time zone,
+  last_review timestamp with time zone,
+  attempts integer default 0,
+  errors_count integer default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  
+
   -- Validaciones
   constraint valid_correct_answer check (correct_answer >= 0 and correct_answer <= 3),
   constraint valid_difficulty check (difficulty in ('facil', 'media', 'dificil'))
@@ -161,6 +169,15 @@ create policy "Users can view own questions" on public.questions
 
 create policy "Users can insert own questions" on public.questions
   for insert with check (
+    exists (
+      select 1 from public.themes
+      where themes.id = questions.theme_id
+      and themes.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can update own questions" on public.questions
+  for update using (
     exists (
       select 1 from public.themes
       where themes.id = questions.theme_id

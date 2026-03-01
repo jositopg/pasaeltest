@@ -122,10 +122,21 @@ export const dbHelpers = {
           text: q.text,
           options: q.options,
           correct_answer: q.correct,
-          difficulty: q.difficulty
+          difficulty: q.difficulty || 'media',
+          explanation: q.explanation || null
         }))
       )
       .select()
+    return { data, error }
+  },
+
+  async updateQuestion(questionId, updates) {
+    const { data, error } = await supabase
+      .from('questions')
+      .update(updates)
+      .eq('id', questionId)
+      .select()
+      .single()
     return { data, error }
   },
 
