@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icons from '../common/Icons';
 import ThemeDetailModal from './ThemeDetailModal';
 import { GRADIENT_BG } from '../../utils/constants';
+import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 
 function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }) {
   const dm = darkMode;
@@ -9,27 +10,32 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState('');
-  
+  const [importedThemesPanel, setImportedThemesPanel] = useState(null);
+  // null | Array<{ number, name, status: 'idle'|'loading'|'done'|'error' }>
+
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
-    const wasOpen = selectedTheme !== null;
-    if (wasOpen && selectedTheme.number === updatedTheme.number) {
-      setSelectedTheme(null);
-      setTimeout(() => {
-        setSelectedTheme(updatedTheme);
-      }, 50);
-    }
+    setSelectedTheme(updatedTheme);
   };
 
-  const filteredThemes = themes.filter(t => 
-    t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  // Sincronizar selectedTheme con themes global (para que los IDs reales de Supabase
+  // sustituyan los IDs temporales tras las operaciones async de DB)
+  useEffect(() => {
+    if (selectedTheme) {
+      const updated = themes.find(t => t.number === selectedTheme.number);
+      if (updated) setSelectedTheme(updated);
+    }
+  }, [themes]);
+
+  const filteredThemes = themes.filter(t =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.number.toString().includes(searchTerm)
   );
 
   const handleBulkImport = () => {
     const lines = bulkText.trim().split('\n');
     const updates = [];
-    
+
     lines.forEach(line => {
       const match = line.match(/(?:Tema\s*)?(\d+)[\s.:,|]+(.+)/i);
       if (match) {
@@ -41,10 +47,68 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
         }
       }
     });
-    
+
     updates.forEach(theme => onUpdateTheme(theme));
     setShowBulkImport(false);
     setBulkText('');
+
+    if (updates.length > 0) {
+      setImportedThemesPanel(
+        updates.map(t => ({ number: t.number, name: t.name, status: 'idle' }))
+      );
+    }
+  };
+
+  const createRepoForTheme = async (themeNumber) => {
+    const themeEntry = importedThemesPanel?.find(t => t.number === themeNumber);
+    if (!themeEntry) return;
+
+    setImportedThemesPanel(prev =>
+      prev.map(t => t.number === themeNumber ? { ...t, status: 'loading' } : t)
+    );
+
+    try {
+      const response = await fetch("/api/generate-gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name),
+          maxTokens: 4000
+        })
+      });
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const data = await response.json();
+      let content = '';
+      for (const block of data.content) {
+        if (block.type === 'text') content += block.text;
+      }
+      if (content.trim().length < 50) throw new Error('Contenido insuficiente');
+
+      const newDoc = {
+        type: 'ai-search',
+        content: themeEntry.name,
+        fileName: `Repositorio: ${themeEntry.name}`,
+        addedAt: new Date().toISOString(),
+        searchResults: { query: themeEntry.name, content, processedContent: content },
+        processedContent: content
+      };
+
+      const latestTheme = themes.find(t => t.number === themeNumber);
+      if (latestTheme) {
+        onUpdateTheme({ ...latestTheme, documents: [...(latestTheme.documents || []), newDoc] });
+      }
+
+      setImportedThemesPanel(prev =>
+        prev.map(t => t.number === themeNumber ? { ...t, status: 'done' } : t)
+      );
+    } catch (e) {
+      console.error(`Error repo para "${themeEntry.name}":`, e);
+      setImportedThemesPanel(prev =>
+        prev.map(t => t.number === themeNumber ? { ...t, status: 'error' } : t)
+      );
+    }
   };
 
   return (
@@ -52,14 +116,14 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => onNavigate('home')} 
+          <button
+            onClick={() => onNavigate('home')}
             className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}
           >
             <Icons.ChevronLeft />
           </button>
           <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
-          <button 
+          <button
             onClick={() => setShowBulkImport(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
@@ -67,41 +131,41 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
             Importar Nombres
           </button>
         </div>
-        
+
         {/* Search */}
         <div className={`rounded-2xl p-4 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white shadow-sm border border-slate-200'}`}>
           <div className="relative">
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full rounded-xl px-4 py-3 pl-12 ${
-                dm 
-                  ? 'bg-white/5 text-white border border-white/10 placeholder-gray-500' 
+                dm
+                  ? 'bg-white/5 text-white border border-white/10 placeholder-gray-500'
                   : 'bg-slate-50 text-slate-800 border border-slate-200 placeholder-slate-400'
-              }`} 
+              }`}
             />
             <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${dm ? 'text-gray-400' : 'text-slate-400'}`}>
               <Icons.Search />
             </div>
           </div>
         </div>
-        
+
         {/* Theme list */}
         <div className="space-y-2">
           {filteredThemes.map(theme => {
             const questionCount = theme.questions?.length || 0;
             const progressPercent = Math.min((questionCount / 50) * 100, 100);
             const hasDocuments = theme.documents?.length > 0;
-            
+
             return (
-              <div 
-                key={theme.number} 
-                onClick={() => setSelectedTheme(theme)} 
+              <div
+                key={theme.number}
+                onClick={() => setSelectedTheme(theme)}
                 className={`rounded-xl p-4 cursor-pointer transition-all active:scale-[0.98] ${
-                  dm 
-                    ? 'bg-white/5 border border-white/10 hover:bg-white/10' 
+                  dm
+                    ? 'bg-white/5 border border-white/10 hover:bg-white/10'
                     : 'bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md shadow-sm'
                 }`}
               >
@@ -116,14 +180,14 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
-                      questionCount >= 50 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' 
-                        : questionCount >= 25 
+                      questionCount >= 50
+                        ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
+                        : questionCount >= 25
                           ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
-                          : questionCount > 0 
+                          : questionCount > 0
                             ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
-                            : dm 
-                              ? 'bg-gray-500/20 text-gray-400' 
+                            : dm
+                              ? 'bg-gray-500/20 text-gray-400'
                               : 'bg-slate-100 text-slate-600'
                     }`}>
                       {questionCount} pregunta{questionCount !== 1 ? 's' : ''}
@@ -137,10 +201,10 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                     )}
                   </div>
                 </div>
-                
+
                 {/* Progress bar */}
                 <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
-                  <div 
+                  <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       progressPercent >= 50 ? 'bg-gradient-to-r from-green-500 to-green-400' :
                       progressPercent >= 25 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
@@ -150,7 +214,7 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                     style={{ width: `${progressPercent}%` }}
                   ></div>
                 </div>
-                
+
                 {questionCount === 0 && !hasDocuments && (
                   <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-500'}`}>Sin contenido añadido</p>
                 )}
@@ -158,12 +222,12 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
             );
           })}
         </div>
-        
+
         {selectedTheme && (
-          <ThemeDetailModal 
+          <ThemeDetailModal
             key={`theme-${selectedTheme.number}-${selectedTheme.documents?.length || 0}-${selectedTheme.questions?.length || 0}`}
-            theme={selectedTheme} 
-            onClose={() => setSelectedTheme(null)} 
+            theme={selectedTheme}
+            onClose={() => setSelectedTheme(null)}
             onUpdate={handleUpdateTheme}
             showToast={showToast}
           />
@@ -182,14 +246,14 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                   <h2 className={`font-bold text-xl ${dm ? 'text-white' : 'text-slate-800'}`}>Importar Nombres de Temas</h2>
                   <p className={`text-sm mt-1 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Pega la lista completa de tus temas</p>
                 </div>
-                <button 
-                  onClick={() => setShowBulkImport(false)} 
+                <button
+                  onClick={() => setShowBulkImport(false)}
                   className={`p-2 rounded-xl ${dm ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
                 >
                   <Icons.X />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div className={`border rounded-xl p-4 ${dm ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
                   <h3 className="text-blue-600 dark:text-blue-400 font-semibold text-sm mb-2">📝 Formatos aceptados:</h3>
@@ -210,8 +274,8 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                     onChange={(e) => setBulkText(e.target.value)}
                     placeholder="1. Constitución Española&#10;2. Derechos Fundamentales&#10;3. Organización Territorial&#10;..."
                     className={`w-full rounded-xl px-4 py-3 font-mono text-sm min-h-[300px] resize-vertical ${
-                      dm 
-                        ? 'bg-white/5 text-white border border-white/10' 
+                      dm
+                        ? 'bg-white/5 text-white border border-white/10'
                         : 'bg-slate-50 text-slate-800 border border-slate-200'
                     }`}
                   />
@@ -240,6 +304,68 @@ function ThemesScreen({ themes, onUpdateTheme, onNavigate, showToast, darkMode }
                     Importar Nombres
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Panel post-import: crear repositorios IA por tema */}
+        {importedThemesPanel && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+              {/* Header */}
+              <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-white font-bold">Temas importados</h3>
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    Crea el repositorio IA para cada tema que quieras
+                  </p>
+                </div>
+                <button
+                  onClick={() => setImportedThemesPanel(null)}
+                  className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors text-white"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+
+              {/* Lista */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-2">
+                {importedThemesPanel.map(t => (
+                  <div key={t.number} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5">
+                    <span className="text-gray-400 text-xs w-8 shrink-0">#{t.number}</span>
+                    <span className="text-white text-sm flex-1 truncate">{t.name}</span>
+                    {t.status === 'idle' && (
+                      <button
+                        onClick={() => createRepoForTheme(t.number)}
+                        className="shrink-0 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        🤖 Crear
+                      </button>
+                    )}
+                    {t.status === 'loading' && (
+                      <div className="shrink-0 w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {t.status === 'done' && (
+                      <span className="shrink-0 text-green-400 text-xs font-semibold">✓ Listo</span>
+                    )}
+                    {t.status === 'error' && (
+                      <button
+                        onClick={() => createRepoForTheme(t.number)}
+                        className="shrink-0 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        ↻ Reintentar
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-white/10 shrink-0">
+                <p className="text-gray-500 text-xs text-center">
+                  {importedThemesPanel.filter(t => t.status === 'done').length}/{importedThemesPanel.length} repositorios creados
+                </p>
               </div>
             </div>
           </div>

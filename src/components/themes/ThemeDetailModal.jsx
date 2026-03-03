@@ -175,8 +175,9 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     }
   };
 
-  const generateQuestionsFromDocuments = async () => {
-    if (!theme.documents || theme.documents.length === 0) {
+  const generateQuestionsFromDocuments = async (docsToUse = null) => {
+    const docs = docsToUse ?? theme.documents;
+    if (!docs || docs.length === 0) {
       if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
       return;
     }
@@ -190,11 +191,14 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       let documentContents = '';
       let charCount = 0;
       const maxChars = MAX_CHARS;
-      
-      setGenerationProgress('📖 Procesando repositorio completo...');
+
+      const progressMsg = docs.length === 1 && docsToUse
+        ? '📖 Procesando repositorio seleccionado...'
+        : '📖 Procesando repositorio completo...';
+      setGenerationProgress(progressMsg);
       setGenerationPercent(10);
-      
-      for (const doc of theme.documents) {
+
+      for (const doc of docs) {
         if (charCount >= maxChars) break;
         
         let docText = '';
@@ -338,6 +342,15 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setGenerationProgress('💾 Validando y guardando...');
       setGenerationPercent(95);
 
+      // Normalizar dificultad al formato que acepta la DB: 'facil' | 'media' | 'dificil'
+      const normalizeDifficulty = (d) => {
+        if (!d) return 'media';
+        const lower = String(d).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (['facil', 'easy', 'baja', 'low', 'simple'].includes(lower)) return 'facil';
+        if (['dificil', 'hard', 'difficult', 'alta', 'high'].includes(lower)) return 'dificil';
+        return 'media';
+      };
+
       // Convertir preguntas generadas
       const newQuestionsRaw = generatedQuestions.map((q, i) => ({
         id: `${theme.number}-ai-${Date.now()}-${i}`,
@@ -345,7 +358,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         options: q.opciones || q.options || ['A', 'B', 'C'],
         correct: q.correcta ?? q.correct ?? 0,
         source: 'IA',
-        difficulty: q.dificultad || q.difficulty || 'media',
+        difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
         explanation: q.explicacion || q.explanation || '',
         needsReview: true,
         createdAt: new Date().toISOString()
@@ -1083,25 +1096,33 @@ Proporciona un documento completo con TODA la información del enlace.`,
                           <p className="text-gray-600 text-xs mt-1">Tamaño: {doc.size}</p>
                         )}
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          
-                          if (DEBUG) console.log('Click en borrar - mostrando diálogo personalizado');
-                          const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
-                          
-                          setDeleteConfirm({
-                            show: true,
-                            docIndex: idx,
-                            docName: docName
-                          });
-                        }}
-                        className="ml-2 p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-all flex-shrink-0 active:scale-95"
-                        title="Eliminar documento"
-                      >
-                        <Icons.Trash />
-                      </button>
+                      <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                        <button
+                          onClick={() => generateQuestionsFromDocuments([doc])}
+                          disabled={isGeneratingQuestions}
+                          title="Generar preguntas solo desde este repositorio"
+                          className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          ⚡
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (DEBUG) console.log('Click en borrar - mostrando diálogo personalizado');
+                            const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
+                            setDeleteConfirm({
+                              show: true,
+                              docIndex: idx,
+                              docName: docName
+                            });
+                          }}
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-all active:scale-95"
+                          title="Eliminar documento"
+                        >
+                          <Icons.Trash />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -1179,10 +1200,59 @@ Proporciona un documento completo con TODA la información del enlace.`,
                     <p className="text-blue-400 text-sm">{generationProgress}</p>
                   </div>
                   <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500"
                       style={{ width: `${generationPercent}%` }}
                     ></div>
+                  </div>
+                </div>
+              )}
+
+              {showAddQuestion && (
+                <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
+                  <h4 className="text-white font-semibold text-sm">Nueva Pregunta</h4>
+                  <textarea
+                    placeholder="Pregunta..."
+                    value={newQuestion.text}
+                    onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
+                    className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 min-h-20 resize-none"
+                  />
+                  {newQuestion.options.map((opt, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        type="radio"
+                        checked={newQuestion.correct === i}
+                        onChange={() => setNewQuestion({...newQuestion, correct: i})}
+                        className="w-4 h-4 mt-1"
+                      />
+                      <input
+                        placeholder={`Opción ${String.fromCharCode(65 + i)}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const opts = [...newQuestion.options];
+                          opts[i] = e.target.value;
+                          setNewQuestion({...newQuestion, options: opts});
+                        }}
+                        className="flex-1 bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10"
+                      />
+                    </div>
+                  ))}
+                  <select
+                    value={newQuestion.difficulty}
+                    onChange={(e) => setNewQuestion({...newQuestion, difficulty: e.target.value})}
+                    className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10"
+                  >
+                    <option value="facil">Fácil</option>
+                    <option value="media">Media</option>
+                    <option value="dificil">Difícil</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <button onClick={handleManualQuestionAdd} className="flex-1 bg-green-500 text-white font-semibold py-2 rounded-lg">
+                      Guardar
+                    </button>
+                    <button onClick={() => setShowAddQuestion(false)} className="flex-1 bg-white/5 text-white py-2 rounded-lg">
+                      Cancelar
+                    </button>
                   </div>
                 </div>
               )}
@@ -1362,55 +1432,6 @@ Proporciona un documento completo con TODA la información del enlace.`,
                 </div>
               )}
             </div>
-
-            {showAddQuestion && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3">
-                <h4 className="text-white font-semibold text-sm">Nueva Pregunta</h4>
-                <textarea 
-                  placeholder="Pregunta..."
-                  value={newQuestion.text}
-                  onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
-                  className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 min-h-20 resize-none"
-                />
-                {newQuestion.options.map((opt, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input 
-                      type="radio"
-                      checked={newQuestion.correct === i}
-                      onChange={() => setNewQuestion({...newQuestion, correct: i})}
-                      className="w-4 h-4 mt-1"
-                    />
-                    <input 
-                      placeholder={`Opción ${String.fromCharCode(65 + i)}`}
-                      value={opt}
-                      onChange={(e) => {
-                        const opts = [...newQuestion.options];
-                        opts[i] = e.target.value;
-                        setNewQuestion({...newQuestion, options: opts});
-                      }}
-                      className="flex-1 bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10"
-                    />
-                  </div>
-                ))}
-                <select 
-                  value={newQuestion.difficulty}
-                  onChange={(e) => setNewQuestion({...newQuestion, difficulty: e.target.value})}
-                  className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10"
-                >
-                  <option value="fácil">Fácil</option>
-                  <option value="media">Media</option>
-                  <option value="difícil">Difícil</option>
-                </select>
-                <div className="flex gap-2">
-                  <button onClick={handleManualQuestionAdd} className="flex-1 bg-green-500 text-white font-semibold py-2 rounded-lg">
-                    Guardar
-                  </button>
-                  <button onClick={() => setShowAddQuestion(false)} className="flex-1 bg-white/5 text-white py-2 rounded-lg">
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
 
             <div className="space-y-2">
               {/* Lista de preguntas - sin scroll interno, usa el del modal */}

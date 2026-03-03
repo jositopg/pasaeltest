@@ -87,8 +87,8 @@ export const parseExcelQuestions = async (file) => {
               row['Opción C'].trim()
             ],
             correct: correctIndex,
-            difficulty: dificultad === 'fácil' || dificultad === 'facil' ? 'fácil' :
-                       dificultad === 'difícil' || dificultad === 'dificil' ? 'difícil' : 'media',
+            difficulty: dificultad === 'fácil' || dificultad === 'facil' ? 'facil' :
+                       dificultad === 'difícil' || dificultad === 'dificil' ? 'dificil' : 'media',
             id: `imported_${Date.now()}_${index}`,
             stats: {
               timesAnswered: 0,
@@ -162,8 +162,8 @@ export const parsePDFQuestions = async (text) => {
       let dificultad = 'media';
       if (dificultadMatch) {
         const diff = dificultadMatch[1].toLowerCase();
-        if (['fácil', 'facil'].includes(diff)) dificultad = 'fácil';
-        else if (['difícil', 'dificil'].includes(diff)) dificultad = 'difícil';
+        if (['fácil', 'facil'].includes(diff)) dificultad = 'facil';
+        else if (['difícil', 'dificil'].includes(diff)) dificultad = 'dificil';
       }
       
       questions.push({

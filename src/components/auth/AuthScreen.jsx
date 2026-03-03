@@ -64,6 +64,7 @@ function AuthScreen({ onLogin }) {
           email: data.user.email,
           name: data.user.user_metadata?.name || 'Usuario',
           oposicion: data.user.user_metadata?.oposicion || 'Sin especificar',
+          createdAt: data.user.created_at,
           subscription: 'free',
           isGuest: false,
           isFirstLogin: false
@@ -94,6 +95,7 @@ function AuthScreen({ onLogin }) {
           email: data.user.email,
           name: formData.name,
           oposicion: formData.oposicion,
+          createdAt: data.user.created_at,
           subscription: 'free',
           isGuest: false,
           isFirstLogin: true
