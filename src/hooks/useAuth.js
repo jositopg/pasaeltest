@@ -25,6 +25,7 @@ const useAuth = () => {
             email: user.email,
             name: user.user_metadata?.name || 'Usuario',
             oposicion: user.user_metadata?.oposicion || 'Sin especificar',
+            createdAt: user.created_at,
             subscription: 'free',
             isGuest: false,
             isFirstLogin: false
@@ -54,6 +55,7 @@ const useAuth = () => {
         email: user.email,
         name: user.user_metadata?.name || 'Usuario',
         oposicion: user.user_metadata?.oposicion || 'Sin especificar',
+        createdAt: user.created_at,
         subscription: 'free',
         isGuest: false,
         isFirstLogin: false
