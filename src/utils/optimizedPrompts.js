@@ -29,7 +29,7 @@ REGLAS:
 3. Dificultad: 30% fácil, 50% media, 20% difícil
 
 JSON (sin texto extra):
-[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media"}]`;
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"Por qué esta opción es correcta (1-2 frases concisas con el dato clave del contenido)"}]`;
 
 /**
  * PROMPT FASE 2 ORIGINAL: ~3,000 tokens
@@ -58,7 +58,7 @@ REGLAS:
 - Variedad según tipos indicados
 
 JSON:
-[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media"}]`;
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"Por qué esta opción es correcta (1-2 frases concisas con el dato clave del contenido)"}]`;
 
 /**
  * PROMPT DE BÚSQUEDA ORIGINAL: ~800 tokens

@@ -34,20 +34,12 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, dark
         }
         return qu;
       });
-      
+
       onUpdateThemes({
         ...theme,
         questions: updatedQuestions
       });
     }
-    
-    setTimeout(() => {
-      if (current < questions.length - 1) {
-        setCurrent(current + 1);
-      } else {
-        setShowResults(true);
-      }
-    }, 2500);
   };
 
   const handleNext = () => {
