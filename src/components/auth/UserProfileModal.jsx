@@ -71,7 +71,7 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
             </div>
 
             <div>
-              <label className="block text-gray-400 text-xs mb-1">Oposición</label>
+              <label className="block text-gray-400 text-xs mb-1">¿Qué estudias?</label>
               {editing ? (
                 <input
                   type="text"

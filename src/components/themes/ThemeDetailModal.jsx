@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icons from '../common/Icons';
 import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
-import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate } from '../../utils/questionImporter';
+import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate, extractPDFText } from '../../utils/questionImporter';
 import { analyzeDocument, determineQuestionTypes } from '../../utils/documentAnalyzer';
 import { DEBUG, MAX_CHARS, QUESTIONS_PER_BATCH } from '../../utils/constants';
 
@@ -535,62 +535,58 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     setIsSearching(true);
     setGenerationProgress('📄 Leyendo archivo...');
-    
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const content = e.target.result;
-        const textContent = content.substring(0, 50000);
-        
-        if (textContent.trim().length < 100) {
-          throw new Error('El archivo tiene muy poco contenido de texto');
-        }
-        
-        // OPTIMIZADO: Guardar directamente sin procesamiento extra
-        // El contenido ya está extraído, la IA lo procesará cuando genere preguntas
-        setGenerationProgress('💾 Guardando documento...');
-        
-        const newDoc = {
-          type: 'pdf',
-          fileName: file.name,
-          content: textContent.substring(0, 35000), // Limitar a ~35k caracteres
-          processedContent: textContent.substring(0, 35000),
-          addedAt: new Date().toISOString()
-        };
-        
-        const updatedTheme = {
-          ...theme,
-          documents: [...(theme.documents || []), newDoc]
-        };
-        
-        onUpdate(updatedTheme);
-        
-        setGenerationProgress('✅ ¡Archivo guardado!');
-        
-        setTimeout(() => {
-          setIsSearching(false);
-          setGenerationProgress('');
-          setShowAddDoc(false);
-        }, 1500);
-        
-      } catch (error) {
+    event.target.value = '';
+
+    try {
+      let textContent = '';
+
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        // Usar pdfjs-dist para extraer texto real de PDFs
+        setGenerationProgress('📄 Extrayendo texto del PDF...');
+        textContent = await extractPDFText(file);
+      } else {
+        // Para .txt / .doc / .docx usar FileReader
+        textContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result || '');
+          reader.onerror = () => reject(new Error('Error al leer el archivo'));
+          reader.readAsText(file);
+        });
+      }
+
+      const trimmed = textContent.substring(0, 50000);
+
+      if (trimmed.trim().length < 100) {
+        throw new Error('El archivo tiene muy poco contenido de texto');
+      }
+
+      setGenerationProgress('💾 Guardando documento...');
+
+      const newDoc = {
+        type: 'pdf',
+        fileName: file.name,
+        content: trimmed.substring(0, 35000),
+        processedContent: trimmed.substring(0, 35000),
+        addedAt: new Date().toISOString()
+      };
+
+      onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
+
+      setGenerationProgress('✅ ¡Archivo guardado!');
+      setTimeout(() => {
         setIsSearching(false);
         setGenerationProgress('');
-        alert(`Error: ${error.message}\n\nSugerencia: Usa "Buscar con IA" para mejores resultados.`);
-      }
-    };
-    
-    reader.onerror = () => {
+        setShowAddDoc(false);
+      }, 1500);
+
+    } catch (error) {
       setIsSearching(false);
       setGenerationProgress('');
-      alert('Error al leer el archivo.');
-    };
-    
-    reader.readAsText(file);
-    event.target.value = '';
+      alert(`Error: ${error.message}\n\nSugerencia: Usa "Buscar con IA" para mejores resultados.`);
+    }
   };
 
   const handleAddDocument = async () => {
@@ -604,75 +600,38 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       return;
     }
     
-    // Si es URL, usar web_fetch para obtener contenido
+    // Si es URL, scraping via serverless
     if (docType === 'url') {
-      // Validar que sea una URL válida
       try {
         new URL(docContent);
       } catch (e) {
         alert('❌ URL inválida. Debe empezar con http:// o https://');
         return;
       }
-      
-      // Gemini no puede acceder directamente a URLs
-      // Mostrar mensaje informativo
-      if (showToast) {
-        showToast('⚠️ La función de URLs requiere procesamiento especial. Por favor, copia el contenido de la página y pégalo en "Texto personalizado", o sube un archivo PDF/Word.', 'warning');
-      }
-      return;
-      
+
       setIsSearching(true);
       setGenerationProgress('🌐 Obteniendo contenido de la web...');
       setGenerationPercent(20);
-      
+
       try {
-        const response = await fetch("/api/generate-gemini", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: `Obtén el contenido de esta URL y estructúralo para el tema "${theme.name}":
-
-URL: ${docContent}
-
-Extrae y estructura la información relevante:
-
-# ${theme.name}
-
-## CONTENIDO PRINCIPAL
-[Conceptos, definiciones, puntos clave]
-
-## DETALLES IMPORTANTES
-[Datos, cifras, procedimientos]
-
-## INFORMACIÓN COMPLEMENTARIA
-[Casos prácticos, ejemplos]
-
-Proporciona un documento completo con TODA la información del enlace.`,
-            useWebSearch: true,
-            maxTokens: 8000
-          })
+        const response = await fetch('/api/scrape-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: docContent })
         });
 
-        setGenerationProgress('📝 Procesando contenido...');
         setGenerationPercent(60);
 
         if (!response.ok) {
-          throw new Error(`Error API: ${response.status}`);
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Error HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        
-        let processedContent = '';
-        for (const block of data.content) {
-          if (block.type === 'text') {
-            processedContent += block.text;
-          }
-        }
+        const processedContent = data.content;
 
-        if (!processedContent.trim() || processedContent.length < 200) {
-          throw new Error('No se pudo obtener suficiente contenido de la URL. La página podría estar protegida o vacía.');
+        if (!processedContent || processedContent.length < 100) {
+          throw new Error('La página no tiene suficiente contenido de texto. Prueba a pegar el contenido manualmente.');
         }
 
         setGenerationProgress('💾 Guardando documento...');
@@ -681,21 +640,16 @@ Proporciona un documento completo con TODA la información del enlace.`,
         const newDoc = {
           type: 'url',
           content: docContent,
-          processedContent: processedContent,
-          wordCount: processedContent.split(' ').length,
+          fileName: docContent,
+          processedContent,
           addedAt: new Date().toISOString()
         };
-        
-        const updatedTheme = {
-          ...theme,
-          documents: [...(theme.documents || []), newDoc]
-        };
-        
-        onUpdate(updatedTheme);
-        
+
+        onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
+
         setGenerationProgress('✅ ¡URL guardada!');
         setGenerationPercent(100);
-        
+
         setTimeout(() => {
           setDocContent('');
           setShowAddDoc(false);
@@ -705,17 +659,11 @@ Proporciona un documento completo con TODA la información del enlace.`,
         }, 1500);
 
       } catch (error) {
-        console.error('Error obteniendo URL:', error);
+        if (DEBUG) console.error('Error obteniendo URL:', error);
         setIsSearching(false);
         setGenerationProgress('');
         setGenerationPercent(0);
-        
-        let errorMsg = error.message;
-        if (errorMsg.includes('fetch') || errorMsg.includes('network')) {
-          errorMsg = 'Error de conexión. Verifica tu internet.';
-        }
-        
-        alert(`❌ No se pudo procesar la URL\n\n${errorMsg}\n\n💡 Alternativas:\n• Usa "Buscar con IA" y describe el contenido\n• Copia y pega el texto en un archivo TXT\n• Verifica que la URL sea accesible públicamente`);
+        alert(`❌ No se pudo procesar la URL\n\n${error.message}\n\n💡 Alternativas:\n• Usa "Buscar con IA" y describe el contenido\n• Copia y pega el texto en "Pegar Texto Directamente"\n• Nota: algunas webs bloquean el acceso automático`);
       }
     } else {
       // Guardar como texto simple

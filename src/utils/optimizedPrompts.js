@@ -82,7 +82,7 @@ Extenso y detallado.`;
  * AHORRO: 72%
  */
 
-export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Genera repositorio completo sobre "${themeName}" para oposiciones en España.
+export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Genera repositorio completo sobre "${themeName}" para preparación de exámenes en España.
 
 Incluye:
 1. Conceptos fundamentales

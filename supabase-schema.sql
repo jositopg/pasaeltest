@@ -332,5 +332,37 @@ create index ai_cache_prompt_hash_idx on public.ai_cache(prompt_hash);
 comment on table public.ai_cache is 'Cache of AI responses to reduce API costs';
 
 -- ============================================================================
+-- TABLA: tests (colecciones de temas por usuario)
+-- MIGRATION: ejecutar manualmente en Supabase dashboard
+-- ============================================================================
+
+-- 1. Crear tabla tests
+create table if not exists public.tests (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.users(id) on delete cascade not null,
+  name text not null default 'Mi Test',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.tests enable row level security;
+
+create policy "Users can manage own tests" on public.tests
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists tests_user_id_idx on public.tests(user_id);
+
+comment on table public.tests is 'Collections of themes per user (multi-test support)';
+
+-- 2. Añadir test_id a themes (nullable para migración de datos existentes)
+alter table public.themes add column if not exists test_id uuid references public.tests(id) on delete cascade;
+
+create index if not exists themes_test_id_idx on public.themes(test_id);
+
+-- 3. Eliminar unique constraint antiguo (user_id, number)
+--    NECESARIO para poder crear temas con los mismos números en tests distintos
+alter table public.themes drop constraint if exists unique_theme_number;
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================

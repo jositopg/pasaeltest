@@ -148,6 +148,79 @@ export const dbHelpers = {
     return { error }
   },
 
+  // Tests (colecciones de temas)
+  async getTests(userId) {
+    const { data, error } = await supabase
+      .from('tests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    return { data, error }
+  },
+
+  async createTest(userId, name) {
+    const { data, error } = await supabase
+      .from('tests')
+      .insert({ user_id: userId, name })
+      .select()
+      .single()
+    return { data, error }
+  },
+
+  async updateTest(testId, name) {
+    const { data, error } = await supabase
+      .from('tests')
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq('id', testId)
+      .select()
+      .single()
+    return { data, error }
+  },
+
+  async deleteTest(testId) {
+    const { error } = await supabase
+      .from('tests')
+      .delete()
+      .eq('id', testId)
+    return { error }
+  },
+
+  async getThemesByTest(testId) {
+    const { data, error } = await supabase
+      .from('themes')
+      .select('*, documents(*), questions(*)')
+      .eq('test_id', testId)
+      .order('number', { ascending: true })
+    return { data, error }
+  },
+
+  async getOrphanThemes(userId) {
+    const { data, error } = await supabase
+      .from('themes')
+      .select('id')
+      .eq('user_id', userId)
+      .is('test_id', null)
+      .limit(1)
+    return { data, error }
+  },
+
+  async migrateThemesToTest(userId, testId) {
+    const { error } = await supabase
+      .from('themes')
+      .update({ test_id: testId })
+      .eq('user_id', userId)
+      .is('test_id', null)
+    return { error }
+  },
+
+  async createThemesBatchForTest(userId, testId, themes) {
+    const { data, error } = await supabase
+      .from('themes')
+      .insert(themes.map(t => ({ user_id: userId, test_id: testId, number: t.number, name: t.name })))
+      .select()
+    return { data, error }
+  },
+
   // Historial de exámenes
   async saveExamResult(userId, config, score) {
     const { data, error } = await supabase

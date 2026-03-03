@@ -140,12 +140,18 @@ export default function App() {
         />
       )}
       {screen === 'themes' && (
-        <ThemesScreen 
-          themes={userData.themes} 
-          onUpdateTheme={userData.updateTheme} 
-          onNavigate={setScreen} 
-          showToast={showToast} 
-          darkMode={dm} 
+        <ThemesScreen
+          themes={userData.themes}
+          tests={userData.tests}
+          activeTestId={userData.activeTestId}
+          onUpdateTheme={userData.updateTheme}
+          onCreateTest={userData.createTest}
+          onSwitchTest={userData.switchTest}
+          onRenameTest={userData.renameTest}
+          onDeleteTest={userData.deleteTest}
+          onNavigate={setScreen}
+          showToast={showToast}
+          darkMode={dm}
         />
       )}
       {screen === 'exam' && (

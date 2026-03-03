@@ -13,6 +13,8 @@ const useUserData = (isAuthenticated, currentUser) => {
   const [examHistory, setExamHistory] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tests, setTests] = useState([]);
+  const [activeTestId, setActiveTestId] = useState(null);
 
   // Cargar datos cuando el usuario se autentica
   useEffect(() => {
@@ -33,6 +35,14 @@ const useUserData = (isAuthenticated, currentUser) => {
       questions: []
     }));
   };
+
+  const mapThemeFromDB = (theme) => ({
+    id: theme.id,
+    number: theme.number,
+    name: theme.name,
+    documents: (theme.documents || []).map(mapDocumentFromDB),
+    questions: (theme.questions || []).map(mapQuestionFromDB),
+  });
 
   const mapQuestionFromDB = (q) => ({
     id: q.id,
@@ -81,39 +91,73 @@ const useUserData = (isAuthenticated, currentUser) => {
         examName: currentUser.oposicion,
       });
 
-      // Themes
-      const { data: themesData, error: themesError } = await dbHelpers.getThemes(currentUser.id);
+      // 1. Cargar tests
+      const { data: testsData } = await dbHelpers.getTests(currentUser.id);
+      let testsList = testsData || [];
 
-      if (themesError) {
-        console.error('Error loading themes:', themesError);
-        setThemes(createInitialThemes());
-      } else if (themesData && themesData.length > 0) {
-        setThemes(themesData.map(theme => ({
-          id: theme.id,
-          number: theme.number,
-          name: theme.name,
-          documents: (theme.documents || []).map(mapDocumentFromDB),
-          questions: (theme.questions || []).map(mapQuestionFromDB),
-        })));
-      } else {
-        // Create initial themes in Supabase with a single batch insert
-        const initialThemes = createInitialThemes();
-        const { data: created, error: createError } = await dbHelpers.createThemesBatch(currentUser.id, initialThemes);
-        if (createError) {
-          console.error('Error creating initial themes:', createError);
-          setThemes(initialThemes);
-        } else if (created) {
-          setThemes(created.map(theme => ({
-            id: theme.id,
-            number: theme.number,
-            name: theme.name,
-            documents: [],
-            questions: []
-          })));
+      // 2. Migración: detectar temas sin test_id (usuarios existentes antes de la feature de tests)
+      const { data: orphanCheck } = await dbHelpers.getOrphanThemes(currentUser.id);
+      if (orphanCheck && orphanCheck.length > 0) {
+        // Crear test por defecto y migrar temas huérfanos
+        const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
+          ? currentUser.oposicion
+          : 'Mi Test';
+        const { data: defaultTest } = await dbHelpers.createTest(currentUser.id, defaultName);
+        if (defaultTest) {
+          await dbHelpers.migrateThemesToTest(currentUser.id, defaultTest.id);
+          testsList = [defaultTest, ...testsList.filter(t => t.id !== defaultTest.id)];
         }
       }
 
-      // Exam history
+      setTests(testsList);
+
+      // 3. Cargar temas del test activo
+      const firstTestId = testsList[0]?.id;
+      setActiveTestId(firstTestId || null);
+
+      if (firstTestId) {
+        const { data: themesData, error: themesError } = await dbHelpers.getThemesByTest(firstTestId);
+
+        if (themesError) {
+          console.error('Error loading themes:', themesError);
+          setThemes(createInitialThemes());
+        } else if (themesData && themesData.length > 0) {
+          setThemes(themesData.map(mapThemeFromDB));
+        } else {
+          // Nuevo test sin temas — crear temas iniciales
+          const initialThemes = createInitialThemes();
+          const { data: created, error: createError } = await dbHelpers.createThemesBatchForTest(
+            currentUser.id, firstTestId, initialThemes
+          );
+          if (createError) {
+            console.error('Error creating initial themes:', createError);
+            setThemes(initialThemes);
+          } else if (created) {
+            setThemes(created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] })));
+          }
+        }
+      } else if (testsList.length === 0) {
+        // No hay tests ni temas — usuario completamente nuevo sin migration
+        // Crear test por defecto + temas
+        const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
+          ? currentUser.oposicion
+          : 'Mi Test';
+        const { data: newTest } = await dbHelpers.createTest(currentUser.id, defaultName);
+        if (newTest) {
+          setTests([newTest]);
+          setActiveTestId(newTest.id);
+          const initialThemes = createInitialThemes();
+          const { data: created } = await dbHelpers.createThemesBatchForTest(currentUser.id, newTest.id, initialThemes);
+          setThemes(created
+            ? created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }))
+            : initialThemes
+          );
+        } else {
+          setThemes(createInitialThemes());
+        }
+      }
+
+      // 4. Historial de exámenes
       const { data: examsData } = await dbHelpers.getExamHistory(currentUser.id);
       if (examsData) {
         setExamHistory(examsData.map(exam => ({
@@ -128,6 +172,67 @@ const useUserData = (isAuthenticated, currentUser) => {
     }
 
     setLoading(false);
+  };
+
+  const switchTest = async (testId) => {
+    setActiveTestId(testId);
+    setLoading(true);
+    try {
+      const { data } = await dbHelpers.getThemesByTest(testId);
+      setThemes(data ? data.map(mapThemeFromDB) : []);
+    } catch (error) {
+      console.error('Error switching test:', error);
+      setThemes([]);
+    }
+    setLoading(false);
+  };
+
+  const createTest = async (name) => {
+    if (!currentUser || currentUser.isGuest) return;
+    try {
+      const { data: newTest, error } = await dbHelpers.createTest(currentUser.id, name);
+      if (error || !newTest) { console.error('Error creating test:', error); return; }
+
+      const initialThemes = createInitialThemes();
+      const { data: created } = await dbHelpers.createThemesBatchForTest(currentUser.id, newTest.id, initialThemes);
+
+      setTests(prev => [...prev, newTest]);
+      setActiveTestId(newTest.id);
+      setThemes(created
+        ? created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }))
+        : initialThemes
+      );
+    } catch (error) {
+      console.error('Error creating test:', error);
+    }
+  };
+
+  const renameTest = async (testId, name) => {
+    if (!name.trim()) return;
+    try {
+      const { error } = await dbHelpers.updateTest(testId, name.trim());
+      if (error) { console.error('Error renaming test:', error); return; }
+      setTests(prev => prev.map(t => t.id === testId ? { ...t, name: name.trim() } : t));
+    } catch (error) {
+      console.error('Error renaming test:', error);
+    }
+  };
+
+  const deleteTest = async (testId) => {
+    if (tests.length <= 1) return; // No borrar el último test
+    try {
+      const { error } = await dbHelpers.deleteTest(testId);
+      if (error) { console.error('Error deleting test:', error); return; }
+
+      const remaining = tests.filter(t => t.id !== testId);
+      setTests(remaining);
+
+      if (activeTestId === testId && remaining.length > 0) {
+        await switchTest(remaining[0].id);
+      }
+    } catch (error) {
+      console.error('Error deleting test:', error);
+    }
   };
 
   const updateTheme = async (theme) => {
@@ -309,6 +414,12 @@ const useUserData = (isAuthenticated, currentUser) => {
     saveExamResult,
     resetData,
     stats,
+    tests,
+    activeTestId,
+    createTest,
+    switchTest,
+    renameTest,
+    deleteTest,
   };
 };
 

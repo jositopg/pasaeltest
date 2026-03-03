@@ -162,7 +162,7 @@ function AuthScreen({ onLogin }) {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Tipo de examen</label>
                 <input type="text" required value={formData.oposicion}
                   onChange={(e) => setFormData({...formData, oposicion: e.target.value})}
-                  placeholder="Ej: Oposición Justicia, Selectividad, Grado Medicina..."
+                  placeholder="Ej: Guardia Civil, Selectividad, Grado Medicina..."
                   className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
               </div>
             </>
