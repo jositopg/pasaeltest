@@ -93,13 +93,14 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('🤖 Llamando a Gemini 2.5 Flash-Lite...');
+    console.log('🤖 Llamando a Gemini 2.5 Flash...');
     console.log(`📝 Prompt (primeros 100 chars): ${prompt.substring(0, 100)}...`);
     console.log(`📊 Max Tokens: ${maxTokens}`);
 
     // 7. Preparar petición a Gemini
-    // gemini-2.5-flash-lite: modelo más barato y eficiente (gemini-2.0-flash está deprecated)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+    // gemini-2.5-flash: mejor calidad/precio para escala pequeña (~$21/mes para 50 usuarios)
+    // gemini-2.0-flash estaba deprecated — migrado a v1beta con modelo actualizado
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const requestBody = {
       contents: [{
@@ -168,7 +169,7 @@ export default async function handler(req, res) {
           prompt_hash: promptHash,
           prompt: prompt.substring(0, 1000), // Guardar solo primeros 1000 chars
           response: claudeFormatResponse,
-          model: 'gemini-2.5-flash-lite',
+          model: 'gemini-2.5-flash',
           used_count: 1,
           last_used_at: new Date().toISOString()
         });
