@@ -1,8 +1,10 @@
 import React from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
+import { useTheme } from '../../context/ThemeContext';
 
-function HeatmapScreen({ themes, onNavigate, darkMode }) {
+function HeatmapScreen({ themes, onNavigate }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const themeStats = themes.map(theme => {
     const questions = theme.questions || [];

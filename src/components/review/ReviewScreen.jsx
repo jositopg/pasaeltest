@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { calculateNextReview, getDifficultyColor, formatNextReview } from '../../utils/srs';
+import { useTheme } from '../../context/ThemeContext';
 
-function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast, darkMode }) {
+function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const [current, setCurrent] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);

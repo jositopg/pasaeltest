@@ -1,35 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import ThemeDetailModal from './ThemeDetailModal';
-import { GRADIENT_BG } from '../../utils/constants';
+import TestSwitcherModal from './TestSwitcherModal';
+import BulkImportModal from './BulkImportModal';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
+import { useTheme } from '../../context/ThemeContext';
 
-function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest, onNavigate, showToast, darkMode }) {
+function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest, onNavigate, showToast }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [bulkText, setBulkText] = useState('');
   const [importedThemesPanel, setImportedThemesPanel] = useState(null);
-  // null | Array<{ number, name, status: 'idle'|'loading'|'done'|'error' }>
   const [editingThemeNumber, setEditingThemeNumber] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNumbers, setSelectedNumbers] = useState(new Set());
   const [showTestSwitcher, setShowTestSwitcher] = useState(false);
-  const [renamingTestId, setRenamingTestId] = useState(null);
-  const [renamingTestName, setRenamingTestName] = useState('');
-  const [showNewTestInput, setShowNewTestInput] = useState(false);
-  const [newTestName, setNewTestName] = useState('');
-  const [deletingTestId, setDeletingTestId] = useState(null);
 
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
     setSelectedTheme(updatedTheme);
   };
 
-  // Sincronizar selectedTheme con themes global (para que los IDs reales de Supabase
-  // sustituyan los IDs temporales tras las operaciones async de DB)
+  // Sincronizar selectedTheme con themes global
   useEffect(() => {
     if (selectedTheme) {
       const updated = themes.find(t => t.number === selectedTheme.number);
@@ -42,7 +37,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
     t.number.toString().includes(searchTerm)
   );
 
-  const handleBulkImport = () => {
+  const handleBulkImport = (bulkText) => {
     const lines = bulkText.trim().split('\n');
     const updates = [];
 
@@ -52,15 +47,12 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
         const number = parseInt(match[1]);
         const name = match[2].trim();
         const theme = themes.find(t => t.number === number);
-        if (theme) {
-          updates.push({ ...theme, name });
-        }
+        if (theme) updates.push({ ...theme, name });
       }
     });
 
     updates.forEach(theme => onUpdateTheme(theme));
     setShowBulkImport(false);
-    setBulkText('');
 
     if (updates.length > 0) {
       setImportedThemesPanel(
@@ -81,10 +73,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name),
-          maxTokens: 4000
-        })
+        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name), maxTokens: 4000 })
       });
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -246,7 +235,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
             const questionCount = theme.questions?.length || 0;
             const progressPercent = Math.min((questionCount / 50) * 100, 100);
             const hasDocuments = theme.documents?.length > 0;
-
             const isEditing = editingThemeNumber === theme.number;
             const isSelected = selectedNumbers.has(theme.number);
             const isDefaultName = theme.name === `Tema ${theme.number}`;
@@ -273,7 +261,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                 }`}
               >
                 <div className="flex items-start mb-3 gap-2">
-                  {/* Checkbox en modo selección */}
                   {selectionMode && (
                     <div className="pt-0.5 shrink-0">
                       <input
@@ -286,7 +273,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                     </div>
                   )}
 
-                  {/* Info del tema */}
                   <div className="flex-1 min-w-0">
                     <h3 className={`font-semibold text-sm sm:text-base ${dm ? 'text-white' : 'text-slate-800'}`}>
                       Tema {theme.number}
@@ -314,9 +300,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                     )}
                   </div>
 
-                  {/* Botones edición + badges */}
                   <div className="flex items-start gap-1 shrink-0">
-                    {/* Botón editar nombre */}
                     {!selectionMode && !isEditing && (
                       <button
                         onClick={(e) => {
@@ -332,7 +316,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                         ✏
                       </button>
                     )}
-                    {/* Botón reset nombre — solo visible cuando tiene nombre personalizado */}
                     {!selectionMode && !isEditing && !isDefaultName && (
                       <button
                         onClick={(e) => {
@@ -347,7 +330,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                         ↺
                       </button>
                     )}
-                    {/* Badges */}
                     <div className="flex flex-col gap-1.5 items-end ml-1">
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
                         questionCount >= 50
@@ -373,7 +355,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                   </div>
                 </div>
 
-                {/* Progress bar */}
                 <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
@@ -383,7 +364,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                       dm ? 'bg-gray-600' : 'bg-slate-200'
                     }`}
                     style={{ width: `${progressPercent}%` }}
-                  ></div>
+                  />
                 </div>
 
                 {questionCount === 0 && !hasDocuments && (
@@ -404,279 +385,28 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
           />
         )}
 
-        {/* Bulk import modal */}
-        {showBulkImport && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className={`border rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto ${
-              dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
-            }`}>
-              <div className={`sticky top-0 p-6 border-b flex items-center justify-between ${
-                dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
-              }`}>
-                <div>
-                  <h2 className={`font-bold text-xl ${dm ? 'text-white' : 'text-slate-800'}`}>Importar Nombres de Temas</h2>
-                  <p className={`text-sm mt-1 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Pega la lista completa de tus temas</p>
-                </div>
-                <button
-                  onClick={() => setShowBulkImport(false)}
-                  className={`p-2 rounded-xl ${dm ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
-                >
-                  <Icons.X />
-                </button>
-              </div>
+        <TestSwitcherModal
+          show={showTestSwitcher}
+          tests={tests}
+          activeTestId={activeTestId}
+          onClose={() => setShowTestSwitcher(false)}
+          onSwitch={onSwitchTest}
+          onCreate={onCreateTest}
+          onRename={onRenameTest}
+          onDelete={onDeleteTest}
+        />
 
-              <div className="p-6 space-y-4">
-                <div className={`border rounded-xl p-4 ${dm ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-                  <h3 className="text-blue-600 dark:text-blue-400 font-semibold text-sm mb-2">📝 Formatos aceptados:</h3>
-                  <div className={`text-xs space-y-1 font-mono ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
-                    <div>1. Constitución Española</div>
-                    <div>Tema 2: Derechos Fundamentales</div>
-                    <div>3, Organización Territorial</div>
-                    <div>4 | Estatuto de Autonomía</div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={`text-sm mb-2 block font-semibold ${dm ? 'text-gray-300' : 'text-slate-700'}`}>
-                    Pega aquí tu lista (un tema por línea):
-                  </label>
-                  <textarea
-                    value={bulkText}
-                    onChange={(e) => setBulkText(e.target.value)}
-                    placeholder="1. Constitución Española&#10;2. Derechos Fundamentales&#10;3. Organización Territorial&#10;..."
-                    className={`w-full rounded-xl px-4 py-3 font-mono text-sm min-h-[300px] resize-vertical ${
-                      dm
-                        ? 'bg-white/5 text-white border border-white/10'
-                        : 'bg-slate-50 text-slate-800 border border-slate-200'
-                    }`}
-                  />
-                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-                    {bulkText.split('\n').filter(l => l.trim()).length} líneas detectadas
-                  </p>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowBulkImport(false);
-                      setBulkText('');
-                    }}
-                    className={`flex-1 font-semibold py-3 rounded-xl ${
-                      dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleBulkImport}
-                    disabled={!bulkText.trim()}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50 transition-colors"
-                  >
-                    Importar Nombres
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Test Switcher */}
-        {showTestSwitcher && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
-              {/* Header */}
-              <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
-                <h3 className="text-white font-bold">Mis Tests</h3>
-                <button
-                  onClick={() => { setShowTestSwitcher(false); setShowNewTestInput(false); setRenamingTestId(null); setDeletingTestId(null); }}
-                  className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors text-white"
-                >
-                  <Icons.X />
-                </button>
-              </div>
-
-              {/* Lista de tests */}
-              <div className="overflow-y-auto flex-1 p-4 space-y-2">
-                {tests.map(t => (
-                  <div key={t.id} className={`rounded-xl px-3 py-2.5 ${t.id === activeTestId ? 'bg-blue-500/20 border border-blue-500/40' : 'bg-white/5 border border-white/10'}`}>
-                    {renamingTestId === t.id ? (
-                      <input
-                        autoFocus
-                        value={renamingTestName}
-                        onChange={(e) => setRenamingTestName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && renamingTestName.trim()) {
-                            onRenameTest(t.id, renamingTestName.trim());
-                            setRenamingTestId(null);
-                          }
-                          if (e.key === 'Escape') setRenamingTestId(null);
-                        }}
-                        onBlur={() => {
-                          if (renamingTestName.trim()) onRenameTest(t.id, renamingTestName.trim());
-                          setRenamingTestId(null);
-                        }}
-                        className="w-full bg-white/10 text-white text-sm rounded-lg px-2 py-1 border border-blue-500/50 outline-none"
-                      />
-                    ) : deletingTestId === t.id ? (
-                      <div className="space-y-2">
-                        <p className="text-white text-xs">¿Eliminar este test? Se borrarán todos sus temas y preguntas.</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { onDeleteTest(t.id); setDeletingTestId(null); setShowTestSwitcher(false); }}
-                            className="flex-1 bg-red-500 text-white text-xs font-semibold py-1.5 rounded-lg"
-                          >
-                            Eliminar
-                          </button>
-                          <button
-                            onClick={() => setDeletingTestId(null)}
-                            className="flex-1 bg-white/10 text-white text-xs py-1.5 rounded-lg"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => { onSwitchTest(t.id); setShowTestSwitcher(false); }}
-                          className="flex-1 text-left"
-                        >
-                          <span className={`text-sm font-medium ${t.id === activeTestId ? 'text-blue-300' : 'text-white'}`}>
-                            {t.id === activeTestId && <span className="mr-1.5">✓</span>}
-                            {t.name}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => { setRenamingTestId(t.id); setRenamingTestName(t.name); }}
-                          className="p-1 text-gray-500 hover:text-blue-400 transition-colors text-sm"
-                          title="Renombrar"
-                        >
-                          ✏
-                        </button>
-                        <button
-                          onClick={() => setDeletingTestId(t.id)}
-                          disabled={tests.length <= 1}
-                          className="p-1 text-gray-500 hover:text-red-400 transition-colors text-sm disabled:opacity-30"
-                          title="Eliminar"
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Crear nuevo test */}
-                {showNewTestInput ? (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      autoFocus
-                      value={newTestName}
-                      onChange={(e) => setNewTestName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newTestName.trim()) {
-                          onCreateTest(newTestName.trim());
-                          setNewTestName('');
-                          setShowNewTestInput(false);
-                          setShowTestSwitcher(false);
-                        }
-                        if (e.key === 'Escape') { setShowNewTestInput(false); setNewTestName(''); }
-                      }}
-                      placeholder="Nombre del test..."
-                      className="flex-1 bg-white/5 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-blue-500/50"
-                    />
-                    <button
-                      onClick={() => {
-                        if (newTestName.trim()) {
-                          onCreateTest(newTestName.trim());
-                          setNewTestName('');
-                          setShowNewTestInput(false);
-                          setShowTestSwitcher(false);
-                        }
-                      }}
-                      className="bg-blue-500 text-white text-sm font-semibold px-3 py-2 rounded-xl"
-                    >
-                      Crear
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowNewTestInput(true)}
-                    className="w-full mt-1 py-2.5 rounded-xl border border-dashed border-white/20 text-gray-400 text-sm hover:border-blue-500/40 hover:text-blue-400 transition-colors"
-                  >
-                    + Nuevo test
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Panel post-import: crear repositorios IA por tema */}
-        {importedThemesPanel && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
-              {/* Header */}
-              <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
-                <div>
-                  <h3 className="text-white font-bold">Temas importados</h3>
-                  <p className="text-gray-400 text-xs mt-0.5">
-                    Crea el repositorio IA para cada tema que quieras
-                  </p>
-                </div>
-                <button
-                  onClick={() => setImportedThemesPanel(null)}
-                  className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors text-white"
-                >
-                  <Icons.X />
-                </button>
-              </div>
-
-              {/* Lista */}
-              <div className="overflow-y-auto flex-1 p-4 space-y-2">
-                {importedThemesPanel.map(t => (
-                  <div key={t.number} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5">
-                    <span className="text-gray-400 text-xs w-8 shrink-0">#{t.number}</span>
-                    <span className="text-white text-sm flex-1 truncate">{t.name}</span>
-                    {t.status === 'idle' && (
-                      <button
-                        onClick={() => createRepoForTheme(t.number)}
-                        className="shrink-0 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        🤖 Crear
-                      </button>
-                    )}
-                    {t.status === 'loading' && (
-                      <div className="shrink-0 w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                    )}
-                    {t.status === 'done' && (
-                      <span className="shrink-0 text-green-400 text-xs font-semibold">✓ Listo</span>
-                    )}
-                    {t.status === 'error' && (
-                      <button
-                        onClick={() => createRepoForTheme(t.number)}
-                        className="shrink-0 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        ↻ Reintentar
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-white/10 shrink-0">
-                <p className="text-gray-500 text-xs text-center">
-                  {importedThemesPanel.filter(t => t.status === 'done').length}/{importedThemesPanel.length} repositorios creados
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        <BulkImportModal
+          show={showBulkImport}
+          onClose={() => setShowBulkImport(false)}
+          onImport={handleBulkImport}
+          importedThemesPanel={importedThemesPanel}
+          onCreateRepo={createRepoForTheme}
+          onDismissPanel={() => setImportedThemesPanel(null)}
+        />
       </div>
     </div>
   );
 }
-
 
 export default ThemesScreen;

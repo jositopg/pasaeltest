@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
+import { useTheme } from '../../context/ThemeContext';
 
-function SettingsScreen({ onNavigate, darkMode, onToggleDark, profile: profileProp, onUpdateProfile }) {
+function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const [profile, setProfile] = useState({
     name: '',

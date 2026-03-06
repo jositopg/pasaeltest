@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import Icons from '../common/Icons';
+import { useTheme } from '../../context/ThemeContext';
 
-function ExamConfigScreen({ themes, onStartExam, onNavigate, darkMode }) {
+function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const [numQuestions, setNumQuestions] = useState(20);
   const [failedRatio, setFailedRatio] = useState(0);

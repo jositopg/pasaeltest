@@ -1,8 +1,10 @@
 import React from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG, GRADIENT_STYLE } from '../../utils/constants';
+import { useTheme } from '../../context/ThemeContext';
 
-function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, darkMode }) {
+function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}

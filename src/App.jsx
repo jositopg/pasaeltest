@@ -5,6 +5,9 @@ import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
 import useUserData from './hooks/useUserData';
 
+// Context
+import { ThemeProvider } from './context/ThemeContext';
+
 // Utils
 import { getSRSStats, getDueQuestions } from './utils/srs';
 
@@ -113,100 +116,93 @@ export default function App() {
 
   // ─── Main app ──────────────────────────────────────────────
   return (
-    <div className={dm ? 'dark-mode' : ''}>
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
-      {showUserProfile && (
-        <UserProfileModal
-          user={auth.currentUser}
-          profile={userData.profile}
-          onClose={() => setShowUserProfile(false)}
-          onLogout={handleLogout}
-          onUpdateProfile={userData.setProfile}
-          showToast={showToast}
-          darkMode={dm}
-        />
-      )}
-      
-      {screen === 'home' && (
-        <HomeScreen 
-          onNavigate={setScreen} 
-          stats={userData.stats} 
-          profile={userData.profile}
-          user={auth.currentUser}
-          onShowProfile={() => setShowUserProfile(true)}
-          darkMode={dm}
-          srsStats={srsStats}
-        />
-      )}
-      {screen === 'themes' && (
-        <ThemesScreen
-          themes={userData.themes}
-          tests={userData.tests}
-          activeTestId={userData.activeTestId}
-          onUpdateTheme={userData.updateTheme}
-          onCreateTest={userData.createTest}
-          onSwitchTest={userData.switchTest}
-          onRenameTest={userData.renameTest}
-          onDeleteTest={userData.deleteTest}
-          onNavigate={setScreen}
-          showToast={showToast}
-          darkMode={dm}
-        />
-      )}
-      {screen === 'exam' && (
-        <ExamConfigScreen 
-          themes={userData.themes} 
-          onStartExam={startExam} 
-          onNavigate={setScreen} 
-          darkMode={dm} 
-        />
-      )}
-      {screen === 'exam-active' && (
-        <ExamScreen 
-          config={examConfig} 
-          themes={userData.themes} 
-          onFinish={finishExam} 
-          onNavigate={setScreen} 
-          onUpdateThemes={userData.updateTheme}
-          darkMode={dm}
-        />
-      )}
-      {screen === 'review' && (
-        <ReviewScreen
-          dueQuestions={srsStats.dueQuestions}
-          themes={userData.themes}
-          onUpdateTheme={userData.updateTheme}
-          onNavigate={setScreen}
-          showToast={showToast}
-          darkMode={dm}
-        />
-      )}
-      {screen === 'stats' && (
-        <StatsScreen 
-          examHistory={userData.examHistory} 
-          onNavigate={setScreen} 
-          themes={userData.themes} 
-          darkMode={dm} 
-        />
-      )}
-      {screen === 'heatmap' && (
-        <HeatmapScreen 
-          themes={userData.themes} 
-          onNavigate={setScreen} 
-          darkMode={dm} 
-        />
-      )}
-      {screen === 'settings' && (
-        <SettingsScreen
-          onNavigate={setScreen}
-          darkMode={dm}
-          onToggleDark={() => setDarkMode(!dm)}
-          profile={userData.profile}
-          onUpdateProfile={userData.setProfile}
-        />
-      )}
-      <BottomNav current={screen} onNavigate={setScreen} darkMode={dm} />
-    </div>
+    <ThemeProvider darkMode={dm}>
+      <div className={dm ? 'dark-mode' : ''}>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+        {showUserProfile && (
+          <UserProfileModal
+            user={auth.currentUser}
+            profile={userData.profile}
+            onClose={() => setShowUserProfile(false)}
+            onLogout={handleLogout}
+            onUpdateProfile={userData.setProfile}
+            showToast={showToast}
+          />
+        )}
+
+        {screen === 'home' && (
+          <HomeScreen
+            onNavigate={setScreen}
+            stats={userData.stats}
+            profile={userData.profile}
+            user={auth.currentUser}
+            onShowProfile={() => setShowUserProfile(true)}
+            srsStats={srsStats}
+          />
+        )}
+        {screen === 'themes' && (
+          <ThemesScreen
+            themes={userData.themes}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            onUpdateTheme={userData.updateTheme}
+            onCreateTest={userData.createTest}
+            onSwitchTest={userData.switchTest}
+            onRenameTest={userData.renameTest}
+            onDeleteTest={userData.deleteTest}
+            onNavigate={setScreen}
+            showToast={showToast}
+          />
+        )}
+        {screen === 'exam' && (
+          <ExamConfigScreen
+            themes={userData.themes}
+            onStartExam={startExam}
+            onNavigate={setScreen}
+          />
+        )}
+        {screen === 'exam-active' && (
+          <ExamScreen
+            config={examConfig}
+            themes={userData.themes}
+            onFinish={finishExam}
+            onNavigate={setScreen}
+            onUpdateThemes={userData.updateTheme}
+          />
+        )}
+        {screen === 'review' && (
+          <ReviewScreen
+            dueQuestions={srsStats.dueQuestions}
+            themes={userData.themes}
+            onUpdateTheme={userData.updateTheme}
+            onNavigate={setScreen}
+            showToast={showToast}
+          />
+        )}
+        {screen === 'stats' && (
+          <StatsScreen
+            examHistory={userData.examHistory}
+            onNavigate={setScreen}
+            themes={userData.themes}
+          />
+        )}
+        {screen === 'heatmap' && (
+          <HeatmapScreen
+            themes={userData.themes}
+            onNavigate={setScreen}
+          />
+        )}
+        {screen === 'settings' && (
+          <SettingsScreen
+            onNavigate={setScreen}
+            onToggleDark={() => setDarkMode(!dm)}
+            profile={userData.profile}
+            onUpdateProfile={userData.setProfile}
+          />
+        )}
+        <BottomNav current={screen} onNavigate={setScreen} />
+      </div>
+    </ThemeProvider>
   );
 }

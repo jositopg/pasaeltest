@@ -21,6 +21,7 @@
  */
 
 import * as XLSX from 'xlsx';
+import { normalizeDifficulty } from './constants';
 
 /**
  * Parsear preguntas desde Excel
@@ -73,12 +74,6 @@ export const parseExcelQuestions = async (file) => {
             throw new Error(`Fila ${index + 2}: Tipo de "Correcta" inválido`);
           }
           
-          // Normalizar dificultad
-          const dificultad = (row.Dificultad || 'media').toLowerCase();
-          if (!['fácil', 'facil', 'media', 'difícil', 'dificil'].includes(dificultad)) {
-            console.warn(`Fila ${index + 2}: Dificultad "${dificultad}" no reconocida, usando "media"`);
-          }
-          
           return {
             text: row.Pregunta.trim(),
             options: [
@@ -87,8 +82,7 @@ export const parseExcelQuestions = async (file) => {
               row['Opción C'].trim()
             ],
             correct: correctIndex,
-            difficulty: dificultad === 'fácil' || dificultad === 'facil' ? 'facil' :
-                       dificultad === 'difícil' || dificultad === 'dificil' ? 'dificil' : 'media',
+            difficulty: normalizeDifficulty(row.Dificultad || 'media'),
             id: `imported_${Date.now()}_${index}`,
             stats: {
               timesAnswered: 0,
@@ -159,12 +153,7 @@ export const parsePDFQuestions = async (text) => {
       
       // Extraer dificultad (opcional)
       const dificultadMatch = block.match(/DIFICULTAD:\s*(\w+)/i);
-      let dificultad = 'media';
-      if (dificultadMatch) {
-        const diff = dificultadMatch[1].toLowerCase();
-        if (['fácil', 'facil'].includes(diff)) dificultad = 'facil';
-        else if (['difícil', 'dificil'].includes(diff)) dificultad = 'dificil';
-      }
+      const dificultad = dificultadMatch ? normalizeDifficulty(dificultadMatch[1]) : 'media';
       
       questions.push({
         text: pregunta,

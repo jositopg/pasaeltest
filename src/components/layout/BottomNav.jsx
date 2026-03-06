@@ -1,7 +1,9 @@
 import React from 'react';
 import Icons from '../common/Icons';
+import { useTheme } from '../../context/ThemeContext';
 
-function BottomNav({ current, onNavigate, darkMode }) {
+function BottomNav({ current, onNavigate }) {
+  const { darkMode } = useTheme();
   const items = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
     { id: 'themes', icon: Icons.Book, label: 'Temas' },

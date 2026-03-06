@@ -1,8 +1,10 @@
 import React from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
+import { useTheme } from '../../context/ThemeContext';
 
-function StatsScreen({ examHistory, onNavigate, themes, darkMode }) {
+function StatsScreen({ examHistory, onNavigate, themes }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const totalExams = examHistory.length;
   const avg = totalExams > 0 

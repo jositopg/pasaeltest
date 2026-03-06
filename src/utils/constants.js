@@ -43,3 +43,19 @@ export const GRADIENT_BG = 'linear-gradient(135deg, #2563EB, #7C3AED)';
 
 export const MAX_CHARS = 100000;
 export const QUESTIONS_PER_BATCH = 25;
+
+export const TIMEOUTS = {
+  TOAST: 3000,
+  TOAST_ANIMATION: 300,
+  SAVE_FEEDBACK: 2000,
+  THEME_UPDATE: 150,
+};
+
+// Única fuente de verdad — eliminar las copias locales en ThemeDetailModal y questionImporter
+export const normalizeDifficulty = (d) => {
+  if (!d) return 'media';
+  const lower = String(d).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (['facil', 'easy', 'baja', 'low', 'simple'].includes(lower)) return 'facil';
+  if (['dificil', 'hard', 'difficult', 'alta', 'high'].includes(lower)) return 'dificil';
+  return 'media';
+};

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { calculateNextReview } from '../../utils/srs';
+import { useTheme } from '../../context/ThemeContext';
 
 function getPenaltyValue(incorrect, system) {
   switch (system) {
@@ -17,7 +18,8 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, darkMode }) {
+function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
+  const { darkMode } = useTheme();
   const dm = darkMode;
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
