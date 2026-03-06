@@ -34,11 +34,14 @@ function ThemesScreen({
     generatingQuestions = {},
     generatingAll = false,
     generatingAllQuestions = false,
+    queueProgress = null,
     createRepoInline,
     generateQuestionsInline,
     handleGenerateAll,
     handleGenerateAllQuestions,
   } = genQueue;
+
+  const anyBulkRunning = generatingAll || generatingAllQuestions;
 
   // Estimación de preguntas necesarias por tema (algorítmico, sin API)
   const themeEstimates = useMemo(() => {
@@ -236,10 +239,10 @@ function ThemesScreen({
               </button>
               <button
                 onClick={handleGenerateAll}
-                disabled={generatingAll || generatingAllQuestions}
+                disabled={anyBulkRunning}
                 className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                  generatingAll
-                    ? 'bg-purple-500/30 text-purple-300 cursor-wait'
+                  anyBulkRunning
+                    ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-50 text-purple-400')
                     : dm ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
                 }`}
                 title="Generar repositorios IA para todos los temas con nombre personalizado sin documentos"
@@ -251,10 +254,10 @@ function ThemesScreen({
               </button>
               <button
                 onClick={handleGenerateAllQuestions}
-                disabled={generatingAllQuestions || generatingAll}
+                disabled={anyBulkRunning}
                 className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                  generatingAllQuestions
-                    ? 'bg-green-500/30 text-green-300 cursor-wait'
+                  anyBulkRunning
+                    ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-green-500/20 text-green-300' : 'bg-green-50 text-green-400')
                     : dm ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
                 }`}
                 title="Generar preguntas para todos los temas con repositorio"
@@ -293,6 +296,65 @@ function ThemesScreen({
               <span className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                 {tests.length} tests
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Progress panel — visible when bulk generation is running or just finished */}
+        {queueProgress && (
+          <div className={`rounded-2xl p-4 space-y-2 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {queueProgress.currentName ? (
+                  <div className={`w-4 h-4 rounded-full border-2 border-t-transparent animate-spin shrink-0 ${
+                    queueProgress.type === 'repos' ? 'border-purple-400' : 'border-green-400'
+                  }`} />
+                ) : (
+                  <span className="text-green-400 text-sm">✓</span>
+                )}
+                <span className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>
+                  {queueProgress.type === 'repos' ? '⚡ Repositorios' : '📝 Preguntas'}:&nbsp;
+                  <span className={dm ? 'text-slate-300' : 'text-slate-600'}>{queueProgress.done}/{queueProgress.total}</span>
+                </span>
+              </div>
+              {queueProgress.errors?.length > 0 && (
+                <span className={`text-xs font-semibold ${dm ? 'text-red-400' : 'text-red-500'}`}>
+                  {queueProgress.errors.length} error{queueProgress.errors.length !== 1 ? 'es' : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  queueProgress.done >= queueProgress.total ? 'bg-green-500' :
+                  queueProgress.type === 'repos' ? 'bg-purple-500' : 'bg-green-500'
+                }`}
+                style={{ width: `${Math.round((queueProgress.done / queueProgress.total) * 100)}%` }}
+              />
+            </div>
+
+            {/* Current theme */}
+            {queueProgress.currentName && (
+              <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                Procesando:{' '}
+                <span className={`font-medium ${dm ? 'text-slate-200' : 'text-slate-700'}`}>
+                  {queueProgress.currentName}
+                </span>
+              </p>
+            )}
+
+            {/* Errors list */}
+            {queueProgress.errors?.length > 0 && (
+              <div className={`rounded-xl p-3 space-y-1 ${dm ? 'bg-red-500/10' : 'bg-red-50'}`}>
+                {queueProgress.errors.map((err, i) => (
+                  <p key={i} className={`text-xs ${dm ? 'text-red-300' : 'text-red-600'}`}>
+                    <span className="font-semibold">✗ {err.name}:</span> {err.reason}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
         )}

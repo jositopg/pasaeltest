@@ -3,6 +3,52 @@ import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../ut
 import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/constants';
 
 /**
+ * Extracts usable text content from a document object.
+ * Returns empty string if the document has no real content.
+ */
+function extractDocContent(doc) {
+  // processedContent is always real text (scraped, extracted from PDF, or AI-generated)
+  if (doc.processedContent && doc.processedContent.trim().length > 80) {
+    return doc.processedContent;
+  }
+  // ai-search repos created with searchResults wrapper
+  if (doc.searchResults?.processedContent && doc.searchResults.processedContent.trim().length > 80) {
+    return doc.searchResults.processedContent;
+  }
+  if (doc.searchResults?.content && doc.searchResults.content.trim().length > 80) {
+    return doc.searchResults.content;
+  }
+  // doc.content is safe only for text/pdf types — for url type it's the URL string
+  if (doc.type !== 'url' && doc.content && doc.content.trim().length > 80) {
+    return doc.content;
+  }
+  return '';
+}
+
+/**
+ * Builds concatenated document content for a theme, skipping docs without real content.
+ * Returns { text, docsUsed, docsSkipped }
+ */
+function buildContent(documents) {
+  let text = '';
+  let charCount = 0;
+  let docsUsed = 0;
+  let docsSkipped = 0;
+
+  for (const doc of documents) {
+    if (charCount >= MAX_CHARS) break;
+    const extracted = extractDocContent(doc);
+    if (!extracted) { docsSkipped++; continue; }
+    const chunk = `\n${extracted}\n`;
+    const remaining = MAX_CHARS - charCount;
+    text += chunk.substring(0, remaining);
+    charCount += Math.min(chunk.length, remaining);
+    docsUsed++;
+  }
+  return { text, docsUsed, docsSkipped };
+}
+
+/**
  * Persistent generation queue — lives in App.jsx so navigation doesn't kill ongoing jobs.
  * @param {Object} opts
  * @param {React.MutableRefObject} opts.themesRef  - ref always pointing to latest themes array
@@ -10,19 +56,23 @@ import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/co
  * @param {Function} opts.showToast                - toast helper
  */
 export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast }) {
-  const [generatingRepos, setGeneratingRepos] = useState({});     // { [themeNumber]: 'loading'|'done'|'error' }
-  const [generatingQuestions, setGeneratingQuestions] = useState({}); // same
+  const [generatingRepos, setGeneratingRepos] = useState({});
+  const [generatingQuestions, setGeneratingQuestions] = useState({});
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingAllQuestions, setGeneratingAllQuestions] = useState(false);
-  const [queueProgress, setQueueProgress] = useState(null); // { done, total, type: 'repos'|'questions' }
+  // { done, total, type, currentName, errors: [{name, reason}] }
+  const [queueProgress, setQueueProgress] = useState(null);
 
-  // Ref-based in-progress guard to avoid stale closure in rapid clicks
+  // Ref-based lock — immune to stale closures, prevents any double-run
+  const isRunningRef = useRef(false);
+  // Ref-based in-progress guard per theme for rapid-click protection
   const inProgressRef = useRef(new Set()); // 'repo-{num}' | 'q-{num}'
 
   // ─── Single-theme repo generation ────────────────────────────────────────
+  // Returns null on success, error reason string on failure
   const createRepoInline = useCallback(async (theme) => {
     const key = `repo-${theme.number}`;
-    if (inProgressRef.current.has(key)) return;
+    if (inProgressRef.current.has(key)) return 'already running';
     inProgressRef.current.add(key);
     setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'loading' }));
 
@@ -32,12 +82,12 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000, callType: 'repo' })
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
 
       let content = '';
       for (const block of data.content) { if (block.type === 'text') content += block.text; }
-      if (content.trim().length < 50) throw new Error('Contenido insuficiente');
+      if (content.trim().length < 80) throw new Error('Respuesta vacía de la IA');
 
       const newDoc = {
         type: 'ai-search', content: theme.name,
@@ -47,7 +97,6 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         processedContent: content
       };
 
-      // Always read latest theme from ref to avoid overwriting concurrent changes
       const latestTheme = themesRef.current.find(t => t.number === theme.number);
       if (latestTheme) {
         onUpdateTheme({ ...latestTheme, documents: [...(latestTheme.documents || []), newDoc] });
@@ -56,40 +105,40 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       inProgressRef.current.delete(key);
       setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'done' }));
       showToast?.(`✅ Repositorio creado para "${theme.name}"`, 'success');
+      return null; // success
     } catch (e) {
+      const reason = e.message || 'Error desconocido';
       console.error(`Error repo "${theme.name}":`, e);
       inProgressRef.current.delete(key);
       setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'error' }));
-      showToast?.(`Error creando repositorio para "${theme.name}"`, 'error');
+      showToast?.(`Error repositorio "${theme.name}": ${reason}`, 'error');
+      return reason;
     }
   }, [themesRef, onUpdateTheme, showToast]);
 
   // ─── Single-theme questions generation ───────────────────────────────────
+  // Returns null on success, error reason string on failure
   const generateQuestionsInline = useCallback(async (theme) => {
     const key = `q-${theme.number}`;
-    if (inProgressRef.current.has(key)) return;
+    if (inProgressRef.current.has(key)) return 'already running';
     inProgressRef.current.add(key);
     setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'loading' }));
 
     try {
-      // Read latest theme (may have fresher documents)
       const latestTheme = themesRef.current.find(t => t.number === theme.number) || theme;
-      if (!latestTheme.documents?.length) throw new Error('Sin documentos');
 
-      let documentContents = '';
-      let charCount = 0;
-      for (const doc of latestTheme.documents) {
-        if (charCount >= MAX_CHARS) break;
-        let docText = '';
-        if (doc.processedContent) docText = `\n${doc.processedContent}\n`;
-        else if (doc.searchResults?.processedContent) docText = `\n${doc.searchResults.processedContent}\n`;
-        else if (doc.searchResults?.content) docText = `\n${doc.searchResults.content}\n`;
-        else if (doc.content) docText = `\n${doc.content}\n`;
-        const remaining = MAX_CHARS - charCount;
-        documentContents += docText.substring(0, remaining);
-        charCount += docText.length;
+      if (!latestTheme.documents?.length) {
+        throw new Error('El tema no tiene documentos');
       }
-      if (documentContents.trim().length < 100) throw new Error('Contenido insuficiente');
+
+      const { text: documentContents, docsUsed, docsSkipped } = buildContent(latestTheme.documents);
+
+      if (documentContents.trim().length < 100) {
+        const reason = docsSkipped > 0 && docsUsed === 0
+          ? `${docsSkipped} doc${docsSkipped > 1 ? 's' : ''} sin contenido extraído (URLs sin scrape o documentos vacíos)`
+          : 'Contenido demasiado corto para generar preguntas';
+        throw new Error(reason);
+      }
 
       const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
       const prompt = OPTIMIZED_QUESTION_PROMPT(
@@ -103,7 +152,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
 
       let textContent = '';
@@ -113,10 +162,10 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         .replace(/```json\s*/g, '').replace(/```\s*/g, '')
         .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
       const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No JSON found');
+      if (!jsonMatch) throw new Error('La IA no devolvió JSON válido');
 
       const parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Sin preguntas');
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas');
 
       const rawQuestions = parsed.map((q, i) => ({
         id: `${theme.number}-ai-${Date.now()}-${i}`,
@@ -141,26 +190,32 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         });
       });
 
-      if (newQuestions.length === 0) throw new Error('Todas duplicadas');
+      if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas son duplicadas');
 
-      // Re-read latest theme one more time to avoid race
       const finalTheme = themesRef.current.find(t => t.number === theme.number) || latestTheme;
       onUpdateTheme({ ...finalTheme, questions: [...(finalTheme.questions || []), ...newQuestions] });
 
       inProgressRef.current.delete(key);
       setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'done' }));
       showToast?.(`✅ ${newQuestions.length} preguntas para "${theme.name}"`, 'success');
+      return null; // success
     } catch (e) {
-      console.error(`Error preguntas "${theme.name}":`, e);
+      const reason = e.message || 'Error desconocido';
+      console.error(`Error preguntas "${theme.name}":`, reason);
       inProgressRef.current.delete(key);
       setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'error' }));
-      showToast?.(`Error generando preguntas para "${theme.name}"`, 'error');
+      // No toast for bulk — shown in progress panel
+      if (!isRunningRef.current) {
+        showToast?.(`Error preguntas "${theme.name}": ${reason}`, 'error');
+      }
+      return reason;
     }
   }, [themesRef, onUpdateTheme, showToast]);
 
   // ─── Bulk repo generation ─────────────────────────────────────────────────
   const handleGenerateAll = useCallback(async () => {
-    if (generatingAll || generatingAllQuestions) return;
+    if (isRunningRef.current) return;
+
     const pending = themesRef.current.filter(t =>
       t.name !== `Tema ${t.number}` && !(t.documents?.length > 0)
     );
@@ -168,47 +223,73 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       showToast?.('No hay temas pendientes con nombre personalizado', 'info');
       return;
     }
-    showToast?.(`⚡ Generando ${pending.length} repositorios. Mantén la app abierta.`, 'info');
+
+    isRunningRef.current = true;
     setGeneratingAll(true);
-    setQueueProgress({ done: 0, total: pending.length, type: 'repos' });
+    setQueueProgress({ done: 0, total: pending.length, type: 'repos', currentName: pending[0]?.name, errors: [] });
 
-    for (let i = 0; i < pending.length; i++) {
-      await createRepoInline(pending[i]);
-      setQueueProgress({ done: i + 1, total: pending.length, type: 'repos' });
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800));
+    try {
+      for (let i = 0; i < pending.length; i++) {
+        setQueueProgress(prev => prev ? { ...prev, currentName: pending[i].name } : prev);
+        const errorReason = await createRepoInline(pending[i]);
+        setQueueProgress(prev => {
+          if (!prev) return prev;
+          const errors = errorReason && errorReason !== 'already running'
+            ? [...prev.errors, { name: pending[i].name, reason: errorReason }]
+            : prev.errors;
+          return { ...prev, done: i + 1, errors };
+        });
+        if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800));
+      }
+    } finally {
+      isRunningRef.current = false;
+      setGeneratingAll(false);
+      setQueueProgress(prev => prev ? { ...prev, currentName: null } : prev);
+      setTimeout(() => setQueueProgress(null), 6000);
     }
-
-    setGeneratingAll(false);
-    setTimeout(() => setQueueProgress(null), 3000);
-  }, [generatingAll, generatingAllQuestions, themesRef, createRepoInline, showToast]);
+  }, [themesRef, createRepoInline, showToast]);
 
   // ─── Bulk questions generation ────────────────────────────────────────────
   const handleGenerateAllQuestions = useCallback(async () => {
-    if (generatingAll || generatingAllQuestions) return;
+    if (isRunningRef.current) return;
+
     const pending = themesRef.current.filter(t => t.documents?.length > 0);
     if (pending.length === 0) {
       showToast?.('No hay temas con repositorio pendientes', 'info');
       return;
     }
-    showToast?.(`📝 Generando preguntas para ${pending.length} temas. Mantén la app abierta.`, 'info');
+
+    isRunningRef.current = true;
     setGeneratingAllQuestions(true);
-    setQueueProgress({ done: 0, total: pending.length, type: 'questions' });
+    setQueueProgress({ done: 0, total: pending.length, type: 'questions', currentName: pending[0]?.name, errors: [] });
 
-    for (let i = 0; i < pending.length; i++) {
-      await generateQuestionsInline(pending[i]);
-      setQueueProgress({ done: i + 1, total: pending.length, type: 'questions' });
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1200));
+    try {
+      for (let i = 0; i < pending.length; i++) {
+        setQueueProgress(prev => prev ? { ...prev, currentName: pending[i].name } : prev);
+        const errorReason = await generateQuestionsInline(pending[i]);
+        setQueueProgress(prev => {
+          if (!prev) return prev;
+          const errors = errorReason && errorReason !== 'already running'
+            ? [...prev.errors, { name: pending[i].name, reason: errorReason }]
+            : prev.errors;
+          return { ...prev, done: i + 1, errors };
+        });
+        if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1200));
+      }
+    } finally {
+      isRunningRef.current = false;
+      setGeneratingAllQuestions(false);
+      setQueueProgress(prev => prev ? { ...prev, currentName: null } : prev);
+      setTimeout(() => setQueueProgress(null), 6000);
     }
-
-    setGeneratingAllQuestions(false);
-    setTimeout(() => setQueueProgress(null), 3000);
-  }, [generatingAll, generatingAllQuestions, themesRef, generateQuestionsInline, showToast]);
+  }, [themesRef, generateQuestionsInline, showToast]);
 
   return {
     generatingRepos,
     generatingQuestions,
     generatingAll,
     generatingAllQuestions,
+    isRunning: isRunningRef.current,
     queueProgress,
     createRepoInline,
     generateQuestionsInline,
