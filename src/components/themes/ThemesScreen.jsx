@@ -152,6 +152,20 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
           <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
           {selectionMode ? (
             <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const allNumbers = filteredThemes.map(t => t.number);
+                  const allSelected = allNumbers.every(n => selectedNumbers.has(n));
+                  if (allSelected) {
+                    setSelectedNumbers(new Set());
+                  } else {
+                    setSelectedNumbers(new Set(allNumbers));
+                  }
+                }}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {filteredThemes.every(t => selectedNumbers.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
+              </button>
               {selectedNumbers.size > 0 && (
                 <button
                   onClick={handleBulkReset}
