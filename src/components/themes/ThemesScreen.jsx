@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Icons from '../common/Icons';
 import ThemeDetailModal from './ThemeDetailModal';
 import TestSwitcherModal from './TestSwitcherModal';
 import BulkImportModal from './BulkImportModal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../../utils/optimizedPrompts';
-import { analyzeDocument, determineQuestionTypes } from '../../utils/documentAnalyzer';
+import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -26,6 +27,31 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
   // Estado para generación rápida de preguntas inline
   const [generatingQuestions, setGeneratingQuestions] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
   const [generatingAllQuestions, setGeneratingAllQuestions] = useState(false);
+  // Confirmación antes de resetear nombres en masa
+  const [bulkResetConfirm, setBulkResetConfirm] = useState({ show: false });
+
+  // Estimación de preguntas necesarias por tema (algorítmico, sin API)
+  const themeEstimates = useMemo(() => {
+    const map = {};
+    for (const t of themes) {
+      if (!t.documents?.length) continue;
+      let content = '';
+      for (const doc of t.documents) {
+        const text = doc.processedContent || doc.searchResults?.processedContent || doc.searchResults?.content || doc.content || '';
+        content += text;
+        if (content.length > 60000) break;
+      }
+      if (content.length < 100) continue;
+      try {
+        const { report } = analyzeDocument(content.substring(0, 60000));
+        map[t.number] = report.totalQuestions;
+      } catch {
+        const words = content.split(/\s+/).length;
+        map[t.number] = Math.min(150, Math.max(20, Math.round(words / 50)));
+      }
+    }
+    return map;
+  }, [themes]);
 
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
@@ -69,10 +95,11 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       t.name !== `Tema ${t.number}` && !(t.documents?.length > 0) && generatingRepos[t.number] !== 'done'
     );
     if (pending.length === 0) { if (showToast) showToast('No hay temas pendientes con nombre personalizado', 'info'); return; }
+    if (showToast) showToast(`⚡ Generando ${pending.length} repositorios. Mantén la app abierta.`, 'info');
     setGeneratingAll(true);
     for (let i = 0; i < pending.length; i++) {
       await createRepoInline(pending[i]);
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800)); // pausa entre llamadas
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800));
     }
     setGeneratingAll(false);
   };
@@ -89,9 +116,9 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       for (const doc of theme.documents) {
         if (charCount >= MAX_CHARS) break;
         let docText = '';
-        if (doc.processedContent) docText = `\n${doc.fileName || doc.content?.substring(0, 100)}\n${doc.processedContent}\n`;
-        else if (doc.searchResults?.processedContent) docText = `\n${doc.content}\n${doc.searchResults.processedContent}\n`;
-        else if (doc.searchResults?.content) docText = `\n${doc.content}\n${doc.searchResults.content}\n`;
+        if (doc.processedContent) docText = `\n${doc.processedContent}\n`;
+        else if (doc.searchResults?.processedContent) docText = `\n${doc.searchResults.processedContent}\n`;
+        else if (doc.searchResults?.content) docText = `\n${doc.searchResults.content}\n`;
         else if (doc.content) docText = `\n${doc.content}\n`;
         const remaining = MAX_CHARS - charCount;
         documentContents += docText.substring(0, remaining);
@@ -100,20 +127,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       if (documentContents.trim().length < 100) throw new Error('Contenido insuficiente');
 
       const existingTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
-      const existingQuestionsStr = existingTexts.join('\n');
-      const analysis = analyzeDocument(documentContents);
-      const significantSections = analysis.sections.filter(s => s.level === 'critical' || s.level === 'high');
-      const usePhase2 = significantSections.length >= 2;
-
-      let prompt;
-      if (usePhase2) {
-        const topSection = significantSections[0];
-        const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
-        const questionTypes = determineQuestionTypes(topSection);
-        prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr);
-      } else {
-        prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr);
-      }
+      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingTexts.join('\n'));
 
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
@@ -175,6 +189,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       t.documents?.length > 0 && generatingQuestions[t.number] !== 'done'
     );
     if (pending.length === 0) { if (showToast) showToast('No hay temas con repositorio pendientes', 'info'); return; }
+    if (showToast) showToast(`📝 Generando preguntas para ${pending.length} temas. Mantén la app abierta.`, 'info');
     setGeneratingAllQuestions(true);
     for (let i = 0; i < pending.length; i++) {
       await generateQuestionsInline(pending[i]);
@@ -327,7 +342,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
               </button>
               {selectedNumbers.size > 0 && (
                 <button
-                  onClick={handleBulkReset}
+                  onClick={() => setBulkResetConfirm({ show: true })}
                   className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
                 >
                   Reset ({selectedNumbers.size})
@@ -436,7 +451,11 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
         <div className="space-y-2">
           {filteredThemes.map(theme => {
             const questionCount = theme.questions?.length || 0;
-            const progressPercent = Math.min((questionCount / 50) * 100, 100);
+            const estimated = themeEstimates[theme.number] || null;
+            const coveragePct = estimated ? Math.min(100, Math.round((questionCount / estimated) * 100)) : null;
+            const progressPercent = estimated
+              ? Math.min((questionCount / estimated) * 100, 100)
+              : Math.min((questionCount / 50) * 100, 100);
             const hasDocuments = theme.documents?.length > 0;
             const isEditing = editingThemeNumber === theme.number;
             const isSelected = selectedNumbers.has(theme.number);
@@ -573,17 +592,16 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                     )}
                     <div className="flex flex-col gap-1.5 items-end ml-1">
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
-                        questionCount >= 50
-                          ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
-                          : questionCount >= 25
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
+                        (coveragePct ?? (questionCount >= 50 ? 100 : questionCount >= 25 ? 50 : questionCount > 0 ? 20 : 0)) >= 80
+                          ? dm ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+                          : (coveragePct ?? 0) >= 50
+                            ? dm ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
                             : questionCount > 0
-                              ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
-                              : dm
-                                ? 'bg-gray-500/20 text-gray-400'
-                                : 'bg-slate-100 text-slate-600'
+                              ? dm ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'
+                              : dm ? 'bg-gray-500/20 text-gray-400' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {questionCount} pregunta{questionCount !== 1 ? 's' : ''}
+                        {estimated ? `${questionCount}/${estimated}` : `${questionCount} preg.`}
+                        {coveragePct !== null && ` (${coveragePct}%)`}
                       </span>
                       {hasDocuments && (
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
@@ -599,8 +617,8 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                 <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      progressPercent >= 50 ? 'bg-gradient-to-r from-green-500 to-green-400' :
-                      progressPercent >= 25 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+                      progressPercent >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' :
+                      progressPercent >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
                       progressPercent > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-400' :
                       dm ? 'bg-gray-600' : 'bg-slate-200'
                     }`}
@@ -644,6 +662,16 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
           importedThemesPanel={importedThemesPanel}
           onCreateRepo={createRepoForTheme}
           onDismissPanel={() => setImportedThemesPanel(null)}
+        />
+
+        <ConfirmDialog
+          show={bulkResetConfirm.show}
+          title="¿Resetear nombres de temas?"
+          message={`¿Seguro que quieres resetear el nombre de ${selectedNumbers.size} tema${selectedNumbers.size !== 1 ? 's' : ''} a su nombre por defecto ("Tema N")?`}
+          confirmLabel="Sí, resetear"
+          danger
+          onConfirm={() => { handleBulkReset(); setBulkResetConfirm({ show: false }); }}
+          onCancel={() => setBulkResetConfirm({ show: false })}
         />
       </div>
     </div>

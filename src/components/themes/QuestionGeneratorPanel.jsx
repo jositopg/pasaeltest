@@ -2,26 +2,28 @@ import React from 'react';
 import Icons from '../common/Icons';
 
 /**
- * Panel de generación de preguntas con IA: botón estándar (1 pasada) + botón completar tema (3 pasadas).
+ * Panel de generación de preguntas con IA: botón, progreso, cobertura estimada.
  */
 export default function QuestionGeneratorPanel({
   isGenerating,
   progress,
   percent,
   hasDocuments,
+  estimatedTotal,
+  currentCount,
+  coveragePercent,
   onGenerate,
-  onComplete,
   onToggleManual,
   showManual,
 }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <button
           onClick={onGenerate}
           disabled={isGenerating || !hasDocuments}
           className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
-          title="Genera 40 preguntas en una sola pasada"
+          title={estimatedTotal ? `Genera 40 preguntas (objetivo: ${estimatedTotal} para cobertura completa)` : 'Genera 40 preguntas con IA'}
         >
           {isGenerating ? (
             <>
@@ -32,23 +34,21 @@ export default function QuestionGeneratorPanel({
         </button>
 
         <button
-          onClick={onComplete}
-          disabled={isGenerating || !hasDocuments}
-          className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
-          title="3 pasadas de generación (hasta ~120 preguntas) cubriendo todo el contenido del tema"
-        >
-          {isGenerating ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : '🎯'}
-          Cubrir todo el tema
-        </button>
-
-        <button
           onClick={onToggleManual}
           className="bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-semibold"
         >
           <Icons.Plus /> Manual
         </button>
+
+        {estimatedTotal && !isGenerating && (
+          <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
+            coveragePercent >= 80 ? 'bg-green-500/20 text-green-400' :
+            coveragePercent >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+            'bg-white/5 text-gray-400'
+          }`}>
+            {currentCount}/{estimatedTotal} ({coveragePercent}%)
+          </span>
+        )}
       </div>
 
       {!hasDocuments && (

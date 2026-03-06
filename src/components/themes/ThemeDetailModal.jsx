@@ -105,6 +105,26 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     }
   };
 
+  // ─── Estimación de cobertura (algorítmica, sin API) ──────────
+  const estimatedTotal = (() => {
+    if (!theme.documents?.length) return null;
+    let content = '';
+    for (const doc of theme.documents) {
+      const text = doc.processedContent || doc.searchResults?.processedContent || doc.searchResults?.content || doc.content || '';
+      content += text;
+      if (content.length > 60000) break;
+    }
+    if (content.length < 100) return null;
+    try {
+      const { report } = analyzeDocument(content.substring(0, 60000));
+      return report.totalQuestions;
+    } catch {
+      return null;
+    }
+  })();
+  const questionCount = theme.questions?.length || 0;
+  const coveragePercent = estimatedTotal ? Math.min(100, Math.round((questionCount / estimatedTotal) * 100)) : null;
+
   // ─── Generación de preguntas ─────────────────────────────────
 
   // Construye el texto completo del repositorio a partir de los documentos del tema
@@ -246,68 +266,6 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     }
   };
 
-  // 3 pasadas de generación para cobertura total del tema
-  const COVERAGE_INSTRUCTIONS = [
-    null,
-    'Enfócate exclusivamente en aspectos NO cubiertos aún: artículos específicos, plazos exactos, requisitos concretos, excepciones y procedimientos detallados.',
-    'Enfócate exclusivamente en aspectos MUY ESPECÍFICOS no preguntados: datos numéricos exactos (porcentajes, importes, días), sanciones, casos especiales, definiciones técnicas y aplicaciones prácticas.'
-  ];
-
-  const generateQuestionsComplete = async () => {
-    const docs = theme.documents;
-    if (!docs || docs.length === 0) {
-      if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
-      return;
-    }
-
-    setIsGeneratingQuestions(true);
-    setGenerationPercent(0);
-
-    try {
-      const documentContents = buildDocumentContents(docs);
-      if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido.');
-
-      // Acumulamos textos existentes localmente para que cada pasada evite duplicados de las anteriores
-      const accumulatedTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
-      const allNewQuestions = [];
-
-      for (let pass = 0; pass < 3; pass++) {
-        setGenerationProgress(`🔄 Pasada ${pass + 1}/3 — ${pass === 0 ? 'conceptos principales' : pass === 1 ? 'detalles y procedimientos' : 'datos específicos'}...`);
-        setGenerationPercent(Math.round((pass / 3) * 90) + 5);
-
-        const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, accumulatedTexts, COVERAGE_INSTRUCTIONS[pass]);
-
-        if (newQuestions.length > 0) {
-          allNewQuestions.push(...newQuestions);
-          newQuestions.forEach(q => accumulatedTexts.push(q.text.toLowerCase().trim()));
-          setGenerationProgress(`✓ Pasada ${pass + 1}/3: +${newQuestions.length} preguntas (${duplicatesFound} duplic.)`);
-        } else {
-          setGenerationProgress(`✓ Pasada ${pass + 1}/3: sin preguntas nuevas`);
-        }
-
-        if (pass < 2) await new Promise(r => setTimeout(r, 1200));
-      }
-
-      setGenerationPercent(98);
-
-      if (allNewQuestions.length === 0) throw new Error('No se generaron preguntas nuevas en ninguna pasada.');
-
-      onUpdate({ ...theme, questions: [...(theme.questions || []), ...allNewQuestions], lastGenerated: new Date().toISOString() });
-
-      setGenerationProgress(`✅ ¡${allNewQuestions.length} preguntas nuevas en 3 pasadas!`);
-      setGenerationPercent(100);
-      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 2500);
-
-    } catch (error) {
-      console.error('Error en cobertura completa:', error);
-      setIsGeneratingQuestions(false);
-      setGenerationProgress('');
-      setGenerationPercent(0);
-      let errorMsg = error.message;
-      if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
-      alert(`❌ Error: ${errorMsg}`);
-    }
-  };
 
   // ─── Búsqueda IA ─────────────────────────────────────────────
   const handleAISearch = async () => {
@@ -566,7 +524,27 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
             {/* BANCO DE PREGUNTAS */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-semibold">Preguntas ({theme.questions?.length || 0})</h3>
+                <div>
+                  <h3 className="text-white font-semibold">
+                    Preguntas ({questionCount}{estimatedTotal ? `/${estimatedTotal}` : ''})
+                  </h3>
+                  {estimatedTotal && (
+                    <p className="text-xs mt-0.5 flex items-center gap-1.5">
+                      <span className={
+                        coveragePercent >= 80 ? 'text-green-400' :
+                        coveragePercent >= 50 ? 'text-yellow-400' :
+                        coveragePercent >= 20 ? 'text-orange-400' : 'text-gray-500'
+                      }>
+                        {coveragePercent}% del tema cubierto
+                      </span>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${
+                        coveragePercent >= 80 ? 'bg-green-400' :
+                        coveragePercent >= 50 ? 'bg-yellow-400' :
+                        coveragePercent >= 20 ? 'bg-orange-400' : 'bg-gray-600'
+                      }`} />
+                    </p>
+                  )}
+                </div>
               </div>
 
               <QuestionGeneratorPanel
@@ -574,8 +552,10 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
                 progress={generationProgress}
                 percent={generationPercent}
                 hasDocuments={!!theme.documents?.length}
+                estimatedTotal={estimatedTotal}
+                currentCount={questionCount}
+                coveragePercent={coveragePercent}
                 onGenerate={generateQuestionsFromDocuments}
-                onComplete={generateQuestionsComplete}
                 onToggleManual={() => setShowAddQuestion(!showAddQuestion)}
                 showManual={showAddQuestion}
               />
