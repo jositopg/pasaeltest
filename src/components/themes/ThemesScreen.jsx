@@ -18,10 +18,58 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNumbers, setSelectedNumbers] = useState(new Set());
   const [showTestSwitcher, setShowTestSwitcher] = useState(false);
+  // Estado para generación rápida de repositorios inline
+  const [generatingRepos, setGeneratingRepos] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
+  const [generatingAll, setGeneratingAll] = useState(false);
 
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
     setSelectedTheme(updatedTheme);
+  };
+
+  // Genera repositorio IA para un tema directamente desde la lista (sin abrir modal)
+  const createRepoInline = async (theme) => {
+    if (generatingRepos[theme.number] === 'loading') return;
+    setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'loading' }));
+    try {
+      const response = await fetch('/api/generate-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000 })
+      });
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const data = await response.json();
+      let content = '';
+      for (const block of data.content) { if (block.type === 'text') content += block.text; }
+      if (content.trim().length < 50) throw new Error('Contenido insuficiente');
+      const newDoc = {
+        type: 'ai-search', content: theme.name,
+        fileName: `Repositorio: ${theme.name}`,
+        addedAt: new Date().toISOString(),
+        searchResults: { query: theme.name, content, processedContent: content },
+        processedContent: content
+      };
+      onUpdateTheme({ ...theme, documents: [...(theme.documents || []), newDoc] });
+      setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'done' }));
+      if (showToast) showToast(`✅ Repositorio creado para "${theme.name}"`, 'success');
+    } catch (e) {
+      setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'error' }));
+      if (showToast) showToast(`Error creando repositorio para "${theme.name}"`, 'error');
+    }
+  };
+
+  // Genera repositorios de todos los temas sin documentos, uno a uno con pausa
+  const handleGenerateAll = async () => {
+    const pending = themes.filter(t =>
+      t.name !== `Tema ${t.number}` && !(t.documents?.length > 0) && generatingRepos[t.number] !== 'done'
+    );
+    if (pending.length === 0) { if (showToast) showToast('No hay temas pendientes con nombre personalizado', 'info'); return; }
+    setGeneratingAll(true);
+    for (let i = 0; i < pending.length; i++) {
+      await createRepoInline(pending[i]);
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800)); // pausa entre llamadas
+    }
+    setGeneratingAll(false);
   };
 
   // Sincronizar selectedTheme con themes global
@@ -191,6 +239,21 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                 ☑
               </button>
               <button
+                onClick={handleGenerateAll}
+                disabled={generatingAll}
+                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                  generatingAll
+                    ? 'bg-purple-500/30 text-purple-300 cursor-wait'
+                    : dm ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
+                }`}
+                title="Generar repositorios IA para todos los temas con nombre personalizado sin documentos"
+              >
+                {generatingAll ? (
+                  <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                ) : '⚡'}
+                <span className="hidden sm:inline">Generar todos</span>
+              </button>
+              <button
                 onClick={() => setShowBulkImport(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
               >
@@ -315,6 +378,25 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                   </div>
 
                   <div className="flex items-start gap-1 shrink-0">
+                    {/* Botón ⚡ generar repositorio rápido — visible si tiene nombre y sin docs */}
+                    {!selectionMode && !isEditing && !isDefaultName && !hasDocuments && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); createRepoInline(theme); }}
+                        disabled={generatingRepos[theme.number] === 'loading'}
+                        title="Generar repositorio IA con el nombre del tema"
+                        className={`p-1 rounded text-base leading-none transition-colors ${
+                          generatingRepos[theme.number] === 'loading'
+                            ? 'text-purple-400 cursor-wait'
+                            : generatingRepos[theme.number] === 'done'
+                              ? 'text-green-400'
+                              : dm ? 'text-gray-600 hover:text-purple-400' : 'text-slate-300 hover:text-purple-500'
+                        }`}
+                      >
+                        {generatingRepos[theme.number] === 'loading'
+                          ? <span className="inline-block w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                          : generatingRepos[theme.number] === 'done' ? '✓' : '⚡'}
+                      </button>
+                    )}
                     {!selectionMode && !isEditing && (
                       <button
                         onClick={(e) => {

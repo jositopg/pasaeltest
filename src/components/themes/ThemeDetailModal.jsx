@@ -15,9 +15,10 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
   const { darkMode } = useTheme();
 
   // ─── Estado ─────────────────────────────────────────────────
-  const [showAddDoc, setShowAddDoc] = useState(false);
-  const [docType, setDocType] = useState('url');
-  const [docContent, setDocContent] = useState('');
+  const isDefaultName = theme.name === `Tema ${theme.number}`;
+  const [showAddDoc, setShowAddDoc] = useState(!theme.documents?.length && !isDefaultName);
+  const [docType, setDocType] = useState('ai-search');
+  const [docContent, setDocContent] = useState(isDefaultName ? '' : theme.name);
   const [isSearching, setIsSearching] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
