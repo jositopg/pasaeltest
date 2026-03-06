@@ -106,6 +106,99 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
   };
 
   // ─── Generación de preguntas ─────────────────────────────────
+
+  // Construye el texto completo del repositorio a partir de los documentos del tema
+  const buildDocumentContents = (docs) => {
+    let documentContents = '';
+    let charCount = 0;
+    for (const doc of docs) {
+      if (charCount >= MAX_CHARS) break;
+      let docText = '';
+      if (doc.processedContent) {
+        docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || doc.content.substring(0, 100)}\n\n${doc.processedContent}\n`;
+      } else if (doc.searchResults?.processedContent) {
+        docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
+      } else if (doc.searchResults?.content) {
+        docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
+      } else if (doc.content) {
+        docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
+      }
+      const remaining = MAX_CHARS - charCount;
+      documentContents += docText.substring(0, remaining);
+      charCount += docText.length;
+    }
+    return documentContents;
+  };
+
+  // Llama a la IA y devuelve {newQuestions, duplicatesFound}. No gestiona estado.
+  const callGenerationAPI = async (documentContents, existingTexts, coverageInstruction = null) => {
+    const existingQuestionsStr = existingTexts.join('\n');
+    const analysis = analyzeDocument(documentContents);
+    const significantSections = analysis.sections.filter(s => s.level === 'critical' || s.level === 'high');
+    const usePhase2 = significantSections.length >= 2 && !coverageInstruction;
+
+    let prompt;
+    if (usePhase2) {
+      const topSection = significantSections[0];
+      const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
+      const questionTypes = determineQuestionTypes(topSection);
+      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr, questionTypes);
+    } else {
+      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr, coverageInstruction);
+    }
+
+    const response = await fetch('/api/generate-gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000 })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
+    }
+    const data = await response.json();
+    let textContent = '';
+    for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
+    if (!textContent) throw new Error('La IA no devolvió contenido');
+
+    let cleaned = textContent.trim()
+      .replace(/```json\s*/g, '').replace(/```\s*/g, '')
+      .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No se pudo extraer JSON. La IA respondió con texto no estructurado.');
+
+    let parsed;
+    try { parsed = JSON.parse(jsonMatch[0]); }
+    catch (e) { throw new Error('JSON inválido: ' + e.message); }
+    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas válidas');
+
+    const rawQuestions = parsed.map((q, i) => ({
+      id: `${theme.number}-ai-${Date.now()}-${i}`,
+      text: q.pregunta || q.text || 'Pregunta sin texto',
+      options: q.opciones || q.options || ['A', 'B', 'C'],
+      correct: q.correcta ?? q.correct ?? 0,
+      source: 'IA',
+      difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
+      explanation: q.explicacion || q.explanation || '',
+      needsReview: true,
+      createdAt: new Date().toISOString()
+    }));
+
+    const newQuestions = rawQuestions.filter(newQ => {
+      const newText = newQ.text.toLowerCase().trim();
+      if (existingTexts.some(et => et === newText)) return false;
+      const words1 = newText.split(/\s+/);
+      return !existingTexts.some(et => {
+        const words2 = et.split(/\s+/);
+        const common = words1.filter(w => words2.includes(w));
+        return common.length / Math.max(words1.length, words2.length) > 0.8;
+      });
+    });
+
+    return { newQuestions, duplicatesFound: rawQuestions.length - newQuestions.length };
+  };
+
+  // Pasada única de generación (botón estándar)
   const generateQuestionsFromDocuments = async (docsToUse = null) => {
     const docs = docsToUse ?? theme.documents;
     if (!docs || docs.length === 0) {
@@ -114,150 +207,105 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     }
 
     setIsGeneratingQuestions(true);
-    setGenerationProgress('📚 Recopilando contenido de documentos...');
-    setGenerationPercent(5);
+    setGenerationProgress('📚 Recopilando contenido...');
+    setGenerationPercent(10);
 
     try {
-      let documentContents = '';
-      let charCount = 0;
-
-      setGenerationProgress(docs.length === 1 && docsToUse ? '📖 Procesando repositorio seleccionado...' : '📖 Procesando repositorio completo...');
-      setGenerationPercent(10);
-
-      for (const doc of docs) {
-        if (charCount >= MAX_CHARS) break;
-        let docText = '';
-        if (doc.processedContent) {
-          docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || doc.content.substring(0, 100)}\n\n${doc.processedContent}\n`;
-        } else if (doc.searchResults?.processedContent) {
-          docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
-        } else if (doc.searchResults?.content) {
-          docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
-        } else if (doc.content) {
-          docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
-        }
-        const remaining = MAX_CHARS - charCount;
-        documentContents += docText.substring(0, remaining);
-        charCount += docText.length;
-      }
-
+      const documentContents = buildDocumentContents(docs);
       if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido. Añade documentos o usa búsqueda IA.');
 
-      setGenerationProgress('🤖 Enviando a IA para generar preguntas...');
-      setGenerationPercent(20);
-
-      const existingQuestions = (theme.questions || []).map(q => q.text.substring(0, 80)).join('\n');
-      const numToGenerate = QUESTIONS_PER_BATCH;
-      const analysis = analyzeDocument(documentContents);
-      const significantSections = analysis.sections.filter(s => s.level === 'critical' || s.level === 'high');
-      const usePhase2 = significantSections.length >= 2;
-
-      setGenerationProgress(`🤖 Generando ${numToGenerate} preguntas...`);
+      setGenerationProgress(`🤖 Generando ${QUESTIONS_PER_BATCH} preguntas...`);
       setGenerationPercent(30);
 
-      let promptToUse;
-      if (usePhase2) {
-        const topSection = significantSections[0];
-        const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
-        const questionTypes = determineQuestionTypes(topSection);
-        promptToUse = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, numToGenerate, documentContents.substring(0, 35000), existingQuestions, questionTypes);
-      } else {
-        promptToUse = OPTIMIZED_QUESTION_PROMPT(theme.name, numToGenerate, documentContents.substring(0, 35000), existingQuestions);
-      }
-
-      const response = await fetch("/api/generate-gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: promptToUse, useWebSearch: false, maxTokens: 8000 })
-      });
-
-      setGenerationProgress('📝 Procesando respuesta...');
-      setGenerationPercent(60);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
-      }
-
-      const data = await response.json();
-      setGenerationPercent(70);
-
-      let textContent = '';
-      for (const block of data.content) {
-        if (block.type === 'text') textContent += block.text;
-      }
-      if (!textContent) throw new Error('La IA no devolvió contenido');
-
-      setGenerationProgress('🔍 Extrayendo preguntas...');
-      setGenerationPercent(80);
-
-      let cleanedResponse = textContent.trim()
-        .replace(/```json\s*/g, '').replace(/```\s*/g, '')
-        .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
-      const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No se pudo extraer JSON. La IA respondió con texto no estructurado.');
-
-      setGenerationProgress('✓ Validando formato...');
-      setGenerationPercent(90);
-
-      let generatedQuestions;
-      try { generatedQuestions = JSON.parse(jsonMatch[0]); }
-      catch (e) { throw new Error('JSON inválido: ' + e.message); }
-
-      if (!Array.isArray(generatedQuestions) || generatedQuestions.length === 0) throw new Error('La IA no generó preguntas válidas');
-
-      setGenerationProgress('💾 Validando y guardando...');
-      setGenerationPercent(95);
-
-      const newQuestionsRaw = generatedQuestions.map((q, i) => ({
-        id: `${theme.number}-ai-${Date.now()}-${i}`,
-        text: q.pregunta || q.text || 'Pregunta sin texto',
-        options: q.opciones || q.options || ['A', 'B', 'C'],
-        correct: q.correcta ?? q.correct ?? 0,
-        source: 'IA',
-        difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
-        explanation: q.explicacion || q.explanation || '',
-        needsReview: true,
-        createdAt: new Date().toISOString()
-      }));
-
       const existingTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
-
-      function calculateSimilarity(str1, str2) {
-        const words1 = str1.split(/\s+/);
-        const words2 = str2.split(/\s+/);
-        const commonWords = words1.filter(w => words2.includes(w));
-        return commonWords.length / Math.max(words1.length, words2.length);
-      }
-
-      const newQuestions = newQuestionsRaw.filter(newQ => {
-        const newText = newQ.text.toLowerCase().trim();
-        if (existingTexts.includes(newText)) return false;
-        return !existingTexts.some(existingText => calculateSimilarity(newText, existingText) > 0.8);
-      });
+      const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, existingTexts);
 
       if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas eran duplicadas. Intenta de nuevo.');
 
+      setGenerationProgress('💾 Guardando...');
+      setGenerationPercent(95);
+
       onUpdate({ ...theme, questions: [...(theme.questions || []), ...newQuestions], lastGenerated: new Date().toISOString() });
 
-      const duplicatesFound = newQuestionsRaw.length - newQuestions.length;
       const message = duplicatesFound > 0
         ? `✅ ${newQuestions.length} preguntas nuevas (${duplicatesFound} duplicadas filtradas)`
         : `✅ ¡${newQuestions.length} preguntas generadas!`;
-
       setGenerationProgress(message);
       setGenerationPercent(100);
       setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 2000);
 
     } catch (error) {
-      console.error('Error completo:', error);
+      console.error('Error generando preguntas:', error);
       setIsGeneratingQuestions(false);
       setGenerationProgress('');
       setGenerationPercent(0);
       let errorMsg = error.message;
       if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
       else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta con menos contenido.';
-      alert(`❌ Error: ${errorMsg}\n\nSugerencias:\n- Usa "Buscar con IA" en lugar de subir PDF\n- Asegúrate de que los documentos tengan contenido de texto\n- Intenta con documentos más pequeños`);
+      alert(`❌ Error: ${errorMsg}\n\nSugerencias:\n- Usa "Buscar con IA" en lugar de subir PDF\n- Asegúrate de que los documentos tengan contenido de texto`);
+    }
+  };
+
+  // 3 pasadas de generación para cobertura total del tema
+  const COVERAGE_INSTRUCTIONS = [
+    null,
+    'Enfócate exclusivamente en aspectos NO cubiertos aún: artículos específicos, plazos exactos, requisitos concretos, excepciones y procedimientos detallados.',
+    'Enfócate exclusivamente en aspectos MUY ESPECÍFICOS no preguntados: datos numéricos exactos (porcentajes, importes, días), sanciones, casos especiales, definiciones técnicas y aplicaciones prácticas.'
+  ];
+
+  const generateQuestionsComplete = async () => {
+    const docs = theme.documents;
+    if (!docs || docs.length === 0) {
+      if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
+      return;
+    }
+
+    setIsGeneratingQuestions(true);
+    setGenerationPercent(0);
+
+    try {
+      const documentContents = buildDocumentContents(docs);
+      if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido.');
+
+      // Acumulamos textos existentes localmente para que cada pasada evite duplicados de las anteriores
+      const accumulatedTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
+      const allNewQuestions = [];
+
+      for (let pass = 0; pass < 3; pass++) {
+        setGenerationProgress(`🔄 Pasada ${pass + 1}/3 — ${pass === 0 ? 'conceptos principales' : pass === 1 ? 'detalles y procedimientos' : 'datos específicos'}...`);
+        setGenerationPercent(Math.round((pass / 3) * 90) + 5);
+
+        const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, accumulatedTexts, COVERAGE_INSTRUCTIONS[pass]);
+
+        if (newQuestions.length > 0) {
+          allNewQuestions.push(...newQuestions);
+          newQuestions.forEach(q => accumulatedTexts.push(q.text.toLowerCase().trim()));
+          setGenerationProgress(`✓ Pasada ${pass + 1}/3: +${newQuestions.length} preguntas (${duplicatesFound} duplic.)`);
+        } else {
+          setGenerationProgress(`✓ Pasada ${pass + 1}/3: sin preguntas nuevas`);
+        }
+
+        if (pass < 2) await new Promise(r => setTimeout(r, 1200));
+      }
+
+      setGenerationPercent(98);
+
+      if (allNewQuestions.length === 0) throw new Error('No se generaron preguntas nuevas en ninguna pasada.');
+
+      onUpdate({ ...theme, questions: [...(theme.questions || []), ...allNewQuestions], lastGenerated: new Date().toISOString() });
+
+      setGenerationProgress(`✅ ¡${allNewQuestions.length} preguntas nuevas en 3 pasadas!`);
+      setGenerationPercent(100);
+      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 2500);
+
+    } catch (error) {
+      console.error('Error en cobertura completa:', error);
+      setIsGeneratingQuestions(false);
+      setGenerationProgress('');
+      setGenerationPercent(0);
+      let errorMsg = error.message;
+      if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
+      alert(`❌ Error: ${errorMsg}`);
     }
   };
 
@@ -527,6 +575,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
                 percent={generationPercent}
                 hasDocuments={!!theme.documents?.length}
                 onGenerate={generateQuestionsFromDocuments}
+                onComplete={generateQuestionsComplete}
                 onToggleManual={() => setShowAddQuestion(!showAddQuestion)}
                 showManual={showAddQuestion}
               />

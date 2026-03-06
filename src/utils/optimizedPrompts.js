@@ -14,15 +14,16 @@
  * AHORRO: 68%
  */
 
-export const OPTIMIZED_QUESTION_PROMPT = (themeName, numQuestions, content, existingQuestions) => `Genera ${numQuestions} preguntas tipo test sobre "${themeName}".
+export const OPTIMIZED_QUESTION_PROMPT = (themeName, numQuestions, content, existingQuestions, coverageInstruction = null) => `Genera ${numQuestions} preguntas tipo test sobre "${themeName}".
 
 CONTENIDO:
 ${content}
 
 ${existingQuestions ? `EVITA ESTAS (ya generadas):
 ${existingQuestions}
+` : ''}${coverageInstruction ? `
+INSTRUCCIÓN DE COBERTURA: ${coverageInstruction}
 ` : ''}
-
 REGLAS:
 1. Datos exactos del contenido (artículos, fechas, números)
 2. Opciones plausibles, no absurdas

@@ -3,7 +3,9 @@ import Icons from '../common/Icons';
 import ThemeDetailModal from './ThemeDetailModal';
 import TestSwitcherModal from './TestSwitcherModal';
 import BulkImportModal from './BulkImportModal';
-import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
+import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../../utils/optimizedPrompts';
+import { analyzeDocument, determineQuestionTypes } from '../../utils/documentAnalyzer';
+import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
 function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest, onNavigate, showToast }) {
@@ -21,6 +23,9 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
   // Estado para generación rápida de repositorios inline
   const [generatingRepos, setGeneratingRepos] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
   const [generatingAll, setGeneratingAll] = useState(false);
+  // Estado para generación rápida de preguntas inline
+  const [generatingQuestions, setGeneratingQuestions] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
+  const [generatingAllQuestions, setGeneratingAllQuestions] = useState(false);
 
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
@@ -70,6 +75,112 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800)); // pausa entre llamadas
     }
     setGeneratingAll(false);
+  };
+
+  // Genera preguntas inline para un tema (pasada única)
+  const generateQuestionsInline = async (theme) => {
+    if (generatingQuestions[theme.number] === 'loading') return;
+    if (!theme.documents?.length) return;
+
+    setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'loading' }));
+    try {
+      let documentContents = '';
+      let charCount = 0;
+      for (const doc of theme.documents) {
+        if (charCount >= MAX_CHARS) break;
+        let docText = '';
+        if (doc.processedContent) docText = `\n${doc.fileName || doc.content?.substring(0, 100)}\n${doc.processedContent}\n`;
+        else if (doc.searchResults?.processedContent) docText = `\n${doc.content}\n${doc.searchResults.processedContent}\n`;
+        else if (doc.searchResults?.content) docText = `\n${doc.content}\n${doc.searchResults.content}\n`;
+        else if (doc.content) docText = `\n${doc.content}\n`;
+        const remaining = MAX_CHARS - charCount;
+        documentContents += docText.substring(0, remaining);
+        charCount += docText.length;
+      }
+      if (documentContents.trim().length < 100) throw new Error('Contenido insuficiente');
+
+      const existingTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
+      const existingQuestionsStr = existingTexts.join('\n');
+      const analysis = analyzeDocument(documentContents);
+      const significantSections = analysis.sections.filter(s => s.level === 'critical' || s.level === 'high');
+      const usePhase2 = significantSections.length >= 2;
+
+      let prompt;
+      if (usePhase2) {
+        const topSection = significantSections[0];
+        const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
+        const questionTypes = determineQuestionTypes(topSection);
+        prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr);
+      } else {
+        prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr);
+      }
+
+      const response = await fetch('/api/generate-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000 })
+      });
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const data = await response.json();
+      let textContent = '';
+      for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
+
+      let cleaned = textContent.trim()
+        .replace(/```json\s*/g, '').replace(/```\s*/g, '')
+        .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
+      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('No JSON found');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No questions generated');
+
+      const rawQuestions = parsed.map((q, i) => ({
+        id: `${theme.number}-ai-${Date.now()}-${i}`,
+        text: q.pregunta || q.text || 'Pregunta sin texto',
+        options: q.opciones || q.options || ['A', 'B', 'C'],
+        correct: q.correcta ?? q.correct ?? 0,
+        source: 'IA',
+        difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
+        explanation: q.explicacion || q.explanation || '',
+        needsReview: true,
+        createdAt: new Date().toISOString()
+      }));
+
+      const newQuestions = rawQuestions.filter(newQ => {
+        const newText = newQ.text.toLowerCase().trim();
+        if (existingTexts.some(et => et === newText)) return false;
+        const words1 = newText.split(/\s+/);
+        return !existingTexts.some(et => {
+          const words2 = et.split(/\s+/);
+          const common = words1.filter(w => words2.includes(w));
+          return common.length / Math.max(words1.length, words2.length) > 0.8;
+        });
+      });
+
+      if (newQuestions.length === 0) throw new Error('Todas duplicadas');
+
+      onUpdateTheme({ ...theme, questions: [...(theme.questions || []), ...newQuestions] });
+      setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'done' }));
+      if (showToast) showToast(`✅ ${newQuestions.length} preguntas para "${theme.name}"`, 'success');
+    } catch (e) {
+      console.error(`Error preguntas "${theme.name}":`, e);
+      setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'error' }));
+      if (showToast) showToast(`Error generando preguntas para "${theme.name}"`, 'error');
+    }
+  };
+
+  // Genera preguntas para todos los temas con repositorio, secuencialmente
+  const handleGenerateAllQuestions = async () => {
+    const pending = themes.filter(t =>
+      t.documents?.length > 0 && generatingQuestions[t.number] !== 'done'
+    );
+    if (pending.length === 0) { if (showToast) showToast('No hay temas con repositorio pendientes', 'info'); return; }
+    setGeneratingAllQuestions(true);
+    for (let i = 0; i < pending.length; i++) {
+      await generateQuestionsInline(pending[i]);
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1200));
+    }
+    setGeneratingAllQuestions(false);
   };
 
   // Sincronizar selectedTheme con themes global
@@ -240,7 +351,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
               </button>
               <button
                 onClick={handleGenerateAll}
-                disabled={generatingAll}
+                disabled={generatingAll || generatingAllQuestions}
                 className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   generatingAll
                     ? 'bg-purple-500/30 text-purple-300 cursor-wait'
@@ -251,7 +362,22 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                 {generatingAll ? (
                   <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
                 ) : '⚡'}
-                <span className="hidden sm:inline">Generar todos</span>
+                <span className="hidden sm:inline">Repos</span>
+              </button>
+              <button
+                onClick={handleGenerateAllQuestions}
+                disabled={generatingAllQuestions || generatingAll}
+                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                  generatingAllQuestions
+                    ? 'bg-green-500/30 text-green-300 cursor-wait'
+                    : dm ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                }`}
+                title="Generar preguntas para todos los temas con repositorio"
+              >
+                {generatingAllQuestions ? (
+                  <div className="w-4 h-4 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
+                ) : '📝'}
+                <span className="hidden sm:inline">Preguntas</span>
               </button>
               <button
                 onClick={() => setShowBulkImport(true)}
@@ -395,6 +521,25 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
                         {generatingRepos[theme.number] === 'loading'
                           ? <span className="inline-block w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                           : generatingRepos[theme.number] === 'done' ? '✓' : '⚡'}
+                      </button>
+                    )}
+                    {/* Botón 📝 generar preguntas rápido — visible si tiene docs */}
+                    {!selectionMode && !isEditing && hasDocuments && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); generateQuestionsInline(theme); }}
+                        disabled={generatingQuestions[theme.number] === 'loading'}
+                        title="Generar preguntas con IA para este tema"
+                        className={`p-1 rounded text-base leading-none transition-colors ${
+                          generatingQuestions[theme.number] === 'loading'
+                            ? 'text-green-400 cursor-wait'
+                            : generatingQuestions[theme.number] === 'done'
+                              ? 'text-green-400'
+                              : dm ? 'text-gray-600 hover:text-green-400' : 'text-slate-300 hover:text-green-600'
+                        }`}
+                      >
+                        {generatingQuestions[theme.number] === 'loading'
+                          ? <span className="inline-block w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                          : generatingQuestions[theme.number] === 'done' ? '✓' : '📝'}
                       </button>
                     )}
                     {!selectionMode && !isEditing && (

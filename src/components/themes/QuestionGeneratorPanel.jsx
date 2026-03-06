@@ -2,7 +2,7 @@ import React from 'react';
 import Icons from '../common/Icons';
 
 /**
- * Panel de generación de preguntas con IA: botón, barra de progreso, botón manual.
+ * Panel de generación de preguntas con IA: botón estándar (1 pasada) + botón completar tema (3 pasadas).
  */
 export default function QuestionGeneratorPanel({
   isGenerating,
@@ -10,6 +10,7 @@ export default function QuestionGeneratorPanel({
   percent,
   hasDocuments,
   onGenerate,
+  onComplete,
   onToggleManual,
   showManual,
 }) {
@@ -20,13 +21,26 @@ export default function QuestionGeneratorPanel({
           onClick={onGenerate}
           disabled={isGenerating || !hasDocuments}
           className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+          title="Genera 40 preguntas en una sola pasada"
         >
           {isGenerating ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               {percent}%
             </>
-          ) : '⚡ Generar 25 Preguntas con IA'}
+          ) : '⚡ Generar 40 preguntas'}
+        </button>
+
+        <button
+          onClick={onComplete}
+          disabled={isGenerating || !hasDocuments}
+          className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+          title="3 pasadas de generación (hasta ~120 preguntas) cubriendo todo el contenido del tema"
+        >
+          {isGenerating ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : '🎯'}
+          Cubrir todo el tema
         </button>
 
         <button
@@ -36,6 +50,10 @@ export default function QuestionGeneratorPanel({
           <Icons.Plus /> Manual
         </button>
       </div>
+
+      {!hasDocuments && (
+        <p className="text-xs text-gray-500 mt-2">Añade documentos al tema para activar la generación con IA.</p>
+      )}
 
       {isGenerating && (
         <div className="mt-3 space-y-2">
