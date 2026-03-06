@@ -3,7 +3,9 @@ import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile }) {
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
+
+function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
   const [profile, setProfile] = useState({
@@ -191,6 +193,17 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
             </button>
           </div>
         </div>
+
+        {/* ADMIN (solo visible para el administrador) */}
+        {ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+          <button
+            onClick={() => onNavigate('admin')}
+            className={`w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all
+              ${dm ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}
+          >
+            🛡️ Panel de administración
+          </button>
+        )}
 
         {/* GUARDAR */}
         <button onClick={handleSave}

@@ -22,10 +22,11 @@ export default async function handler(req, res) {
 
   try {
     // 1. Leer datos del frontend
-    const { 
+    const {
       prompt,
       maxTokens = 4096,
-      useCache = true  // Por defecto, usar caché
+      useCache = true,  // Por defecto, usar caché
+      callType = 'generate', // 'questions' | 'repo' | 'search' | 'generate'
     } = req.body;
 
     // 2. Validar prompt
@@ -62,15 +63,10 @@ export default async function handler(req, res) {
 
       if (cached && !cacheError) {
         console.log('✅ ¡Respuesta encontrada en caché! (ahorro de llamada)');
-        
-        // Actualizar contador de uso
-        await supabase
-          .from('ai_cache')
-          .update({ 
-            used_count: cached.used_count + 1,
-            last_used_at: new Date().toISOString()
-          })
-          .eq('id', cached.id);
+
+        // Actualizar contador de uso + log asíncrono
+        supabase.from('ai_cache').update({ used_count: cached.used_count + 1, last_used_at: new Date().toISOString() }).eq('id', cached.id).then(() => {}).catch(() => {});
+        supabase.from('api_usage').insert({ call_type: callType, cached: true, model: 'gemini-2.5-flash', success: true }).then(() => {}).catch(() => {});
 
         // Devolver respuesta cacheada
         return res.status(200).json({
@@ -182,9 +178,21 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('✅ Respuesta formateada y lista');
+    // 14. Log usage asíncrono (fire-and-forget, no bloquea la respuesta)
+    const tokensIn = data.usageMetadata?.promptTokenCount || 0;
+    const tokensOut = data.usageMetadata?.candidatesTokenCount || 0;
+    supabase.from('api_usage').insert({
+      call_type: callType,
+      tokens_in: tokensIn,
+      tokens_out: tokensOut,
+      cached: false,
+      model: 'gemini-2.5-flash',
+      success: true
+    }).then(() => {}).catch(() => {});
 
-    // 14. Devolver respuesta
+    console.log(`✅ Respuesta lista | tokens in: ${tokensIn} out: ${tokensOut}`);
+
+    // 15. Devolver respuesta
     return res.status(200).json({
       ...claudeFormatResponse,
       _fromCache: false

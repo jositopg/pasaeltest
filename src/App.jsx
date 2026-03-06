@@ -29,6 +29,7 @@ import HeatmapScreen from './components/stats/HeatmapScreen';
 import SettingsScreen from './components/settings/SettingsScreen';
 import BottomNav from './components/layout/BottomNav';
 import QuestionsScreen from './components/questions/QuestionsScreen';
+import AdminScreen from './components/admin/AdminScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
@@ -208,7 +209,11 @@ export default function App() {
             onToggleDark={() => setDarkMode(!dm)}
             profile={userData.profile}
             onUpdateProfile={userData.setProfile}
+            user={auth.currentUser}
           />
+        )}
+        {screen === 'admin' && (
+          <AdminScreen onNavigate={setScreen} />
         )}
         <BottomNav current={screen} onNavigate={setScreen} />
       </div>

@@ -66,7 +66,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000 })
+        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000, callType: 'repo' })
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
@@ -132,7 +132,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000 })
+        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
@@ -247,7 +247,7 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name), maxTokens: 4000 })
+        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name), maxTokens: 4000, callType: 'repo' })
       });
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
