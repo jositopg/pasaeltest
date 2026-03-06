@@ -10,7 +10,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
     name: '',
     examName: '',
     numThemes: 90,
-    penaltySystem: 'classic'
+    penaltyRatio: 3,
   });
   const [notifications, setNotifications] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -18,7 +18,12 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
   // Cargar perfil desde props
   useEffect(() => {
     if (profileProp) {
-      setProfile(prev => ({ ...prev, ...profileProp }));
+      // Compatibilidad con el campo antiguo penaltySystem (string → número)
+      const legacyMap = { none: 0, each2: 2, classic: 3, each4: 4, each1: 1 };
+      const penaltyRatio = profileProp.penaltyRatio !== undefined
+        ? profileProp.penaltyRatio
+        : (legacyMap[profileProp.penaltySystem] ?? 3);
+      setProfile(prev => ({ ...prev, ...profileProp, penaltyRatio }));
       setNotifications(profileProp.notifications || false);
     }
   }, [profileProp]);
@@ -91,24 +96,53 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
 
           <div>
             <label className={labelClass}>Número de temas</label>
-            <input type="number" min="1" max="200" value={profile.numThemes || 90}
+            <input type="number" min="1" value={profile.numThemes || 90}
               onChange={(e) => {
                 const v = parseInt(e.target.value);
-                if (v >= 1 && v <= 200) setProfile({...profile, numThemes: v});
+                if (v >= 1) setProfile({...profile, numThemes: v});
               }}
               className={inputClass} />
           </div>
 
           <div>
-            <label className={labelClass}>Sistema de penalización</label>
-            <select value={profile.penaltySystem || 'classic'}
-              onChange={(e) => setProfile({...profile, penaltySystem: e.target.value})}
-              className={inputClass}>
-              <option value="classic" className="bg-slate-800 text-white">Clásico: 3 incorrectas = -1</option>
-              <option value="each2" className="bg-slate-800 text-white">Estricto: 2 incorrectas = -1</option>
-              <option value="each4" className="bg-slate-800 text-white">Permisivo: 4 incorrectas = -1</option>
-              <option value="none" className="bg-slate-800 text-white">Sin penalización</option>
-            </select>
+            <label className={labelClass}>Penalización por errores</label>
+            <div className={`flex items-center justify-between p-3 rounded-xl mb-3
+              ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+              <div>
+                <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Sin penalización</p>
+                <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Los errores no restan puntos</p>
+              </div>
+              <button
+                onClick={() => setProfile({...profile, penaltyRatio: profile.penaltyRatio === 0 ? 3 : 0})}
+                className={`relative w-12 h-6 rounded-full transition-all duration-300
+                  ${profile.penaltyRatio === 0 ? 'bg-blue-500' : dm ? 'bg-slate-700' : 'bg-slate-300'}`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300
+                  ${profile.penaltyRatio === 0 ? 'translate-x-6' : ''}`} />
+              </button>
+            </div>
+            {profile.penaltyRatio !== 0 && (
+              <div>
+                <label className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'} mb-1.5 block`}>
+                  Errores para quitar 1 acierto
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => { const v = (profile.penaltyRatio || 3) - 1; if (v >= 1) setProfile({...profile, penaltyRatio: v}); }}
+                    className={`w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  >−</button>
+                  <div className={`flex-1 text-center rounded-xl px-4 py-3 font-bold text-xl ${dm ? 'bg-[#1E293B] text-white' : 'bg-slate-50 text-slate-800 border border-slate-200'}`}>
+                    {profile.penaltyRatio || 3}
+                  </div>
+                  <button
+                    onClick={() => setProfile({...profile, penaltyRatio: (profile.penaltyRatio || 3) + 1})}
+                    className={`w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  >+</button>
+                </div>
+                <p className={`text-xs mt-2 text-center ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {profile.penaltyRatio || 3} {(profile.penaltyRatio || 3) === 1 ? 'error' : 'errores'} quitan 1 acierto
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -155,28 +189,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
               <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300
                 ${notifications ? 'translate-x-6' : ''}`} />
             </button>
-          </div>
-        </div>
-
-        {/* INFO */}
-        <div className={cardClass}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">💡</span>
-            <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
-              style={{ fontFamily: 'Sora, system-ui' }}>Sobre PasaElTest</h2>
-          </div>
-          <div className="space-y-2">
-            {[
-              ['Versión', '2.3 Redesign'],
-              ['Generación', 'Análisis inteligente Fase 2'],
-              ['Almacenamiento', 'Nube (Supabase)'],
-              ['IA', 'Gemini 2.0 Flash'],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between items-center">
-                <span className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{k}</span>
-                <span className={`text-xs font-semibold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{v}</span>
-              </div>
-            ))}
           </div>
         </div>
 
