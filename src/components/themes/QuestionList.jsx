@@ -15,10 +15,12 @@ export default function QuestionList({
 }) {
   if (!questions || questions.length === 0) return null;
 
+  const allSelected = questions.every(q => selectedQuestions.has(q.id));
+
   return (
     <>
       {/* Controles de selección */}
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-3 flex-wrap">
         <button
           onClick={() => onToggleSelectMode()}
           className="bg-orange-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
@@ -27,6 +29,18 @@ export default function QuestionList({
         </button>
         {selectMode && (
           <>
+            <button
+              onClick={() => {
+                if (allSelected) {
+                  questions.forEach(q => selectedQuestions.has(q.id) && onToggleQuestion(q.id));
+                } else {
+                  questions.forEach(q => !selectedQuestions.has(q.id) && onToggleQuestion(q.id));
+                }
+              }}
+              className="bg-blue-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+            >
+              {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            </button>
             <button
               onClick={onDeleteSelected}
               disabled={selectedQuestions.size === 0}

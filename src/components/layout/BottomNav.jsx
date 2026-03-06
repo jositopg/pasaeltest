@@ -7,7 +7,7 @@ function BottomNav({ current, onNavigate }) {
   const items = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
     { id: 'themes', icon: Icons.Book, label: 'Temas' },
-    { id: 'heatmap', icon: Icons.Fire, label: 'Mapa' },
+    { id: 'questions', icon: Icons.Questions, label: 'Preguntas' },
     { id: 'stats', icon: Icons.Stats, label: 'Stats' }
   ];
 

@@ -28,6 +28,7 @@ import StatsScreen from './components/stats/StatsScreen';
 import HeatmapScreen from './components/stats/HeatmapScreen';
 import SettingsScreen from './components/settings/SettingsScreen';
 import BottomNav from './components/layout/BottomNav';
+import QuestionsScreen from './components/questions/QuestionsScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
@@ -185,6 +186,14 @@ export default function App() {
             examHistory={userData.examHistory}
             onNavigate={setScreen}
             themes={userData.themes}
+          />
+        )}
+        {screen === 'questions' && (
+          <QuestionsScreen
+            themes={userData.themes}
+            onUpdateTheme={userData.updateTheme}
+            onNavigate={setScreen}
+            showToast={showToast}
           />
         )}
         {screen === 'heatmap' && (
