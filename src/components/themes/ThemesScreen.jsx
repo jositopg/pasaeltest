@@ -4,12 +4,17 @@ import ThemeDetailModal from './ThemeDetailModal';
 import TestSwitcherModal from './TestSwitcherModal';
 import BulkImportModal from './BulkImportModal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../../utils/optimizedPrompts';
+import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
-import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest, onNavigate, showToast }) {
+function ThemesScreen({
+  themes, tests = [], activeTestId,
+  onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
+  onNavigate, showToast,
+  // Generation queue (lifted to App.jsx so it persists across navigation)
+  genQueue = {},
+}) {
   const { darkMode } = useTheme();
   const dm = darkMode;
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,14 +26,19 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNumbers, setSelectedNumbers] = useState(new Set());
   const [showTestSwitcher, setShowTestSwitcher] = useState(false);
-  // Estado para generación rápida de repositorios inline
-  const [generatingRepos, setGeneratingRepos] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
-  const [generatingAll, setGeneratingAll] = useState(false);
-  // Estado para generación rápida de preguntas inline
-  const [generatingQuestions, setGeneratingQuestions] = useState({}); // { [themeNumber]: 'loading'|'done'|'error' }
-  const [generatingAllQuestions, setGeneratingAllQuestions] = useState(false);
   // Confirmación antes de resetear nombres en masa
   const [bulkResetConfirm, setBulkResetConfirm] = useState({ show: false });
+
+  const {
+    generatingRepos = {},
+    generatingQuestions = {},
+    generatingAll = false,
+    generatingAllQuestions = false,
+    createRepoInline,
+    generateQuestionsInline,
+    handleGenerateAll,
+    handleGenerateAllQuestions,
+  } = genQueue;
 
   // Estimación de preguntas necesarias por tema (algorítmico, sin API)
   const themeEstimates = useMemo(() => {
@@ -56,146 +66,6 @@ function ThemesScreen({ themes, tests = [], activeTestId, onUpdateTheme, onCreat
   const handleUpdateTheme = (updatedTheme) => {
     onUpdateTheme(updatedTheme);
     setSelectedTheme(updatedTheme);
-  };
-
-  // Genera repositorio IA para un tema directamente desde la lista (sin abrir modal)
-  const createRepoInline = async (theme) => {
-    if (generatingRepos[theme.number] === 'loading') return;
-    setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'loading' }));
-    try {
-      const response = await fetch('/api/generate-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000, callType: 'repo' })
-      });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const data = await response.json();
-      let content = '';
-      for (const block of data.content) { if (block.type === 'text') content += block.text; }
-      if (content.trim().length < 50) throw new Error('Contenido insuficiente');
-      const newDoc = {
-        type: 'ai-search', content: theme.name,
-        fileName: `Repositorio: ${theme.name}`,
-        addedAt: new Date().toISOString(),
-        searchResults: { query: theme.name, content, processedContent: content },
-        processedContent: content
-      };
-      onUpdateTheme({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'done' }));
-      if (showToast) showToast(`✅ Repositorio creado para "${theme.name}"`, 'success');
-    } catch (e) {
-      setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'error' }));
-      if (showToast) showToast(`Error creando repositorio para "${theme.name}"`, 'error');
-    }
-  };
-
-  // Genera repositorios de todos los temas sin documentos, uno a uno con pausa
-  const handleGenerateAll = async () => {
-    const pending = themes.filter(t =>
-      t.name !== `Tema ${t.number}` && !(t.documents?.length > 0) && generatingRepos[t.number] !== 'done'
-    );
-    if (pending.length === 0) { if (showToast) showToast('No hay temas pendientes con nombre personalizado', 'info'); return; }
-    if (showToast) showToast(`⚡ Generando ${pending.length} repositorios. Mantén la app abierta.`, 'info');
-    setGeneratingAll(true);
-    for (let i = 0; i < pending.length; i++) {
-      await createRepoInline(pending[i]);
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 800));
-    }
-    setGeneratingAll(false);
-  };
-
-  // Genera preguntas inline para un tema (pasada única)
-  const generateQuestionsInline = async (theme) => {
-    if (generatingQuestions[theme.number] === 'loading') return;
-    if (!theme.documents?.length) return;
-
-    setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'loading' }));
-    try {
-      let documentContents = '';
-      let charCount = 0;
-      for (const doc of theme.documents) {
-        if (charCount >= MAX_CHARS) break;
-        let docText = '';
-        if (doc.processedContent) docText = `\n${doc.processedContent}\n`;
-        else if (doc.searchResults?.processedContent) docText = `\n${doc.searchResults.processedContent}\n`;
-        else if (doc.searchResults?.content) docText = `\n${doc.searchResults.content}\n`;
-        else if (doc.content) docText = `\n${doc.content}\n`;
-        const remaining = MAX_CHARS - charCount;
-        documentContents += docText.substring(0, remaining);
-        charCount += docText.length;
-      }
-      if (documentContents.trim().length < 100) throw new Error('Contenido insuficiente');
-
-      const existingTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
-      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingTexts.join('\n'));
-
-      const response = await fetch('/api/generate-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
-      });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const data = await response.json();
-      let textContent = '';
-      for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
-
-      let cleaned = textContent.trim()
-        .replace(/```json\s*/g, '').replace(/```\s*/g, '')
-        .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
-      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error('No JSON found');
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No questions generated');
-
-      const rawQuestions = parsed.map((q, i) => ({
-        id: `${theme.number}-ai-${Date.now()}-${i}`,
-        text: q.pregunta || q.text || 'Pregunta sin texto',
-        options: q.opciones || q.options || ['A', 'B', 'C'],
-        correct: q.correcta ?? q.correct ?? 0,
-        source: 'IA',
-        difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
-        explanation: q.explicacion || q.explanation || '',
-        needsReview: true,
-        createdAt: new Date().toISOString()
-      }));
-
-      const newQuestions = rawQuestions.filter(newQ => {
-        const newText = newQ.text.toLowerCase().trim();
-        if (existingTexts.some(et => et === newText)) return false;
-        const words1 = newText.split(/\s+/);
-        return !existingTexts.some(et => {
-          const words2 = et.split(/\s+/);
-          const common = words1.filter(w => words2.includes(w));
-          return common.length / Math.max(words1.length, words2.length) > 0.8;
-        });
-      });
-
-      if (newQuestions.length === 0) throw new Error('Todas duplicadas');
-
-      onUpdateTheme({ ...theme, questions: [...(theme.questions || []), ...newQuestions] });
-      setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'done' }));
-      if (showToast) showToast(`✅ ${newQuestions.length} preguntas para "${theme.name}"`, 'success');
-    } catch (e) {
-      console.error(`Error preguntas "${theme.name}":`, e);
-      setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'error' }));
-      if (showToast) showToast(`Error generando preguntas para "${theme.name}"`, 'error');
-    }
-  };
-
-  // Genera preguntas para todos los temas con repositorio, secuencialmente
-  const handleGenerateAllQuestions = async () => {
-    const pending = themes.filter(t =>
-      t.documents?.length > 0 && generatingQuestions[t.number] !== 'done'
-    );
-    if (pending.length === 0) { if (showToast) showToast('No hay temas con repositorio pendientes', 'info'); return; }
-    if (showToast) showToast(`📝 Generando preguntas para ${pending.length} temas. Mantén la app abierta.`, 'info');
-    setGeneratingAllQuestions(true);
-    for (let i = 0; i < pending.length; i++) {
-      await generateQuestionsInline(pending[i]);
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1200));
-    }
-    setGeneratingAllQuestions(false);
   };
 
   // Sincronizar selectedTheme con themes global

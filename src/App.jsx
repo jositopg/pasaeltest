@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 // Hooks
 import useAuth from './hooks/useAuth';
 import useToast from './hooks/useToast';
 import useUserData from './hooks/useUserData';
+import useGenerationQueue from './hooks/useGenerationQueue';
 
 // Context
 import { ThemeProvider } from './context/ThemeContext';
@@ -14,6 +15,7 @@ import { getSRSStats, getDueQuestions } from './utils/srs';
 // Common components
 import ToastContainer from './components/common/ToastContainer';
 import { AuthLoadingScreen, DataLoadingScreen } from './components/common/LoadingScreens';
+import GenerationBanner from './components/common/GenerationBanner';
 
 // Screen components
 import AuthScreen from './components/auth/AuthScreen';
@@ -53,6 +55,11 @@ export default function App() {
   const { toasts, showToast, removeToast } = useToast();
   const auth = useAuth();
   const userData = useUserData(auth.isAuthenticated, auth.currentUser);
+
+  // ─── Generation queue (persists across navigation) ─────────
+  const themesRef = useRef(userData.themes);
+  useEffect(() => { themesRef.current = userData.themes; }, [userData.themes]);
+  const genQueue = useGenerationQueue({ themesRef, onUpdateTheme: userData.updateTheme, showToast });
 
   // ─── SRS ───────────────────────────────────────────────────
   const srsStats = useMemo(() => {
@@ -155,6 +162,7 @@ export default function App() {
             onDeleteTest={userData.deleteTest}
             onNavigate={setScreen}
             showToast={showToast}
+            genQueue={genQueue}
           />
         )}
         {screen === 'exam' && (
@@ -215,6 +223,7 @@ export default function App() {
         {screen === 'admin' && (
           <AdminScreen onNavigate={setScreen} />
         )}
+        <GenerationBanner progress={genQueue.queueProgress} />
         <BottomNav current={screen} onNavigate={setScreen} />
       </div>
     </ThemeProvider>
