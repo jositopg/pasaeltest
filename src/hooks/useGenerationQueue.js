@@ -81,7 +81,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 4000, callType: 'repo' })
+        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo', useCache: false })
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();

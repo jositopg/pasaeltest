@@ -25,9 +25,12 @@ export default async function handler(req, res) {
     const {
       prompt,
       maxTokens = 4096,
-      useCache = true,  // Por defecto, usar caché
+      useCache: useCacheParam = true,
       callType = 'generate', // 'questions' | 'repo' | 'search' | 'generate'
     } = req.body;
+
+    // Repos nunca se cachean — el contenido debe ser siempre fresco y extenso
+    const useCache = callType === 'repo' ? false : useCacheParam;
 
     // 2. Validar prompt
     if (!prompt || prompt.trim().length === 0) {
