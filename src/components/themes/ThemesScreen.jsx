@@ -28,8 +28,13 @@ function ThemesScreen({
   const [showTestSwitcher, setShowTestSwitcher] = useState(false);
   // Confirmación antes de resetear nombres en masa
   const [bulkResetConfirm, setBulkResetConfirm] = useState({ show: false });
-  // Confirmación para limpiar repos insuficientes
-  const [cleanupConfirm, setCleanupConfirm] = useState({ show: false, count: 0 });
+  // Modo limpiar repos: selección + confirmación
+  const [repoCleanMode, setRepoCleanMode] = useState(false);
+  const [repoCleanSelected, setRepoCleanSelected] = useState(new Set());
+  const [repoCleanConfirm, setRepoCleanConfirm] = useState(false);
+  // Confirmaciones bulk generation
+  const [generateReposConfirm, setGenerateReposConfirm] = useState(false);
+  const [generateQuestionsConfirm, setGenerateQuestionsConfirm] = useState(false);
 
   const {
     generatingRepos = {},
@@ -169,26 +174,25 @@ function ThemesScreen({
     onUpdateTheme({ ...theme, name: `Tema ${theme.number}` });
   };
 
-  // Detecta y borra repositorios con contenido insuficiente (< 100 chars extraíbles)
-  const getThemesWithBadRepos = () => themes.filter(t => {
-    if (!t.documents?.length) return false;
-    const content = t.documents.reduce((acc, doc) => {
-      return acc + (doc.processedContent || doc.searchResults?.processedContent || doc.searchResults?.content || (doc.type !== 'url' ? doc.content : '') || '');
-    }, '');
-    return content.trim().length < 100;
-  });
-
-  const handleCleanupBadRepos = () => {
-    const bad = getThemesWithBadRepos();
-    if (bad.length === 0) { showToast('No hay repositorios insuficientes', 'info'); return; }
-    setCleanupConfirm({ show: true, count: bad.length });
+  // ─── Repo clean mode ──────────────────────────────────────────
+  const toggleRepoClean = (number) => {
+    setRepoCleanSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(number)) next.delete(number); else next.add(number);
+      return next;
+    });
   };
 
-  const confirmCleanup = () => {
-    const bad = getThemesWithBadRepos();
-    bad.forEach(t => onUpdateTheme({ ...t, documents: [] }));
-    setCleanupConfirm({ show: false, count: 0 });
-    showToast(`🗑 ${bad.length} repositorio${bad.length !== 1 ? 's' : ''} eliminado${bad.length !== 1 ? 's' : ''}`, 'success');
+  const confirmRepoClean = () => {
+    repoCleanSelected.forEach(num => {
+      const t = themes.find(t => t.number === num);
+      if (t) onUpdateTheme({ ...t, documents: [] });
+    });
+    const n = repoCleanSelected.size;
+    setRepoCleanMode(false);
+    setRepoCleanSelected(new Set());
+    setRepoCleanConfirm(false);
+    showToast(`🗑 ${n} repositorio${n !== 1 ? 's' : ''} eliminado${n !== 1 ? 's' : ''}`, 'success');
   };
 
   const handleBulkReset = () => {
@@ -213,7 +217,7 @@ function ThemesScreen({
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header */}
+        {/* Header fila 1: título + utilidades */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate('home')}
@@ -222,86 +226,111 @@ function ThemesScreen({
             <Icons.ChevronLeft />
           </button>
           <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
-          {selectionMode ? (
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  const allNumbers = filteredThemes.map(t => t.number);
-                  const allSelected = allNumbers.every(n => selectedNumbers.has(n));
-                  if (allSelected) {
-                    setSelectedNumbers(new Set());
-                  } else {
-                    setSelectedNumbers(new Set(allNumbers));
-                  }
-                }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                {filteredThemes.every(t => selectedNumbers.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
-              </button>
-              {selectedNumbers.size > 0 && (
-                <button
-                  onClick={() => setBulkResetConfirm({ show: true })}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
-                >
-                  Reset ({selectedNumbers.size})
-                </button>
-              )}
-              <button
-                onClick={() => { setSelectionMode(false); setSelectedNumbers(new Set()); }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700'}`}
-              >
-                Cancelar
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectionMode(true)}
-                className={`p-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
-                title="Seleccionar temas para editar en masa"
-              >
-                ☑
-              </button>
-              <button
-                onClick={handleGenerateAll}
-                disabled={anyBulkRunning}
-                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                  anyBulkRunning
-                    ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-50 text-purple-400')
-                    : dm ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
-                }`}
-                title="Generar repositorios IA para todos los temas con nombre personalizado sin documentos"
-              >
-                {generatingAll ? (
-                  <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
-                ) : '⚡'}
-                <span className="hidden sm:inline">Repos</span>
-              </button>
-              <button
-                onClick={handleGenerateAllQuestions}
-                disabled={anyBulkRunning}
-                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                  anyBulkRunning
-                    ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-green-500/20 text-green-300' : 'bg-green-50 text-green-400')
-                    : dm ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
-                }`}
-                title="Generar preguntas para todos los temas con repositorio"
-              >
-                {generatingAllQuestions ? (
-                  <div className="w-4 h-4 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
-                ) : '📝'}
-                <span className="hidden sm:inline">Preguntas</span>
-              </button>
-              <button
-                onClick={() => setShowBulkImport(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <Icons.Plus />
-                Importar
-              </button>
-            </div>
+          {!selectionMode && !repoCleanMode && (
+            <button
+              onClick={() => setSelectionMode(true)}
+              className={`p-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
+              title="Seleccionar temas para renombrar en masa"
+            >☑</button>
           )}
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Icons.Plus /><span className="hidden sm:inline">Importar</span>
+          </button>
         </div>
+
+        {/* Header fila 2: acciones bulk (cambia según el modo activo) */}
+        {selectionMode ? (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => {
+                const allNumbers = filteredThemes.map(t => t.number);
+                const allSelected = allNumbers.every(n => selectedNumbers.has(n));
+                setSelectedNumbers(allSelected ? new Set() : new Set(allNumbers));
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {filteredThemes.every(t => selectedNumbers.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            </button>
+            {selectedNumbers.size > 0 && (
+              <button
+                onClick={() => setBulkResetConfirm({ show: true })}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Reset nombres ({selectedNumbers.size})
+              </button>
+            )}
+            <button
+              onClick={() => { setSelectionMode(false); setSelectedNumbers(new Set()); }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700'}`}
+            >Cancelar</button>
+          </div>
+        ) : repoCleanMode ? (
+          <div className="flex gap-2 flex-wrap">
+            <span className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'text-red-300' : 'text-red-600'}`}>
+              🗑 Selecciona los repos a borrar
+            </span>
+            <button
+              onClick={() => {
+                const withDocs = filteredThemes.filter(t => t.documents?.length > 0).map(t => t.number);
+                const allSelected = withDocs.every(n => repoCleanSelected.has(n));
+                setRepoCleanSelected(allSelected ? new Set() : new Set(withDocs));
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {filteredThemes.filter(t => t.documents?.length > 0).every(t => repoCleanSelected.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            </button>
+            {repoCleanSelected.size > 0 && (
+              <button
+                onClick={() => setRepoCleanConfirm(true)}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Borrar repos ({repoCleanSelected.size})
+              </button>
+            )}
+            <button
+              onClick={() => { setRepoCleanMode(false); setRepoCleanSelected(new Set()); }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700'}`}
+            >Cancelar</button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setGenerateReposConfirm(true)}
+              disabled={anyBulkRunning}
+              className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                anyBulkRunning
+                  ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-50 text-purple-400')
+                  : dm ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
+              }`}
+            >
+              {generatingAll ? <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" /> : '⚡'}
+              Repos
+            </button>
+            <button
+              onClick={() => setGenerateQuestionsConfirm(true)}
+              disabled={anyBulkRunning}
+              className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                anyBulkRunning
+                  ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-green-500/20 text-green-300' : 'bg-green-50 text-green-400')
+                  : dm ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+              }`}
+            >
+              {generatingAllQuestions ? <div className="w-4 h-4 border-2 border-green-300 border-t-transparent rounded-full animate-spin" /> : '📝'}
+              Preguntas
+            </button>
+            <button
+              onClick={() => setRepoCleanMode(true)}
+              className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                dm ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+              }`}
+            >
+              🗑 Limpiar Repos
+            </button>
+          </div>
+        )}
 
         {/* Test activo */}
         {tests.length > 0 && (
@@ -324,24 +353,6 @@ function ThemesScreen({
             )}
           </div>
         )}
-
-        {/* Banner: repos con contenido insuficiente */}
-        {(() => { const bad = getThemesWithBadRepos(); return bad.length > 0 ? (
-          <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border ${dm ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-lg shrink-0">⚠️</span>
-              <p className={`text-xs font-semibold leading-snug ${dm ? 'text-amber-300' : 'text-amber-800'}`}>
-                {bad.length} repo{bad.length !== 1 ? 's' : ''} con contenido insuficiente para generar preguntas
-              </p>
-            </div>
-            <button
-              onClick={handleCleanupBadRepos}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${dm ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-amber-200 text-amber-900 hover:bg-amber-300'}`}
-            >
-              Limpiar
-            </button>
-          </div>
-        ) : null; })()}
 
         {/* Progress panel — visible when bulk generation is running or just finished */}
         {queueProgress && (
@@ -434,6 +445,7 @@ function ThemesScreen({
             const hasDocuments = theme.documents?.length > 0;
             const isEditing = editingThemeNumber === theme.number;
             const isSelected = selectedNumbers.has(theme.number);
+            const isRepoCleanSelected = repoCleanSelected.has(theme.number);
             const isDefaultName = theme.name === `Tema ${theme.number}`;
 
             return (
@@ -447,26 +459,34 @@ function ThemesScreen({
                       else next.add(theme.number);
                       return next;
                     });
+                  } else if (repoCleanMode) {
+                    if (hasDocuments) toggleRepoClean(theme.number);
                   } else if (!isEditing) {
                     setSelectedTheme(theme);
                   }
                 }}
                 className={`rounded-xl p-4 cursor-pointer transition-all active:scale-[0.98] ${
                   dm
-                    ? `bg-white/5 border ${isSelected ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 hover:bg-white/10'}`
-                    : `bg-white border ${isSelected ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} shadow-sm`
+                    ? `bg-white/5 border ${isRepoCleanSelected ? 'border-red-500/50 bg-red-500/10' : isSelected ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 hover:bg-white/10'}`
+                    : `bg-white border ${isRepoCleanSelected ? 'border-red-400 bg-red-50' : isSelected ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} shadow-sm`
                 }`}
               >
                 <div className="flex items-start mb-3 gap-2">
                   {selectionMode && (
                     <div className="pt-0.5 shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
+                      <input type="checkbox" checked={isSelected}
                         onChange={(e) => toggleSelection(e, theme.number)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 accent-blue-500 cursor-pointer"
-                      />
+                        className="w-4 h-4 accent-blue-500 cursor-pointer" />
+                    </div>
+                  )}
+                  {repoCleanMode && (
+                    <div className="pt-0.5 shrink-0">
+                      <input type="checkbox" checked={isRepoCleanSelected}
+                        disabled={!hasDocuments}
+                        onChange={() => hasDocuments && toggleRepoClean(theme.number)}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`w-4 h-4 cursor-pointer ${hasDocuments ? 'accent-red-500' : 'opacity-30'}`} />
                     </div>
                   )}
 
@@ -649,13 +669,29 @@ function ThemesScreen({
           onCancel={() => setBulkResetConfirm({ show: false })}
         />
         <ConfirmDialog
-          show={cleanupConfirm.show}
-          title="¿Eliminar repositorios insuficientes?"
-          message={`Se encontraron ${cleanupConfirm.count} tema${cleanupConfirm.count !== 1 ? 's' : ''} con repositorio pero sin suficiente contenido para generar preguntas. Se eliminarán sus documentos para que puedas regenerarlos con ⚡ Repos.`}
-          confirmLabel="Sí, eliminar"
+          show={repoCleanConfirm}
+          title="¿Borrar repositorios seleccionados?"
+          message={`Se eliminarán los documentos de ${repoCleanSelected.size} tema${repoCleanSelected.size !== 1 ? 's' : ''}. Después podrás regenerarlos con ⚡ Repos.`}
+          confirmLabel="Sí, borrar"
           danger
-          onConfirm={confirmCleanup}
-          onCancel={() => setCleanupConfirm({ show: false, count: 0 })}
+          onConfirm={confirmRepoClean}
+          onCancel={() => setRepoCleanConfirm(false)}
+        />
+        <ConfirmDialog
+          show={generateReposConfirm}
+          title="¿Generar repositorios para todos los temas?"
+          message={`Se generará un repositorio IA para cada tema con nombre personalizado que aún no tenga documentos. Este proceso puede tardar varios minutos.`}
+          confirmLabel="Sí, generar"
+          onConfirm={() => { setGenerateReposConfirm(false); handleGenerateAll(); }}
+          onCancel={() => setGenerateReposConfirm(false)}
+        />
+        <ConfirmDialog
+          show={generateQuestionsConfirm}
+          title="¿Generar preguntas para todos los temas?"
+          message={`Se generarán preguntas tipo test para cada tema que tenga repositorio. Este proceso puede tardar varios minutos.`}
+          confirmLabel="Sí, generar"
+          onConfirm={() => { setGenerateQuestionsConfirm(false); handleGenerateAllQuestions(); }}
+          onCancel={() => setGenerateQuestionsConfirm(false)}
         />
       </div>
     </div>
