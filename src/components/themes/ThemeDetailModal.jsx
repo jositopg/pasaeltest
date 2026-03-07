@@ -229,8 +229,8 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
 
   // Pasada única de generación (botón estándar)
   const generateQuestionsFromDocuments = async (docsToUse = null) => {
-    const docs = docsToUse ?? theme.documents;
-    if (!docs || docs.length === 0) {
+    const docs = Array.isArray(docsToUse) ? docsToUse : (Array.isArray(theme.documents) ? theme.documents : []);
+    if (docs.length === 0) {
       if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
       return;
     }
@@ -265,7 +265,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
                   searchResults: { query: theme.name, content: repoText, processedContent: repoText },
                   addedAt: new Date().toISOString()
                 };
-                onUpdate({ ...theme, documents: [fixedDoc, ...docs.filter(d => d.processedContent?.trim().length > 100)] });
+                onUpdate({ ...theme, documents: [fixedDoc, ...(Array.isArray(docs) ? docs : []).filter(d => d.processedContent?.trim().length > 100)] });
                 documentContents = repoText;
               }
             }
@@ -281,7 +281,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setGenerationProgress(`🤖 Generando ${QUESTIONS_PER_BATCH} preguntas...`);
       setGenerationPercent(30);
 
-      const existingTexts = (theme.questions || []).map(q => q.text.toLowerCase().trim());
+      const existingTexts = (Array.isArray(theme.questions) ? theme.questions : []).map(q => q.text.toLowerCase().trim());
       const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, existingTexts);
 
       if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas eran duplicadas. Intenta de nuevo.');
@@ -289,7 +289,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setGenerationProgress('💾 Guardando...');
       setGenerationPercent(95);
 
-      onUpdate({ ...theme, questions: [...(theme.questions || []), ...newQuestions], lastGenerated: new Date().toISOString() });
+      onUpdate({ ...theme, questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...newQuestions], lastGenerated: new Date().toISOString() });
 
       const message = duplicatesFound > 0
         ? `✅ ${newQuestions.length} preguntas nuevas (${duplicatesFound} duplicadas filtradas)`
