@@ -205,7 +205,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
             >✕ Limpiar</button>
           </div>
 
-          <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-10 gap-1.5 sm:gap-2">
             {themes.map(t => (
               <button
                 key={t.number}

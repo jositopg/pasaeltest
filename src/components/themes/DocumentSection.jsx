@@ -119,7 +119,7 @@ export default function DocumentSection({
           )}
 
           {docType === 'pdf' ? (
-            <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
+            <div className="border-2 border-dashed border-white/20 rounded-lg p-4 text-center">
               <input
                 type="file"
                 accept=".pdf,.txt,.doc,.docx"
@@ -165,8 +165,8 @@ export default function DocumentSection({
                 placeholder="Pega aquí el texto completo del temario, ley, artículos..."
                 value={docContent}
                 onChange={(e) => onDocContentChange(e.target.value)}
-                className="w-full bg-white/5 text-white rounded-lg px-3 py-3 border border-white/10 min-h-[400px] resize-vertical"
-                rows={20}
+                className="w-full bg-white/5 text-white rounded-lg px-3 py-3 border border-white/10 min-h-[200px] sm:min-h-[350px] resize-vertical"
+                rows={8}
               />
               <div className="flex justify-between items-center">
                 <p className="text-gray-400 text-xs">
@@ -175,7 +175,7 @@ export default function DocumentSection({
                 <button
                   onClick={() => onAddDoc()}
                   disabled={!docContent.trim()}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold py-3 px-6 rounded-lg disabled:opacity-50 hover:from-green-600 hover:to-emerald-700 transition-all"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold py-2.5 px-4 w-full rounded-lg disabled:opacity-50 hover:from-green-600 hover:to-emerald-700 transition-all"
                 >
                   💾 Guardar Texto
                 </button>

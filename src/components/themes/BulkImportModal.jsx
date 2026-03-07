@@ -80,7 +80,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
       <div className={`border rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto ${
         dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
       }`}>
-        <div className={`sticky top-0 p-6 border-b flex items-center justify-between ${
+        <div className={`sticky top-0 p-4 border-b flex items-center justify-between ${
           dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
         }`}>
           <div>
@@ -95,7 +95,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 space-y-4">
           <div className={`border rounded-xl p-4 ${dm ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
             <h3 className="text-blue-600 dark:text-blue-400 font-semibold text-sm mb-2">📝 Formatos aceptados:</h3>
             <div className={`text-xs space-y-1 font-mono ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
@@ -114,7 +114,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
               placeholder="1. Constitución Española&#10;2. Derechos Fundamentales&#10;3. Organización Territorial&#10;..."
-              className={`w-full rounded-xl px-4 py-3 font-mono text-sm min-h-[300px] resize-vertical ${
+              className={`w-full rounded-xl px-4 py-3 font-mono text-sm min-h-[160px] sm:min-h-[300px] resize-vertical ${
                 dm
                   ? 'bg-white/5 text-white border border-white/10'
                   : 'bg-slate-50 text-slate-800 border border-slate-200'

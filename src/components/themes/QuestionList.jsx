@@ -20,15 +20,18 @@ export default function QuestionList({
   return (
     <>
       {/* Controles de selección */}
-      <div className="flex gap-2 mb-3 flex-wrap">
+      <div className="mb-3 space-y-2">
+        {/* Fila 1: toggle selección */}
         <button
           onClick={() => onToggleSelectMode()}
-          className="bg-orange-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+          className="w-full min-h-[44px] bg-orange-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
         >
-          {selectMode ? 'Cancelar' : 'Seleccionar'}
+          {selectMode ? 'Cancelar' : '☑ Seleccionar'}
         </button>
+
+        {/* Fila 2: acciones (solo en selectMode) */}
         {selectMode && (
-          <>
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => {
                 if (allSelected) {
@@ -37,24 +40,24 @@ export default function QuestionList({
                   questions.forEach(q => !selectedQuestions.has(q.id) && onToggleQuestion(q.id));
                 }
               }}
-              className="bg-blue-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+              className="flex-1 min-h-[44px] bg-blue-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
             >
-              {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+              {allSelected ? 'Deselect. todo' : 'Select. todo'}
             </button>
             <button
               onClick={onDeleteSelected}
               disabled={selectedQuestions.size === 0}
-              className="bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+              className="min-h-[44px] bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
             >
               Borrar ({selectedQuestions.size})
             </button>
             <button
               onClick={onDeleteAll}
-              className="bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+              className="min-h-[44px] bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-semibold"
             >
-              Borrar Todo
+              Todo
             </button>
-          </>
+          </div>
         )}
       </div>
 
