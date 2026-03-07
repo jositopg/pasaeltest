@@ -198,7 +198,13 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
 
     let parsed;
     try { parsed = JSON.parse(jsonMatch[0]); }
-    catch (e) { throw new Error('JSON inválido: ' + e.message); }
+    catch (e1) {
+      // Gemini sometimes emits unescaped literal newlines inside string values.
+      // Replacing all control chars with spaces is safe: whitespace between JSON
+      // tokens is ignored, and a space inside a string value is acceptable.
+      try { parsed = JSON.parse(jsonMatch[0].replace(/[\r\n\t]/g, ' ')); }
+      catch (e) { throw new Error('JSON inválido: ' + e1.message); }
+    }
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas válidas');
 
     const rawQuestions = parsed.map((q, i) => ({

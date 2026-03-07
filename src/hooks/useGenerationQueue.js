@@ -193,7 +193,12 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error('La IA no devolvió JSON válido');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      let parsed;
+      try { parsed = JSON.parse(jsonMatch[0]); }
+      catch (e1) {
+        try { parsed = JSON.parse(jsonMatch[0].replace(/[\r\n\t]/g, ' ')); }
+        catch (e) { throw new Error('La IA no devolvió JSON válido: ' + e1.message); }
+      }
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas');
 
       const rawQuestions = parsed.map((q, i) => ({
