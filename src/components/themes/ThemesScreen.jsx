@@ -292,18 +292,6 @@ function ThemesScreen({
                 ) : '📝'}
                 <span className="hidden sm:inline">Preguntas</span>
               </button>
-              {getThemesWithBadRepos().length > 0 && (
-                <button
-                  onClick={handleCleanupBadRepos}
-                  disabled={anyBulkRunning}
-                  className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                    dm ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                  }`}
-                  title={`${getThemesWithBadRepos().length} repositorio${getThemesWithBadRepos().length !== 1 ? 's' : ''} con contenido insuficiente`}
-                >
-                  🗑 <span className="hidden sm:inline">Limpiar</span> ({getThemesWithBadRepos().length})
-                </button>
-              )}
               <button
                 onClick={() => setShowBulkImport(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -336,6 +324,24 @@ function ThemesScreen({
             )}
           </div>
         )}
+
+        {/* Banner: repos con contenido insuficiente */}
+        {(() => { const bad = getThemesWithBadRepos(); return bad.length > 0 ? (
+          <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border ${dm ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-lg shrink-0">⚠️</span>
+              <p className={`text-xs font-semibold leading-snug ${dm ? 'text-amber-300' : 'text-amber-800'}`}>
+                {bad.length} repo{bad.length !== 1 ? 's' : ''} con contenido insuficiente para generar preguntas
+              </p>
+            </div>
+            <button
+              onClick={handleCleanupBadRepos}
+              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${dm ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-amber-200 text-amber-900 hover:bg-amber-300'}`}
+            >
+              Limpiar
+            </button>
+          </div>
+        ) : null; })()}
 
         {/* Progress panel — visible when bulk generation is running or just finished */}
         {queueProgress && (
