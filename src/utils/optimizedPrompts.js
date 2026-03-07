@@ -83,16 +83,35 @@ Extenso y detallado.`;
  * AHORRO: 72%
  */
 
-export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Genera repositorio completo sobre "${themeName}" para preparación de exámenes en España.
+export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Eres un experto en preparación de exámenes y oposiciones en España. Genera un repositorio de estudio COMPLETO y EXTENSO sobre el tema: "${themeName}".
 
-Incluye:
-1. Conceptos fundamentales
-2. Normativa aplicable
-3. Procedimientos clave
-4. Datos importantes
-5. Casos especiales
+REQUISITOS OBLIGATORIOS:
+- Mínimo 1500 palabras de contenido real (no contando encabezados)
+- Texto en prosa detallado, no solo listas
+- Información específica, artículos de ley, fechas, datos exactos
+- Apto para generar 25+ preguntas tipo test variadas
 
-Extenso y estructurado.`;
+ESTRUCTURA (desarrolla TODAS las secciones con al menos 200 palabras cada una):
+
+## 1. CONCEPTOS FUNDAMENTALES
+Explica en detalle los conceptos clave, definiciones legales y principios básicos del tema. Incluye etimología o contexto histórico si es relevante.
+
+## 2. MARCO NORMATIVO
+Cita y explica la normativa aplicable: leyes, reglamentos, decretos, directivas UE. Para cada norma: número, fecha de aprobación y contenido principal regulado.
+
+## 3. PROCEDIMIENTOS Y TRÁMITES
+Describe paso a paso los procedimientos principales, plazos legales exactos, requisitos formales, órganos competentes y consecuencias de incumplimiento.
+
+## 4. DATOS Y CIFRAS CLAVE
+Estadísticas oficiales, umbrales numéricos (porcentajes, plazos en días, cuantías en euros), rangos y límites establecidos por la normativa.
+
+## 5. CASOS ESPECIALES Y EXCEPCIONES
+Supuestos especiales, excepciones a la norma general, regímenes particulares, jurisprudencia relevante o casuística frecuente en exámenes.
+
+## 6. RELACIÓN CON OTROS TEMAS
+Conexiones con otras materias del temario, órganos que intervienen, relaciones jerárquicas o funcionales importantes.
+
+Desarrolla cada sección con información real, precisa y verificable. El objetivo es que un opositor pueda estudiar solo con este texto.`;
 
 /**
  * COMPARACIÓN DE AHORRO

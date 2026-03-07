@@ -132,12 +132,40 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         throw new Error('El tema no tiene documentos');
       }
 
-      const { text: documentContents, docsUsed, docsSkipped } = buildContent(latestTheme.documents);
+      let { text: documentContents, docsUsed, docsSkipped } = buildContent(latestTheme.documents);
+
+      // Auto-repair: if content insufficient but docs exist, regenerate the repo
+      if (documentContents.trim().length < 100 && latestTheme.documents.length > 0) {
+        const repoResp = await fetch('/api/generate-gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' })
+        });
+        if (repoResp.ok) {
+          const repoData = await repoResp.json();
+          if (Array.isArray(repoData.content)) {
+            let repoText = '';
+            for (const block of repoData.content) { if (block.type === 'text') repoText += block.text; }
+            if (repoText.trim().length > 100) {
+              const fixedDoc = {
+                type: 'ai-search', content: theme.name,
+                fileName: `Repositorio: ${theme.name}`,
+                processedContent: repoText,
+                searchResults: { query: theme.name, content: repoText, processedContent: repoText },
+                addedAt: new Date().toISOString()
+              };
+              const latestAgain = themesRef.current.find(t => t.number === theme.number) || latestTheme;
+              onUpdateTheme({ ...latestAgain, documents: [fixedDoc, ...(latestAgain.documents || []).filter(d => d.processedContent?.trim().length > 100)] });
+              documentContents = repoText;
+            }
+          }
+        }
+      }
 
       if (documentContents.trim().length < 100) {
         const reason = docsSkipped > 0 && docsUsed === 0
-          ? `${docsSkipped} doc${docsSkipped > 1 ? 's' : ''} sin contenido extraído (URLs sin scrape o documentos vacíos)`
-          : 'Contenido demasiado corto para generar preguntas';
+          ? `${docsSkipped} doc${docsSkipped > 1 ? 's' : ''} sin contenido extraído`
+          : 'Contenido insuficiente para generar preguntas';
         throw new Error(reason);
       }
 

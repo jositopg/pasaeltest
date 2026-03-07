@@ -126,11 +126,12 @@ function ThemesScreen({
       if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data = await response.json();
+      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida');
       let content = '';
       for (const block of data.content) {
         if (block.type === 'text') content += block.text;
       }
-      if (content.trim().length < 50) throw new Error('Contenido insuficiente');
+      if (content.trim().length < 100) throw new Error('Contenido insuficiente');
 
       const newDoc = {
         type: 'ai-search',

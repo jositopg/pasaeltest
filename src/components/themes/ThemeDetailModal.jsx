@@ -233,8 +233,40 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     setGenerationPercent(10);
 
     try {
-      const documentContents = buildDocumentContents(docs);
-      if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido. Añade documentos o usa búsqueda IA.');
+      let documentContents = buildDocumentContents(docs);
+
+      // Auto-repair: si el contenido es insuficiente pero hay documentos, regenerar el repositorio
+      if (documentContents.trim().length < 100 && docs.length > 0) {
+        setGenerationProgress('🔄 Repositorio insuficiente, regenerando...');
+        setGenerationPercent(15);
+        try {
+          const repoResp = await fetch('/api/generate-gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' })
+          });
+          if (repoResp.ok) {
+            const repoData = await repoResp.json();
+            if (Array.isArray(repoData.content)) {
+              let repoText = '';
+              for (const block of repoData.content) { if (block.type === 'text') repoText += block.text; }
+              if (repoText.trim().length > 100) {
+                const fixedDoc = {
+                  type: 'ai-search', content: theme.name,
+                  fileName: `Repositorio: ${theme.name}`,
+                  processedContent: repoText,
+                  searchResults: { query: theme.name, content: repoText, processedContent: repoText },
+                  addedAt: new Date().toISOString()
+                };
+                onUpdate({ ...theme, documents: [fixedDoc, ...docs.filter(d => d.processedContent?.trim().length > 100)] });
+                documentContents = repoText;
+              }
+            }
+          }
+        } catch { /* fall through to final check */ }
+      }
+
+      if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido. Prueba a añadir documentos o usar "Buscar con IA".');
 
       setGenerationProgress(`🤖 Generando ${QUESTIONS_PER_BATCH} preguntas...`);
       setGenerationPercent(30);
