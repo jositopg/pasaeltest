@@ -179,7 +179,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     const response = await fetch('/api/generate-gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
+      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 16000, callType: 'questions' })
     });
     if (!response.ok) {
       const errorText = await response.text();

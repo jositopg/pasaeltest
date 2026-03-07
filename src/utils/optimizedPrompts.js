@@ -29,8 +29,8 @@ REGLAS:
 2. Opciones plausibles, no absurdas
 3. Dificultad: 30% fácil, 50% media, 20% difícil
 
-JSON (sin texto extra):
-[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"Por qué esta opción es correcta (1-2 frases concisas con el dato clave del contenido)"}]`;
+JSON (sin texto extra, exactamente ${numQuestions} elementos):
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"1 frase breve"}]`;
 
 /**
  * PROMPT FASE 2 ORIGINAL: ~3,000 tokens
@@ -58,8 +58,8 @@ REGLAS:
 - Opciones plausibles
 - Variedad según tipos indicados
 
-JSON:
-[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"Por qué esta opción es correcta (1-2 frases concisas con el dato clave del contenido)"}]`;
+JSON (exactamente ${numQuestions} elementos):
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"1 frase breve"}]`;
 
 /**
  * PROMPT DE BÚSQUEDA ORIGINAL: ~800 tokens
