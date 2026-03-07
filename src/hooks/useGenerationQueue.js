@@ -30,6 +30,7 @@ function extractDocContent(doc) {
  * Returns { text, docsUsed, docsSkipped }
  */
 function buildContent(documents) {
+  if (!Array.isArray(documents) || documents.length === 0) return { text: '', docsUsed: 0, docsSkipped: 0 };
   let text = '';
   let charCount = 0;
   let docsUsed = 0;
@@ -84,7 +85,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
-
+      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let content = '';
       for (const block of data.content) { if (block.type === 'text') content += block.text; }
       if (content.trim().length < 80) throw new Error('Respuesta vacía de la IA');
@@ -154,7 +155,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
-
+      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let textContent = '';
       for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
 

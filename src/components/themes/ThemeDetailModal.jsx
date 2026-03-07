@@ -129,6 +129,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
 
   // Construye el texto completo del repositorio a partir de los documentos del tema
   const buildDocumentContents = (docs) => {
+    if (!Array.isArray(docs) || docs.length === 0) return '';
     let documentContents = '';
     let charCount = 0;
     for (const doc of docs) {
@@ -177,6 +178,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
     }
     const data = await response.json();
+    if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida o vacía. Reintenta.');
     let textContent = '';
     for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
     if (!textContent) throw new Error('La IA no devolvió contenido');
@@ -261,8 +263,9 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setGenerationPercent(0);
       let errorMsg = error.message;
       if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
-      else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta con menos contenido.';
-      alert(`❌ Error: ${errorMsg}\n\nSugerencias:\n- Usa "Buscar con IA" en lugar de subir PDF\n- Asegúrate de que los documentos tengan contenido de texto`);
+      else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta de nuevo.';
+      if (showToast) showToast(`❌ ${errorMsg}`, 'error');
+      else console.error('Error generando preguntas:', errorMsg);
     }
   };
 
@@ -283,6 +286,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       setGenerationPercent(70);
       if (!response.ok) throw new Error(`Error API: ${response.status}`);
       const data = await response.json();
+      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let processedContent = '';
       for (const block of data.content) { if (block.type === 'text') processedContent += block.text; }
       if (!processedContent.trim() || processedContent.length < 500) throw new Error('No se encontró suficiente información');
