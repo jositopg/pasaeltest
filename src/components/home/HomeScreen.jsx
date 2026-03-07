@@ -8,10 +8,10 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
   const dm = darkMode;
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
-      style={{ paddingBottom: '100px' }}>
+      style={{ paddingBottom: 'var(--pb-screen)' }}>
       
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pt-12 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <p className={`text-xs font-semibold uppercase tracking-widest ${dm ? 'text-blue-400' : 'text-blue-600'}`}>

@@ -13,7 +13,8 @@ export default function GenerationBanner({ progress }) {
   const errorCount = progress.errors?.length || 0;
 
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none">
+    <div className="fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none"
+      style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 8px)' }}>
       <div className={`rounded-2xl px-4 py-3 shadow-2xl border transition-all duration-300 ${
         isDone
           ? errorCount > 0 ? 'bg-amber-700 border-amber-600/50' : 'bg-emerald-600 border-emerald-500/50'

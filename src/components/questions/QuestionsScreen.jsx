@@ -101,7 +101,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   const inputCls = `rounded-xl px-3 py-2 text-sm outline-none ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-white text-slate-800 border border-slate-200'}`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`} style={{ paddingBottom: '100px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto p-4 space-y-4">
 
         {/* Header */}

@@ -19,7 +19,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
   if (!questions || questions.length === 0) {
     return (
-      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: '100px' }}>
+      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
           <div className="text-6xl mb-4">🎉</div>
           <h2 className={`text-xl font-bold mb-2 ${dm ? 'text-white' : 'text-slate-800'}`}>¡Todo al día!</h2>
@@ -43,7 +43,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
       : 0;
     
     return (
-      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: '100px' }}>
+      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-6">
           <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="text-5xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}</div>
@@ -140,7 +140,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">

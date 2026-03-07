@@ -127,7 +127,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   // Empty state
   if (questions.length === 0) {
     return (
-      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`}>
+      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
           <h2 className={`text-xl font-bold mb-4 ${dm ? 'text-white' : 'text-slate-800'}`}>Sin preguntas</h2>
           <p className={`mb-6 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Genera preguntas primero</p>
@@ -143,7 +143,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   if (showResults) {
     const score = calculateScore();
     return (
-      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`}>
+      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-6">
           <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             {score.timeExpired && (
@@ -193,7 +193,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const timerWarning = timeLeft !== null && timeLeft <= 60;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
 
         {/* Progress header */}

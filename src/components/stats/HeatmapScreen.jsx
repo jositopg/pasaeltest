@@ -31,10 +31,10 @@ function HeatmapScreen({ themes, onNavigate }) {
 
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
-      style={{ paddingBottom: '100px' }}>
+      style={{ paddingBottom: 'var(--pb-screen)' }}>
 
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pt-12 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={() => onNavigate('home')}
             className={`w-10 h-10 rounded-2xl flex items-center justify-center ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}>

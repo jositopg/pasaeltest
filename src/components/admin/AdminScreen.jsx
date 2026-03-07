@@ -129,10 +129,10 @@ export default function AdminScreen({ onNavigate }) {
 
   // ─── Render ────────────────────────────────────────────────
   return (
-    <div className="min-h-full bg-[#050810] text-white" style={{ paddingBottom: '100px' }}>
+    <div className="min-h-full bg-[#050810] text-white" style={{ paddingBottom: 'var(--pb-screen)' }}>
 
       {/* HEADER */}
-      <div className="sticky top-0 z-10 bg-[#050810]/95 backdrop-blur-sm px-4 pt-12 pb-4 border-b border-white/5">
+      <div className="sticky top-0 z-10 bg-[#050810]/95 backdrop-blur-sm px-4 pb-4 border-b border-white/5" style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
             <button

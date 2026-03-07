@@ -12,32 +12,40 @@ function BottomNav({ current, onNavigate }) {
   ];
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-[9999] h-[72px]
-      ${darkMode
-        ? 'bg-[#0F172A]/95 border-t border-[#1E293B]'
-        : 'bg-white/95 border-t border-slate-200/80'
-      } backdrop-blur-xl`}
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    // Outer: total height = 72px content + home-bar safe area.
+    // paddingBottom pushes the inner row up above the home indicator.
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-xl
+        ${darkMode
+          ? 'bg-[#0F172A]/95 border-t border-[#1E293B]'
+          : 'bg-white/95 border-t border-slate-200/80'
+        }`}
+      style={{
+        height: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
-      <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
+      {/* Inner row: always 72px, items fill evenly with flex-1 — no overflow on any screen */}
+      <div className="flex items-center max-w-lg mx-auto px-1" style={{ height: '72px' }}>
         {items.map(item => {
           const isActive = current === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl min-w-[64px] transition-all duration-200 active:scale-90
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 rounded-2xl
+                transition-all duration-200 active:scale-90
                 ${isActive
                   ? 'text-white'
                   : darkMode ? 'text-slate-500' : 'text-slate-500'
                 }`}
               style={isActive ? {
                 background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.35)'
+                boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
               } : {}}
             >
               <item.icon />
-              <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
+              <span className="text-[10px] font-semibold tracking-wide leading-none">{item.label}</span>
             </button>
           );
         })}

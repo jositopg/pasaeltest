@@ -186,7 +186,7 @@ function ThemesScreen({
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: '100px' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
