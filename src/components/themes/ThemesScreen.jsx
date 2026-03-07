@@ -28,6 +28,8 @@ function ThemesScreen({
   const [showTestSwitcher, setShowTestSwitcher] = useState(false);
   // Confirmación antes de resetear nombres en masa
   const [bulkResetConfirm, setBulkResetConfirm] = useState({ show: false });
+  // Confirmación para limpiar repos insuficientes
+  const [cleanupConfirm, setCleanupConfirm] = useState({ show: false, count: 0 });
 
   const {
     generatingRepos = {},
@@ -167,6 +169,28 @@ function ThemesScreen({
     onUpdateTheme({ ...theme, name: `Tema ${theme.number}` });
   };
 
+  // Detecta y borra repositorios con contenido insuficiente (< 100 chars extraíbles)
+  const getThemesWithBadRepos = () => themes.filter(t => {
+    if (!t.documents?.length) return false;
+    const content = t.documents.reduce((acc, doc) => {
+      return acc + (doc.processedContent || doc.searchResults?.processedContent || doc.searchResults?.content || (doc.type !== 'url' ? doc.content : '') || '');
+    }, '');
+    return content.trim().length < 100;
+  });
+
+  const handleCleanupBadRepos = () => {
+    const bad = getThemesWithBadRepos();
+    if (bad.length === 0) { showToast('No hay repositorios insuficientes', 'info'); return; }
+    setCleanupConfirm({ show: true, count: bad.length });
+  };
+
+  const confirmCleanup = () => {
+    const bad = getThemesWithBadRepos();
+    bad.forEach(t => onUpdateTheme({ ...t, documents: [] }));
+    setCleanupConfirm({ show: false, count: 0 });
+    showToast(`🗑 ${bad.length} repositorio${bad.length !== 1 ? 's' : ''} eliminado${bad.length !== 1 ? 's' : ''}`, 'success');
+  };
+
   const handleBulkReset = () => {
     selectedNumbers.forEach(num => {
       const theme = themes.find(t => t.number === num);
@@ -268,6 +292,18 @@ function ThemesScreen({
                 ) : '📝'}
                 <span className="hidden sm:inline">Preguntas</span>
               </button>
+              {getThemesWithBadRepos().length > 0 && (
+                <button
+                  onClick={handleCleanupBadRepos}
+                  disabled={anyBulkRunning}
+                  className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                    dm ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                  }`}
+                  title={`${getThemesWithBadRepos().length} repositorio${getThemesWithBadRepos().length !== 1 ? 's' : ''} con contenido insuficiente`}
+                >
+                  🗑 <span className="hidden sm:inline">Limpiar</span> ({getThemesWithBadRepos().length})
+                </button>
+              )}
               <button
                 onClick={() => setShowBulkImport(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -605,6 +641,15 @@ function ThemesScreen({
           danger
           onConfirm={() => { handleBulkReset(); setBulkResetConfirm({ show: false }); }}
           onCancel={() => setBulkResetConfirm({ show: false })}
+        />
+        <ConfirmDialog
+          show={cleanupConfirm.show}
+          title="¿Eliminar repositorios insuficientes?"
+          message={`Se encontraron ${cleanupConfirm.count} tema${cleanupConfirm.count !== 1 ? 's' : ''} con repositorio pero sin suficiente contenido para generar preguntas. Se eliminarán sus documentos para que puedas regenerarlos con ⚡ Repos.`}
+          confirmLabel="Sí, eliminar"
+          danger
+          onConfirm={confirmCleanup}
+          onCancel={() => setCleanupConfirm({ show: false, count: 0 })}
         />
       </div>
     </div>
