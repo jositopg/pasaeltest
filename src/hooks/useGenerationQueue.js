@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../utils/optimizedPrompts';
+import { jsonrepair } from 'jsonrepair';
 import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/constants';
 
 /**
@@ -196,7 +197,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       let parsed;
       try { parsed = JSON.parse(jsonMatch[0]); }
       catch (e1) {
-        try { parsed = JSON.parse(jsonMatch[0].replace(/[\r\n\t]/g, ' ')); }
+        try { parsed = JSON.parse(jsonrepair(jsonMatch[0])); }
         catch (e) { throw new Error('La IA no devolvió JSON válido: ' + e1.message); }
       }
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas');

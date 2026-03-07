@@ -4,6 +4,7 @@ import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_SEARCH_PR
 import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate, extractPDFText } from '../../utils/questionImporter';
 import { analyzeDocument, determineQuestionTypes } from '../../utils/documentAnalyzer';
 import { DEBUG, MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../../utils/constants';
+import { jsonrepair } from 'jsonrepair';
 import { useTheme } from '../../context/ThemeContext';
 import ConfirmDialog from '../common/ConfirmDialog';
 import DocumentSection from './DocumentSection';
@@ -199,10 +200,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     let parsed;
     try { parsed = JSON.parse(jsonMatch[0]); }
     catch (e1) {
-      // Gemini sometimes emits unescaped literal newlines inside string values.
-      // Replacing all control chars with spaces is safe: whitespace between JSON
-      // tokens is ignored, and a space inside a string value is acceptable.
-      try { parsed = JSON.parse(jsonMatch[0].replace(/[\r\n\t]/g, ' ')); }
+      try { parsed = JSON.parse(jsonrepair(jsonMatch[0])); }
       catch (e) { throw new Error('JSON inválido: ' + e1.message); }
     }
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas válidas');
