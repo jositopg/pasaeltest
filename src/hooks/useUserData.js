@@ -236,15 +236,11 @@ const useUserData = (isAuthenticated, currentUser) => {
   };
 
   const updateTheme = async (theme) => {
-    if (!currentUser || currentUser.isGuest) {
-      setThemes(prev => prev.map(t => t.number === theme.number ? theme : t));
-      return;
-    }
+    // Actualización optimista INMEDIATA: otros componentes ven el cambio sin esperar a Supabase
+    setThemes(prev => prev.map(t => t.number === theme.number ? theme : t));
 
-    if (!theme.id) {
-      setThemes(prev => prev.map(t => t.number === theme.number ? theme : t));
-      return;
-    }
+    if (!currentUser || currentUser.isGuest) return;
+    if (!theme.id) return;
 
     try {
       // 1. Save theme name/number

@@ -327,7 +327,7 @@ function ThemesScreen({
                 dm ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
               }`}
             >
-              🗑 Limpiar Repos
+              🗑 Limpiar
             </button>
           </div>
         )}

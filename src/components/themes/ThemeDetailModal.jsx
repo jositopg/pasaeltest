@@ -80,6 +80,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
 
       if (!response.ok) throw new Error('Error en la búsqueda');
       const data = await response.json();
+      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let searchContent = '';
       for (const block of data.content) {
         if (block.type === 'text') searchContent += block.text + '\n';
@@ -132,22 +133,28 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     if (!Array.isArray(docs) || docs.length === 0) return '';
     let documentContents = '';
     let charCount = 0;
+    console.log(`[buildDocumentContents] ${docs.length} docs:`);
     for (const doc of docs) {
+      const pc = doc.processedContent?.length ?? 0;
+      const src = doc.searchResults?.processedContent?.length ?? doc.searchResults?.content?.length ?? 0;
+      const ct = doc.content?.length ?? 0;
+      console.log(`  → type=${doc.type} processedContent=${pc} searchResults=${src} content=${ct} fileName="${doc.fileName || ''}"`);
       if (charCount >= MAX_CHARS) break;
       let docText = '';
       if (doc.processedContent) {
-        docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || doc.content.substring(0, 100)}\n\n${doc.processedContent}\n`;
+        docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || (doc.content || '').substring(0, 100)}\n\n${doc.processedContent}\n`;
       } else if (doc.searchResults?.processedContent) {
         docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
       } else if (doc.searchResults?.content) {
         docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
-      } else if (doc.content) {
+      } else if (doc.type !== 'url' && doc.content) {
         docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
       }
       const remaining = MAX_CHARS - charCount;
       documentContents += docText.substring(0, remaining);
       charCount += docText.length;
     }
+    console.log(`[buildDocumentContents] resultado: ${documentContents.length} chars`);
     return documentContents;
   };
 
@@ -266,7 +273,10 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         } catch { /* fall through to final check */ }
       }
 
-      if (documentContents.trim().length < 100) throw new Error('No hay suficiente contenido. Prueba a añadir documentos o usar "Buscar con IA".');
+      if (documentContents.trim().length < 100) {
+        const docInfo = docs.map(d => `[${d.type}:pc=${d.processedContent?.length ?? 0}]`).join(', ');
+        throw new Error(`Sin contenido (${docs.length} doc${docs.length !== 1 ? 's' : ''}: ${docInfo}). Regenera el repositorio.`);
+      }
 
       setGenerationProgress(`🤖 Generando ${QUESTIONS_PER_BATCH} preguntas...`);
       setGenerationPercent(30);
