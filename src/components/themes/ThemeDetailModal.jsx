@@ -84,9 +84,9 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let searchContent = '';
       for (const block of data.content) {
-        if (block.type === 'text') searchContent += block.text + '\n';
+        if (block.type === 'text') searchContent += block.text;
       }
-      if (searchContent.trim().length < 50) throw new Error('La IA no devolvió contenido suficiente');
+      if (searchContent.trim().length < 100) throw new Error('La IA no devolvió contenido suficiente');
 
       const newDoc = {
         type: 'ai-search',

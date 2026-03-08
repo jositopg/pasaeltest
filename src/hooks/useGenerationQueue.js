@@ -89,7 +89,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
       let content = '';
       for (const block of data.content) { if (block.type === 'text') content += block.text; }
-      if (content.trim().length < 80) throw new Error('Respuesta vacía de la IA');
+      if (content.trim().length < 100) throw new Error('Respuesta vacía de la IA');
 
       const newDoc = {
         type: 'ai-search', content: theme.name,
