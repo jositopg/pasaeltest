@@ -69,7 +69,7 @@ export default async function handler(req, res) {
 
         // Actualizar contador de uso + log asíncrono
         supabase.from('ai_cache').update({ used_count: cached.used_count + 1, last_used_at: new Date().toISOString() }).eq('id', cached.id).then(() => {}).catch(() => {});
-        supabase.from('api_usage').insert({ call_type: callType, cached: true, model: 'gemini-2.5-flash', success: true }).then(() => {}).catch(() => {});
+        supabase.from('api_usage').insert({ call_type: callType, cached: true, model: 'gemini-2.5-flash' }).then(() => {}).catch(() => {});
 
         // Devolver respuesta cacheada
         return res.status(200).json({
@@ -190,7 +190,6 @@ export default async function handler(req, res) {
       tokens_out: tokensOut,
       cached: false,
       model: 'gemini-2.5-flash',
-      success: true
     }).then(() => {}).catch(() => {});
 
     console.log(`✅ Respuesta lista | tokens in: ${tokensIn} out: ${tokensOut}`);
