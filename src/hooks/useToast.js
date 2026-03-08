@@ -1,29 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
-/**
- * Hook para gestionar toast notifications
- */
 const useToast = () => {
   const [toasts, setToasts] = useState([]);
+  const timers = useRef({});
 
-  const showToast = (message, type = 'info') => {
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, removing: true } : t));
+    timers.current[id] = setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+      delete timers.current[id];
+    }, 300);
+  }, []);
+
+  const showToast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, type, removing: false }]);
-    
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, removing: true } : t));
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-      }, 300);
-    }, 3000);
-  };
-
-  const removeToast = (id) => {
-    setToasts(prev => prev.map(t => t.id === id ? { ...t, removing: true } : t));
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 300);
-  };
+    timers.current[id] = setTimeout(() => removeToast(id), 3000);
+  }, [removeToast]);
 
   return { toasts, showToast, removeToast };
 };

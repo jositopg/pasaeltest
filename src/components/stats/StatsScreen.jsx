@@ -7,11 +7,11 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
   const totalExams = examHistory.length;
-  const avg = totalExams > 0 
-    ? (examHistory.reduce((s, e) => s + parseFloat(e.percentage), 0) / totalExams).toFixed(1) 
+  const avg = totalExams > 0
+    ? (examHistory.reduce((s, e) => s + (parseFloat(e.percentage) || 0), 0) / totalExams).toFixed(1)
     : 0;
   const totalQuestions = examHistory.reduce((s, e) => s + (e.numQuestions || 0), 0);
-  const bestScore = totalExams > 0 ? Math.max(...examHistory.map(e => parseFloat(e.percentage))) : 0;
+  const bestScore = totalExams > 0 ? Math.max(...examHistory.map(e => parseFloat(e.percentage) || 0)) : 0;
   const today = new Date().toDateString();
   const hasStudiedToday = examHistory.some(e => new Date(e.date).toDateString() === today);
   const level = Math.floor(totalQuestions / 100) + 1;
@@ -31,7 +31,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
     return {
       date: date.toLocaleDateString('es-ES', { weekday: 'short' }),
       count: examsDay.length,
-      avgScore: examsDay.length > 0 ? Math.round(examsDay.reduce((s, e) => s + parseFloat(e.percentage), 0) / examsDay.length) : 0
+      avgScore: examsDay.length > 0 ? Math.round(examsDay.reduce((s, e) => s + (parseFloat(e.percentage) || 0), 0) / examsDay.length) : 0
     };
   }).reverse();
 

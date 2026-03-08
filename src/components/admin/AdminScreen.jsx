@@ -382,7 +382,7 @@ function PlansSection({ token, adminTests }) {
 
       {/* Modal Publicar */}
       {showPublishModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh]">
             <h3 className="font-bold text-lg text-white">Publicar Plan Oficial</h3>
 

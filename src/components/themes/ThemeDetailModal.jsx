@@ -134,12 +134,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
     if (!Array.isArray(docs) || docs.length === 0) return '';
     let documentContents = '';
     let charCount = 0;
-    console.log(`[buildDocumentContents] ${docs.length} docs:`);
     for (const doc of docs) {
-      const pc = doc.processedContent?.length ?? 0;
-      const src = doc.searchResults?.processedContent?.length ?? doc.searchResults?.content?.length ?? 0;
-      const ct = doc.content?.length ?? 0;
-      console.log(`  → type=${doc.type} processedContent=${pc} searchResults=${src} content=${ct} fileName="${doc.fileName || ''}"`);
       if (charCount >= MAX_CHARS) break;
       let docText = '';
       if (doc.processedContent) {
@@ -155,7 +150,6 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
       documentContents += docText.substring(0, remaining);
       charCount += docText.length;
     }
-    console.log(`[buildDocumentContents] resultado: ${documentContents.length} chars`);
     return documentContents;
   };
 
