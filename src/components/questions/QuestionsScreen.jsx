@@ -101,53 +101,51 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   const inputCls = `rounded-xl px-3 py-2 text-sm outline-none ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-white text-slate-800 border border-slate-200'}`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
-      <div className="max-w-2xl mx-auto p-4 space-y-4" style={{ paddingTop: 'var(--pt-header)' }}>
-
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onNavigate('home')}
-            className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}
-          >
-            <Icons.ChevronLeft />
-          </button>
-          <div className="flex-1">
-            <h1 className={`font-bold text-2xl ${dm ? 'text-white' : 'text-slate-800'}`}>Preguntas</h1>
-            <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-              {allQuestions.length} en total · {filtered.length} mostradas
-            </p>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`}>
+      {/* STICKY HEADER */}
+      <div className={`sticky top-0 z-10 px-4 pb-3 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+        <div className="max-w-2xl mx-auto space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <h1 className={`font-bold text-2xl ${dm ? 'text-white' : 'text-slate-800'}`}>Preguntas</h1>
+              <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
+                {allQuestions.length} en total · {filtered.length} mostradas
+              </p>
+            </div>
+            <button
+              onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                selectMode
+                  ? 'bg-orange-500 text-white'
+                  : dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm'
+              }`}
+            >
+              {selectMode ? 'Cancelar' : '☑ Seleccionar'}
+            </button>
           </div>
-          <button
-            onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              selectMode
-                ? 'bg-orange-500 text-white'
-                : dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm'
-            }`}
-          >
-            {selectMode ? 'Cancelar' : '☑ Seleccionar'}
-          </button>
+          {selectMode && (
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={toggleAll}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200'}`}
+              >
+                {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40 transition-colors"
+              >
+                Borrar ({selectedIds.size})
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Acciones de selección */}
-        {selectMode && (
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={toggleAll}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200'}`}
-            >
-              {allSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
-            </button>
-            <button
-              onClick={handleDeleteSelected}
-              disabled={selectedIds.size === 0}
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40 transition-colors"
-            >
-              Borrar ({selectedIds.size})
-            </button>
-          </div>
-        )}
+      {/* SCROLLABLE CONTENT */}
+      <div className="px-4 pt-3" style={{ paddingBottom: 'var(--pb-screen)' }}>
+        <div className="max-w-2xl mx-auto space-y-4">
 
         {/* Buscador */}
         <div className={`rounded-2xl p-4 space-y-3 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white shadow-sm border border-slate-200'}`}>
@@ -269,6 +267,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
             })}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

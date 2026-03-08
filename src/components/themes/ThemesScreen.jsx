@@ -215,16 +215,12 @@ function ThemesScreen({
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
-      <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header fila 1: título + utilidades */}
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`}>
+      {/* STICKY HEADER — cubre Dynamic Island, botones quedan bajo la zona segura */}
+      <div className={`sticky top-0 z-10 px-4 pb-3 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+        <div className="max-w-2xl mx-auto space-y-3">
+        {/* Header fila 1: título + acciones */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => onNavigate('home')}
-            className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}
-          >
-            <Icons.ChevronLeft />
-          </button>
           <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
           {!selectionMode && !repoCleanMode && (
             <button
@@ -354,6 +350,11 @@ function ThemesScreen({
           </div>
         )}
 
+        </div>
+      </div>
+      {/* SCROLLABLE CONTENT */}
+      <div className="px-4 pt-3" style={{ paddingBottom: 'var(--pb-screen)' }}>
+        <div className="max-w-2xl mx-auto space-y-4">
         {/* Progress panel — visible when bulk generation is running or just finished */}
         {queueProgress && (
           <div className={`rounded-2xl p-4 space-y-2 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-200 shadow-sm'}`}>
@@ -693,6 +694,7 @@ function ThemesScreen({
           onConfirm={() => { setGenerateQuestionsConfirm(false); handleGenerateAllQuestions(); }}
           onCancel={() => setGenerateQuestionsConfirm(false)}
         />
+        </div>
       </div>
     </div>
   );
