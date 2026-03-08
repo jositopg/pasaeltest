@@ -364,5 +364,26 @@ create index if not exists themes_test_id_idx on public.themes(test_id);
 alter table public.themes drop constraint if exists unique_theme_number;
 
 -- ============================================================================
+-- TABLA: api_usage (registro de llamadas a Gemini para el panel de admin)
+-- ============================================================================
+create table if not exists public.api_usage (
+  id         uuid default gen_random_uuid() primary key,
+  call_type  text,
+  tokens_in  integer default 0,
+  tokens_out integer default 0,
+  cached     boolean default false,
+  model      text,
+  created_at timestamptz default now()
+);
+
+-- Sin RLS — sólo accesible vía SERVICE_ROLE_KEY desde serverless
+-- No habilitar RLS en esta tabla
+
+create index if not exists api_usage_created_at_idx on public.api_usage(created_at);
+create index if not exists api_usage_cached_idx on public.api_usage(cached);
+
+comment on table public.api_usage is 'Registro de llamadas a la API de Gemini para estadísticas de admin';
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================
