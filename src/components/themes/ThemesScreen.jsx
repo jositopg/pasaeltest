@@ -10,7 +10,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../supabaseClient';
 
 const ADMIN_EMAIL = 'josedlp7@gmail.com';
-const COVER_EMOJIS = ['📋', '🎖️', '📘', '⚖️', '🏛️', '🚒'];
 
 function ThemesScreen({
   themes, tests = [], activeTestId,
@@ -44,7 +43,7 @@ function ThemesScreen({
 
   // ─── Share modal (admin only) ──────────────────────────────
   const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form }
-  const [shareForm, setShareForm] = useState({ slug: '', description: '', cover_emoji: '📋' });
+  const [shareForm, setShareForm] = useState({ slug: '', description: '' });
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareError, setShareError] = useState('');
 
@@ -74,7 +73,7 @@ function ThemesScreen({
         setShareModal({ published: true, slug: existing.invite_slug, plan: existing });
       } else {
         const activeTest = tests.find(t => t.id === activeTestId);
-        setShareForm({ slug: toSlug(activeTest?.name || ''), description: '', cover_emoji: '📋' });
+        setShareForm({ slug: toSlug(activeTest?.name || ''), description: '' });
         setShareModal({ form: true });
       }
     } catch (e) {
@@ -92,7 +91,7 @@ function ThemesScreen({
       const res = await fetch('/api/manage-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ testId: activeTestId, ...shareForm }),
+        body: JSON.stringify({ testId: activeTestId, cover_emoji: '📋', ...shareForm }),
       });
       const data = await res.json();
       if (!res.ok) { setShareError(data.error || `Error ${res.status}`); return; }
@@ -788,7 +787,7 @@ function ThemesScreen({
         {/* ─── Share Modal (admin) ─────────────────────────────── */}
         {shareModal && (
           <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
+            <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh]">
 
               {shareModal.loading && (
                 <div className="flex justify-center py-6">
@@ -844,23 +843,6 @@ function ThemesScreen({
                       rows={2}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-400 mb-2 block">Icono</label>
-                    <div className="flex gap-2">
-                      {COVER_EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => setShareForm(f => ({ ...f, cover_emoji: emoji }))}
-                          className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-colors ${
-                            shareForm.cover_emoji === emoji ? 'bg-blue-600/40 ring-2 ring-blue-500' : 'bg-white/5 hover:bg-white/10'
-                          }`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   {shareError && <p className="text-red-400 text-xs">{shareError}</p>}

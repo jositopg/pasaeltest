@@ -94,15 +94,162 @@ function timeAgo(dateStr) {
   return `Hace ${months} mes${months > 1 ? 'es' : ''}`;
 }
 
+// ─── Reportes de preguntas ────────────────────────────────────
+
+function ReportsSection({ token }) {
+  const [reports, setReports] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [actioning, setActioning] = useState(null);
+
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/question-reports?status=${statusFilter}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setReports(data.reports || []);
+    } catch {
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, statusFilter]);
+
+  useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  async function handleAction(reportId, action) {
+    setActioning(reportId);
+    try {
+      await fetch('/api/question-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ reportId, action }),
+      });
+      fetchReports();
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-base">🚩 Reportes de preguntas</h2>
+        <div className="flex gap-1">
+          {['pending', 'applied', 'dismissed'].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                statusFilter === s ? 'bg-orange-500/30 text-orange-300' : 'bg-white/5 text-gray-500 hover:bg-white/10'
+              }`}
+            >
+              {s === 'pending' ? 'Pendientes' : s === 'applied' ? 'Aplicados' : 'Descartados'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-6">
+          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && reports?.length === 0 && (
+        <p className="text-gray-600 text-sm text-center py-4">Sin reportes {statusFilter === 'pending' ? 'pendientes' : statusFilter === 'applied' ? 'aplicados' : 'descartados'}</p>
+      )}
+
+      {!loading && reports?.length > 0 && (
+        <div className="space-y-4">
+          {reports.map(r => (
+            <div key={r.id} className="bg-white/5 rounded-xl p-4 space-y-3">
+              {/* Usuario y fecha */}
+              <div className="flex justify-between items-start">
+                <p className="text-xs text-gray-500">{r.user?.email || 'Usuario desconocido'} · {timeAgo(r.created_at)}</p>
+                {r.status === 'pending' && !r.ai_review && (
+                  <span className="text-xs text-yellow-500 animate-pulse">⏳ IA revisando...</span>
+                )}
+              </div>
+
+              {/* Pregunta original */}
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Pregunta:</p>
+                <p className="text-sm text-white leading-snug">{r.question?.text || r.question_snapshot?.text || '(eliminada)'}</p>
+              </div>
+
+              {/* Comentario del usuario */}
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                <p className="text-xs text-orange-400 font-semibold mb-1">💬 Comentario del usuario:</p>
+                <p className="text-sm text-orange-200">{r.user_comment}</p>
+              </div>
+
+              {/* Análisis de la IA */}
+              {r.ai_review && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 space-y-2">
+                  <p className="text-xs text-blue-400 font-semibold">🤖 Análisis de la IA:</p>
+                  <p className="text-sm text-blue-200">{r.ai_review}</p>
+                  {r.ai_suggested_fix && (
+                    <div className="pt-2 border-t border-blue-500/20 space-y-1">
+                      <p className="text-xs text-blue-400 font-semibold">✏️ Fix sugerido:</p>
+                      {r.ai_suggested_fix.text && (
+                        <p className="text-xs text-blue-300"><span className="text-blue-500">Pregunta:</span> {r.ai_suggested_fix.text}</p>
+                      )}
+                      {r.ai_suggested_fix.correct_answer !== null && r.ai_suggested_fix.correct_answer !== undefined && (
+                        <p className="text-xs text-blue-300">
+                          <span className="text-blue-500">Respuesta correcta:</span> {r.question_snapshot?.options?.[r.ai_suggested_fix.correct_answer] || `Opción ${r.ai_suggested_fix.correct_answer}`}
+                        </p>
+                      )}
+                      {r.ai_suggested_fix.explanation && (
+                        <p className="text-xs text-blue-300"><span className="text-blue-500">Explicación:</span> {r.ai_suggested_fix.explanation}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Acciones (solo para pendientes) */}
+              {r.status === 'pending' && r.ai_review && (
+                <div className="flex gap-2">
+                  {r.ai_suggested_fix && (
+                    <button
+                      onClick={() => handleAction(r.id, 'apply')}
+                      disabled={actioning === r.id}
+                      className="flex-1 py-2 rounded-lg bg-green-600/20 text-green-400 text-xs font-semibold hover:bg-green-600/30 transition-colors disabled:opacity-50"
+                    >
+                      {actioning === r.id ? '...' : '✅ Aplicar fix'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleAction(r.id, 'dismiss')}
+                    disabled={actioning === r.id}
+                    className="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-xs font-semibold hover:bg-white/10 transition-colors disabled:opacity-50"
+                  >
+                    {actioning === r.id ? '...' : '🗑 Descartar'}
+                  </button>
+                </div>
+              )}
+
+              {r.status === 'applied' && <p className="text-xs text-green-500">✅ Fix aplicado</p>}
+              {r.status === 'dismissed' && <p className="text-xs text-gray-600">🗑 Descartado</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Planes Oficiales ─────────────────────────────────────────
 
-const COVER_EMOJIS = ['📋', '🎖️', '📘', '⚖️', '🏛️', '🚒'];
 
 function PlansSection({ token, adminTests }) {
   const [plans, setPlans] = useState(null);
   const [plansLoading, setPlansLoading] = useState(true);
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [publishForm, setPublishForm] = useState({ testId: '', slug: '', description: '', cover_emoji: '📋' });
+  const [publishForm, setPublishForm] = useState({ testId: '', slug: '', description: '' });
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [copied, setCopied] = useState(null);
@@ -148,12 +295,12 @@ function PlansSection({ token, adminTests }) {
       const res = await fetch('/api/manage-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(publishForm),
+        body: JSON.stringify({ cover_emoji: '📋', ...publishForm }),
       });
       const data = await res.json();
       if (!res.ok) { setPublishError(data.error || `Error ${res.status}`); return; }
       setShowPublishModal(false);
-      setPublishForm({ testId: '', slug: '', description: '', cover_emoji: '📋' });
+      setPublishForm({ testId: '', slug: '', description: '' });
       fetchPlans();
     } catch (e) {
       setPublishError(e.message);
@@ -236,7 +383,7 @@ function PlansSection({ token, adminTests }) {
       {/* Modal Publicar */}
       {showPublishModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
+          <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh]">
             <h3 className="font-bold text-lg text-white">Publicar Plan Oficial</h3>
 
             {/* Test selector */}
@@ -281,24 +428,6 @@ function PlansSection({ token, adminTests }) {
                 rows={2}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
               />
-            </div>
-
-            {/* Emoji */}
-            <div>
-              <label className="text-xs text-gray-400 mb-2 block">Icono</label>
-              <div className="flex gap-2">
-                {COVER_EMOJIS.map(emoji => (
-                  <button
-                    key={emoji}
-                    onClick={() => setPublishForm(f => ({ ...f, cover_emoji: emoji }))}
-                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-colors ${
-                      publishForm.cover_emoji === emoji ? 'bg-blue-600/40 ring-2 ring-blue-500' : 'bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {publishError && (
@@ -502,6 +631,9 @@ export default function AdminScreen({ onNavigate }) {
               </span>
             </div>
           </div>
+
+          {/* REPORTES DE PREGUNTAS */}
+          {adminToken && <ReportsSection token={adminToken} />}
 
           {/* PLANES OFICIALES */}
           {adminToken && (

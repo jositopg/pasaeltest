@@ -31,6 +31,23 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const [timeExpired, setTimeExpired] = useState(false);
   const timerRef = useRef(null);
 
+  // ─── Reportes de preguntas ──────────────────────────────────
+  // flags: { [questionIndex]: { comment: string, open: boolean } }
+  const [flags, setFlags] = useState({});
+
+  function toggleFlag(idx) {
+    setFlags(prev => ({
+      ...prev,
+      [idx]: prev[idx] ? { ...prev[idx], open: !prev[idx].open } : { comment: '', open: true },
+    }));
+  }
+  function setFlagComment(idx, comment) {
+    setFlags(prev => ({ ...prev, [idx]: { ...prev[idx], comment } }));
+  }
+  function submitFlag(idx) {
+    setFlags(prev => ({ ...prev, [idx]: { ...prev[idx], open: false } }));
+  }
+
   const [questions] = useState(() => {
     const allQ = themes
       .filter(t => config.selectedThemes.includes(t.number))
@@ -103,6 +120,17 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
       clearInterval(timerRef.current);
       setShowResults(true);
     }
+  };
+
+  // Pasar score + flags al padre
+  const handleFinish = (score) => {
+    const activeFlags = Object.entries(flags)
+      .filter(([, f]) => f.comment?.trim())
+      .map(([idx, f]) => ({
+        question: questions[parseInt(idx)],
+        comment: f.comment.trim(),
+      }));
+    onFinish(score, activeFlags);
   };
 
   const calculateScore = () => {
@@ -178,7 +206,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
               </div>
             )}
           </div>
-          <button onClick={() => onFinish(score)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md">
+          <button onClick={() => handleFinish(score)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md">
             Volver
           </button>
         </div>
@@ -282,6 +310,52 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
                 <p className={`text-sm leading-relaxed ${dm ? 'text-gray-300' : 'text-slate-600'}`}>{q.explanation}</p>
               </div>
             )}
+
+            {/* Botón reportar error */}
+            <div className={`pt-2 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+              {flags[current]?.comment && !flags[current]?.open ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-orange-400">🚩 Reporte guardado</span>
+                  <button onClick={() => toggleFlag(current)} className="text-xs text-gray-500 underline">editar</button>
+                </div>
+              ) : flags[current]?.open ? (
+                <div className="space-y-2">
+                  <p className={`text-xs font-semibold ${dm ? 'text-orange-300' : 'text-orange-600'}`}>🚩 ¿Qué está mal en esta pregunta?</p>
+                  <textarea
+                    autoFocus
+                    value={flags[current]?.comment || ''}
+                    onChange={e => setFlagComment(current, e.target.value)}
+                    placeholder="Ej: La respuesta correcta debería ser la B, porque..."
+                    rows={2}
+                    className={`w-full text-sm rounded-xl px-3 py-2 resize-none focus:outline-none border ${
+                      dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
+                    }`}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => submitFlag(current)}
+                      disabled={!flags[current]?.comment?.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold disabled:opacity-40"
+                    >
+                      Guardar reporte
+                    </button>
+                    <button
+                      onClick={() => setFlags(prev => { const n = { ...prev }; delete n[current]; return n; })}
+                      className={`px-3 py-1.5 rounded-lg text-xs ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => toggleFlag(current)}
+                  className={`text-xs ${dm ? 'text-gray-600 hover:text-orange-400' : 'text-slate-400 hover:text-orange-500'} transition-colors`}
+                >
+                  🚩 Reportar error en esta pregunta
+                </button>
+              )}
+            </div>
           </div>
         )}
 

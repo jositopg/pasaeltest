@@ -401,5 +401,27 @@ CREATE INDEX IF NOT EXISTS tests_is_official_idx ON public.tests(is_official);
 CREATE INDEX IF NOT EXISTS tests_cloned_from_idx ON public.tests(cloned_from);
 
 -- ============================================================================
+-- TABLA: question_reports (reportes de errores en preguntas por usuarios)
+-- MIGRATION: ejecutar en Supabase dashboard
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.question_reports (
+  id             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  question_id    uuid REFERENCES public.questions(id) ON DELETE CASCADE NOT NULL,
+  user_id        uuid REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  user_comment   text NOT NULL,
+  question_snapshot jsonb,       -- snapshot de la pregunta en el momento del reporte
+  ai_review      text,           -- análisis de la IA
+  ai_suggested_fix jsonb,        -- { text?, options?, correct_answer?, explanation? }
+  status         text DEFAULT 'pending',  -- pending | applied | dismissed
+  created_at     timestamptz DEFAULT now()
+);
+
+-- Sin RLS — acceso solo vía SERVICE_ROLE_KEY desde serverless
+CREATE INDEX IF NOT EXISTS question_reports_status_idx ON public.question_reports(status);
+CREATE INDEX IF NOT EXISTS question_reports_question_id_idx ON public.question_reports(question_id);
+
+COMMENT ON TABLE public.question_reports IS 'Reportes de errores en preguntas enviados por usuarios durante exámenes';
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================
