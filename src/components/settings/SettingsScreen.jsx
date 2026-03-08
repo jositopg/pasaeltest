@@ -3,7 +3,7 @@ import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
+const ADMIN_EMAIL = 'josedlp7@gmail.com';
 
 function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user }) {
   const { darkMode } = useTheme();
