@@ -385,5 +385,21 @@ create index if not exists api_usage_cached_idx on public.api_usage(cached);
 comment on table public.api_usage is 'Registro de llamadas a la API de Gemini para estadísticas de admin';
 
 -- ============================================================================
+-- PLANES OFICIALES: nuevas columnas en tests
+-- MIGRATION: ejecutar en Supabase dashboard
+-- ============================================================================
+
+ALTER TABLE public.tests
+  ADD COLUMN IF NOT EXISTS is_official boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS invite_slug text UNIQUE,
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS cover_emoji text DEFAULT '📋',
+  ADD COLUMN IF NOT EXISTS cloned_from uuid REFERENCES public.tests(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS tests_invite_slug_idx ON public.tests(invite_slug);
+CREATE INDEX IF NOT EXISTS tests_is_official_idx ON public.tests(is_official);
+CREATE INDEX IF NOT EXISTS tests_cloned_from_idx ON public.tests(cloned_from);
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================

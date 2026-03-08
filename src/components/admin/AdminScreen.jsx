@@ -94,6 +94,239 @@ function timeAgo(dateStr) {
   return `Hace ${months} mes${months > 1 ? 'es' : ''}`;
 }
 
+// ─── Planes Oficiales ─────────────────────────────────────────
+
+const COVER_EMOJIS = ['📋', '🎖️', '📘', '⚖️', '🏛️', '🚒'];
+
+function PlansSection({ token, adminTests }) {
+  const [plans, setPlans] = useState(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishForm, setPublishForm] = useState({ testId: '', slug: '', description: '', cover_emoji: '📋' });
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
+  const [copied, setCopied] = useState(null);
+
+  const fetchPlans = useCallback(async () => {
+    setPlansLoading(true);
+    try {
+      const res = await fetch('/api/manage-plans', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setPlans(data.plans || []);
+    } catch {
+      setPlans([]);
+    } finally {
+      setPlansLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+
+  function toSlug(str) {
+    return str.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function handleTestSelect(testId) {
+    const test = adminTests.find(t => t.id === testId);
+    const slug = test ? toSlug(test.name) : '';
+    setPublishForm(f => ({ ...f, testId, slug }));
+  }
+
+  async function handlePublish() {
+    setPublishError('');
+    if (!publishForm.testId || !publishForm.slug) {
+      setPublishError('Selecciona un test y escribe un slug.');
+      return;
+    }
+    setPublishing(true);
+    try {
+      const res = await fetch('/api/manage-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(publishForm),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPublishError(data.error || `Error ${res.status}`); return; }
+      setShowPublishModal(false);
+      setPublishForm({ testId: '', slug: '', description: '', cover_emoji: '📋' });
+      fetchPlans();
+    } catch (e) {
+      setPublishError(e.message);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleUnpublish(id) {
+    if (!confirm('¿Despublicar este plan? Los usuarios que ya lo tienen no se verán afectados.')) return;
+    await fetch(`/api/manage-plans?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    fetchPlans();
+  }
+
+  function copyLink(slug) {
+    const url = `${window.location.origin}/?join=${slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(slug);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  return (
+    <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-base">📋 Planes Oficiales</h2>
+        <button
+          onClick={() => setShowPublishModal(true)}
+          className="text-xs px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors font-medium"
+        >
+          + Publicar
+        </button>
+      </div>
+
+      {plansLoading && (
+        <div className="flex justify-center py-6">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!plansLoading && plans?.length === 0 && (
+        <p className="text-gray-600 text-sm text-center py-4">No hay planes publicados</p>
+      )}
+
+      {!plansLoading && plans?.length > 0 && (
+        <div className="space-y-3">
+          {plans.map(plan => (
+            <div key={plan.id} className="bg-white/5 rounded-xl p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-2xl shrink-0">{plan.cover_emoji}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{plan.name}</p>
+                    <p className="text-xs text-gray-500">{plan.invite_slug} · {plan.totalThemes} temas · {plan.totalQuestions} preguntas · {plan.clones} clones</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => copyLink(plan.invite_slug)}
+                  className="flex-1 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 text-xs font-medium hover:bg-blue-600/30 transition-colors"
+                >
+                  {copied === plan.invite_slug ? '✅ Copiado' : '🔗 Copiar enlace'}
+                </button>
+                <button
+                  onClick={() => handleUnpublish(plan.id)}
+                  className="flex-1 py-1.5 rounded-lg bg-red-600/10 text-red-400 text-xs font-medium hover:bg-red-600/20 transition-colors"
+                >
+                  🗑 Despublicar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal Publicar */}
+      {showPublishModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
+            <h3 className="font-bold text-lg text-white">Publicar Plan Oficial</h3>
+
+            {/* Test selector */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Test a publicar</label>
+              <select
+                value={publishForm.testId}
+                onChange={e => handleTestSelect(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none"
+              >
+                <option value="">Seleccionar test...</option>
+                {adminTests.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Slug */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Slug (código del enlace)</label>
+              <input
+                type="text"
+                value={publishForm.slug}
+                onChange={e => setPublishForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                placeholder="guardia-civil-2025"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none"
+              />
+              {publishForm.slug && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Enlace: {window.location.origin}/?join={publishForm.slug}
+                </p>
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Descripción (opcional)</label>
+              <textarea
+                value={publishForm.description}
+                onChange={e => setPublishForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Descripción breve del plan..."
+                rows={2}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
+              />
+            </div>
+
+            {/* Emoji */}
+            <div>
+              <label className="text-xs text-gray-400 mb-2 block">Icono</label>
+              <div className="flex gap-2">
+                {COVER_EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => setPublishForm(f => ({ ...f, cover_emoji: emoji }))}
+                    className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-colors ${
+                      publishForm.cover_emoji === emoji ? 'bg-blue-600/40 ring-2 ring-blue-500' : 'bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {publishError && (
+              <p className="text-red-400 text-xs">{publishError}</p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => { setShowPublishModal(false); setPublishError(''); }}
+                className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+              >
+                {publishing ? 'Publicando...' : 'Publicar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main AdminScreen ─────────────────────────────────────────
 
 export default function AdminScreen({ onNavigate }) {
@@ -101,6 +334,7 @@ export default function AdminScreen({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [adminToken, setAdminToken] = useState(null);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -108,6 +342,8 @@ export default function AdminScreen({ onNavigate }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sin sesión activa');
+
+      setAdminToken(session.access_token);
 
       const res = await fetch('/api/admin-stats', {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -266,6 +502,14 @@ export default function AdminScreen({ onNavigate }) {
               </span>
             </div>
           </div>
+
+          {/* PLANES OFICIALES */}
+          {adminToken && (
+            <PlansSection
+              token={adminToken}
+              adminTests={stats.adminTests || []}
+            />
+          )}
 
           {/* USUARIOS */}
           <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">

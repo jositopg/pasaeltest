@@ -32,12 +32,21 @@ import SettingsScreen from './components/settings/SettingsScreen';
 import BottomNav from './components/layout/BottomNav';
 import QuestionsScreen from './components/questions/QuestionsScreen';
 import AdminScreen from './components/admin/AdminScreen';
+import JoinPlanScreen from './components/plans/JoinPlanScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
   const [screen, setScreen] = useState('home');
   const [examConfig, setExamConfig] = useState(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
+
+  // ─── Join plan via ?join=slug ───────────────────────────────
+  const [joinSlug, setJoinSlug] = useState(() =>
+    new URLSearchParams(window.location.search).get('join') || null
+  );
+  useEffect(() => {
+    if (joinSlug) window.history.replaceState({}, '', '/');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Dark mode ─────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => {
@@ -121,6 +130,25 @@ export default function App() {
 
   if (userData.loading) {
     return <DataLoadingScreen darkMode={dm} />;
+  }
+
+  // ─── Join plan gate ─────────────────────────────────────────
+  if (joinSlug && auth.isAuthenticated && !auth.authLoading && !userData.loading) {
+    return (
+      <>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+        <JoinPlanScreen
+          slug={joinSlug}
+          currentUser={auth.currentUser}
+          onSuccess={(testId) => {
+            setJoinSlug(null);
+            userData.switchTest(testId);
+            setScreen('themes');
+          }}
+          onCancel={() => { setJoinSlug(null); setScreen('home'); }}
+        />
+      </>
+    );
   }
 
   // ─── Main app ──────────────────────────────────────────────

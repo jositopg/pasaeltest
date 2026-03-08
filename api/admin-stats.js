@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       questionsDificilResult,
       cacheTopResult,
       cacheTotalResult,
+      adminTestsResult,
     ] = await Promise.all([
       supabase.from('users').select('id, email, name, created_at').order('created_at', { ascending: false }),
       supabase.from('themes').select('id, user_id'),
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
       supabase.from('questions').select('*', { count: 'exact', head: true }).eq('difficulty', 'dificil'),
       supabase.from('ai_cache').select('id, used_count, created_at').order('used_count', { ascending: false }).limit(5),
       supabase.from('ai_cache').select('*', { count: 'exact', head: true }),
+      supabase.from('tests').select('id, name').eq('user_id', user.id).eq('is_official', false).order('created_at', { ascending: false }),
     ]);
 
     // 5. api_usage (tabla puede no existir aún)
@@ -120,6 +122,7 @@ export default async function handler(req, res) {
     // 10. Respuesta
     return res.status(200).json({
       users: usersWithStats,
+      adminTests: adminTestsResult.data || [],
       totals: {
         users: usersResult.data?.length || 0,
         themes: themesResult.data?.length || 0,
