@@ -102,7 +102,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
 
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <div className="max-w-2xl mx-auto p-4 space-y-4" style={{ paddingTop: 'var(--pt-header)' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3">

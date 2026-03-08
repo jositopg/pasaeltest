@@ -140,7 +140,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">

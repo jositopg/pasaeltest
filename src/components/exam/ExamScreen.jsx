@@ -193,7 +193,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const timerWarning = timeLeft !== null && timeLeft <= 60;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
 
         {/* Progress header */}
