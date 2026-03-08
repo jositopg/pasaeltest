@@ -25,9 +25,9 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  // 3. Verificar que es admin (lista de emails en var de entorno, no en VITE_)
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-  if (!adminEmails.length || !adminEmails.includes(user.email?.toLowerCase())) {
+  // 3. Verificar que es admin
+  const adminEmails = (process.env.ADMIN_EMAILS || 'josedlp7@gmail.com').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (!adminEmails.includes(user.email?.toLowerCase())) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
