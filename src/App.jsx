@@ -191,6 +191,7 @@ export default function App() {
             onNavigate={setScreen}
             showToast={showToast}
             genQueue={genQueue}
+            currentUser={auth.currentUser}
           />
         )}
         {screen === 'exam' && (

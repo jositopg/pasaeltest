@@ -7,13 +7,17 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
+import { supabase } from '../../supabaseClient';
+
+const ADMIN_EMAIL = 'josedlp7@gmail.com';
+const COVER_EMOJIS = ['📋', '🎖️', '📘', '⚖️', '🏛️', '🚒'];
 
 function ThemesScreen({
   themes, tests = [], activeTestId,
   onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
   onNavigate, showToast,
-  // Generation queue (lifted to App.jsx so it persists across navigation)
   genQueue = {},
+  currentUser,
 }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
@@ -35,6 +39,79 @@ function ThemesScreen({
   // Confirmaciones bulk generation
   const [generateReposConfirm, setGenerateReposConfirm] = useState(false);
   const [generateQuestionsConfirm, setGenerateQuestionsConfirm] = useState(false);
+
+  const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
+
+  // ─── Share modal (admin only) ──────────────────────────────
+  const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form }
+  const [shareForm, setShareForm] = useState({ slug: '', description: '', cover_emoji: '📋' });
+  const [shareSubmitting, setShareSubmitting] = useState(false);
+  const [shareError, setShareError] = useState('');
+
+  function toSlug(str) {
+    return str.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  async function openShareModal() {
+    if (!activeTestId) return;
+    setShareModal({ loading: true });
+    setShareError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/manage-plans', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await res.json();
+      const existing = (data.plans || []).find(p => {
+        // buscar por testId — el plan original tiene el mismo id que el test del admin
+        // los planes son los tests del admin con is_official=true
+        return p.id === activeTestId;
+      });
+      if (existing) {
+        setShareModal({ published: true, slug: existing.invite_slug, plan: existing });
+      } else {
+        const activeTest = tests.find(t => t.id === activeTestId);
+        setShareForm({ slug: toSlug(activeTest?.name || ''), description: '', cover_emoji: '📋' });
+        setShareModal({ form: true });
+      }
+    } catch (e) {
+      setShareModal(null);
+      showToast('Error al comprobar el plan', 'error');
+    }
+  }
+
+  async function handlePublishFromThemes() {
+    setShareError('');
+    if (!shareForm.slug) { setShareError('Escribe un slug para el enlace.'); return; }
+    setShareSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/manage-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ testId: activeTestId, ...shareForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setShareError(data.error || `Error ${res.status}`); return; }
+      setShareModal({ published: true, slug: shareForm.slug });
+      // Copiar automáticamente
+      const url = `${window.location.origin}/?join=${shareForm.slug}`;
+      navigator.clipboard.writeText(url).catch(() => {});
+      showToast('✅ Plan publicado y enlace copiado', 'success');
+    } catch (e) {
+      setShareError(e.message);
+    } finally {
+      setShareSubmitting(false);
+    }
+  }
+
+  function copyShareLink(slug) {
+    const url = `${window.location.origin}/?join=${slug}`;
+    navigator.clipboard.writeText(url).then(() => showToast('🔗 Enlace copiado', 'success'));
+  }
 
   const {
     generatingRepos = {},
@@ -342,6 +419,19 @@ function ThemesScreen({
               <span>{tests.find(t => t.id === activeTestId)?.name || 'Mi Test'}</span>
               <span className="opacity-50 text-xs">▾</span>
             </button>
+            {isAdmin && (
+              <button
+                onClick={openShareModal}
+                title="Compartir este test como plan oficial"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
+                  dm
+                    ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'
+                    : 'bg-green-50 border border-green-200 text-green-600 hover:bg-green-100'
+                }`}
+              >
+                🔗
+              </button>
+            )}
             {tests.length > 1 && (
               <span className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                 {tests.length} tests
@@ -694,6 +784,108 @@ function ThemesScreen({
           onConfirm={() => { setGenerateQuestionsConfirm(false); handleGenerateAllQuestions(); }}
           onCancel={() => setGenerateQuestionsConfirm(false)}
         />
+
+        {/* ─── Share Modal (admin) ─────────────────────────────── */}
+        {shareModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
+
+              {shareModal.loading && (
+                <div className="flex justify-center py-6">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+
+              {shareModal.published && (
+                <>
+                  <h3 className="font-bold text-lg text-white">Plan ya publicado ✅</h3>
+                  <p className="text-gray-400 text-sm">
+                    Este test está publicado con el slug <code className="text-green-400 bg-white/5 px-1.5 rounded">{shareModal.slug}</code>.
+                  </p>
+                  <div className="bg-white/5 rounded-xl px-3 py-2 text-xs text-gray-400 break-all">
+                    {window.location.origin}/?join={shareModal.slug}
+                  </div>
+                  <button
+                    onClick={() => copyShareLink(shareModal.slug)}
+                    className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
+                  >
+                    🔗 Copiar enlace
+                  </button>
+                  <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">
+                    Cerrar
+                  </button>
+                </>
+              )}
+
+              {shareModal.form && (
+                <>
+                  <h3 className="font-bold text-lg text-white">Compartir como plan oficial</h3>
+
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Código del enlace (slug)</label>
+                    <input
+                      type="text"
+                      value={shareForm.slug}
+                      onChange={e => setShareForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                      placeholder="guardia-civil-2025"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none"
+                    />
+                    {shareForm.slug && (
+                      <p className="text-xs text-gray-600 mt-1">{window.location.origin}/?join={shareForm.slug}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Descripción (opcional)</label>
+                    <textarea
+                      value={shareForm.description}
+                      onChange={e => setShareForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Descripción breve..."
+                      rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-400 mb-2 block">Icono</label>
+                    <div className="flex gap-2">
+                      {COVER_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => setShareForm(f => ({ ...f, cover_emoji: emoji }))}
+                          className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-colors ${
+                            shareForm.cover_emoji === emoji ? 'bg-blue-600/40 ring-2 ring-blue-500' : 'bg-white/5 hover:bg-white/10'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {shareError && <p className="text-red-400 text-xs">{shareError}</p>}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setShareModal(null); setShareError(''); }}
+                      className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handlePublishFromThemes}
+                      disabled={shareSubmitting}
+                      className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+                    >
+                      {shareSubmitting ? 'Publicando...' : 'Publicar y copiar'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         </div>
       </div>
     </div>
