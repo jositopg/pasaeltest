@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { calculateNextReview, getDifficultyColor, formatNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
@@ -6,18 +6,19 @@ import { useTheme } from '../../context/ThemeContext';
 function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
+
+  // sessionQuestions puede cambiar si el usuario hace "Repetir falladas"
+  const [sessionQuestions, setSessionQuestions] = useState(() =>
+    dueQuestions.map(q => ({ ...q, text: q.text || q.pregunta || 'Pregunta sin texto' }))
+  );
   const [current, setCurrent] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: dueQuestions.length });
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [failedInSession, setFailedInSession] = useState([]);
 
-  const questions = dueQuestions.map(q => ({
-    ...q,
-    text: q.text || q.pregunta || 'Pregunta sin texto'
-  }));
-
-  if (!questions || questions.length === 0) {
+  if (!sessionQuestions || sessionQuestions.length === 0) {
     return (
       <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
@@ -26,8 +27,8 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
           <p className={`mb-6 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
             No tienes preguntas pendientes de repaso. Vuelve mañana o genera más preguntas.
           </p>
-          <button 
-            onClick={() => onNavigate('home')} 
+          <button
+            onClick={() => onNavigate('home')}
             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
           >
             Volver al inicio
@@ -38,10 +39,20 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   }
 
   if (sessionComplete) {
-    const pct = sessionStats.total > 0 
-      ? Math.round((sessionStats.correct / sessionStats.total) * 100) 
+    const pct = sessionStats.total > 0
+      ? Math.round((sessionStats.correct / sessionStats.total) * 100)
       : 0;
-    
+
+    const handleRetryFailed = () => {
+      setSessionQuestions(failedInSession);
+      setFailedInSession([]);
+      setCurrent(0);
+      setIsAnswered(false);
+      setSelectedAnswer(null);
+      setSessionStats({ correct: 0, incorrect: 0, total: failedInSession.length });
+      setSessionComplete(false);
+    };
+
     return (
       <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-6">
@@ -52,7 +63,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               {pct}%
             </div>
           </div>
-          
+
           <div className={`rounded-2xl p-6 space-y-3 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
             <div className="flex justify-between">
               <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Correctas</span>
@@ -73,9 +84,22 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               El algoritmo ha ajustado las fechas de repaso. Las preguntas que fallaste volverán pronto.
             </p>
           </div>
-          
-          <button 
-            onClick={() => onNavigate('home')} 
+
+          {failedInSession.length > 0 && (
+            <button
+              onClick={handleRetryFailed}
+              className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-md ${
+                dm
+                  ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
+                  : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+              }`}
+            >
+              🔁 Repetir falladas ({failedInSession.length})
+            </button>
+          )}
+
+          <button
+            onClick={() => onNavigate('home')}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md"
           >
             Volver al inicio
@@ -85,27 +109,29 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
     );
   }
 
-  const q = questions[current];
-  const progress = ((current + 1) / questions.length) * 100;
+  const q = sessionQuestions[current];
+  const progress = ((current + 1) / sessionQuestions.length) * 100;
   const diffColor = getDifficultyColor(q.srs_difficulty);
   const wasCorrect = selectedAnswer === q.correct;
 
   const handleAnswer = (index) => {
     if (isAnswered) return;
-    
+
     setSelectedAnswer(index);
     setIsAnswered(true);
-    
+
     const correct = index === q.correct;
-    
-    // Update session stats
+
     setSessionStats(prev => ({
       ...prev,
       correct: prev.correct + (correct ? 1 : 0),
       incorrect: prev.incorrect + (correct ? 0 : 1),
     }));
 
-    // Calculate new SRS values and update the theme
+    if (!correct) {
+      setFailedInSession(prev => [...prev, q]);
+    }
+
     const updatedQuestion = calculateNextReview(q, correct);
 
     const theme = themes.find(t => t.number === q.themeNumber);
@@ -130,7 +156,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   };
 
   const handleNext = () => {
-    if (current < questions.length - 1) {
+    if (current < sessionQuestions.length - 1) {
       setCurrent(current + 1);
       setIsAnswered(false);
       setSelectedAnswer(null);
@@ -144,8 +170,8 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => onNavigate('home')} 
+          <button
+            onClick={() => onNavigate('home')}
             className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}
           >
             <Icons.ChevronLeft />
@@ -153,7 +179,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
           <div className="flex-1">
             <h1 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Repaso Inteligente</h1>
             <p className={`text-xs ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-              {current + 1} / {questions.length} · Tema {q.themeNumber}
+              {current + 1} / {sessionQuestions.length} · Tema {q.themeNumber}
             </p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${diffColor.bg} ${diffColor.text}`}>
@@ -163,12 +189,12 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
         {/* Progress */}
         <div className={`w-full h-2 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
-          <div 
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500" 
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
-        
+
         {/* Question */}
         <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
           <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${dm ? 'text-white' : 'text-slate-800'}`}>
@@ -178,18 +204,18 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             {q.themeName || `Tema ${q.themeNumber}`}
           </p>
         </div>
-        
+
         {/* Options */}
         <div className="space-y-2 sm:space-y-3">
           {(q.options || q.opciones || []).map((opt, i) => {
             const isCorrect = i === q.correct;
             const isSelected = selectedAnswer === i;
             const wasWrong = isAnswered && isSelected && !isCorrect;
-            
-            let buttonClass = dm 
-              ? 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/5' 
+
+            let buttonClass = dm
+              ? 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/5'
               : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-300 hover:bg-blue-50 shadow-sm';
-            
+
             if (isAnswered) {
               if (isCorrect) {
                 buttonClass = 'bg-green-500 text-white border-2 border-green-400 shadow-lg shadow-green-500/20';
@@ -199,10 +225,10 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
                 buttonClass = dm ? 'bg-white/3 text-gray-500 border border-white/5' : 'bg-slate-50 text-slate-500 border border-slate-200';
               }
             }
-            
+
             return (
-              <button 
-                key={i} 
+              <button
+                key={i}
                 onClick={() => handleAnswer(i)}
                 disabled={isAnswered}
                 className={`w-full text-left p-3 sm:p-4 rounded-lg sm:rounded-xl transition-all text-sm sm:text-base ${buttonClass} ${isAnswered ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'}`}
@@ -240,7 +266,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
                 </p>
               </div>
             )}
-            
+
             {/* Explicación pedagógica */}
             {q.explanation && (
               <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
@@ -272,14 +298,14 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             </div>
           </div>
         )}
-        
+
         {/* Next button */}
         {isAnswered && (
-          <button 
-            onClick={handleNext} 
+          <button
+            onClick={handleNext}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-colors shadow-md"
           >
-            {current === questions.length - 1 ? 'Ver Resultados' : 'Siguiente →'}
+            {current === sessionQuestions.length - 1 ? 'Ver Resultados' : 'Siguiente →'}
           </button>
         )}
       </div>

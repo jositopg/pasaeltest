@@ -3,7 +3,7 @@ import Icons from '../common/Icons';
 import { GRADIENT_BG, GRADIENT_STYLE } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
+function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPractice, srsStats }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
   return (
@@ -167,6 +167,40 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile }) {
                 <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Gestionar contenido</div>
               </div>
             </button>
+
+            {onQuickPractice && (
+              <button
+                onClick={onQuickPractice}
+                className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
+                  ${dm ? 'bg-[#0F172A] border border-[#1E293B] hover:border-yellow-500/30' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'}`}
+              >
+                <span className="text-2xl">⚡</span>
+                <div>
+                  <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+                    Práctica Rápida
+                  </div>
+                  <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>10 preguntas aleatorias</div>
+                </div>
+              </button>
+            )}
+
+            {srsStats?.dueQuestions?.length > 0 && (
+              <button
+                onClick={() => onNavigate('review')}
+                className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
+                  ${dm ? 'bg-[#0F172A] border border-purple-500/30 hover:border-purple-500/50' : 'bg-white border border-purple-200 shadow-sm hover:shadow-md'}`}
+              >
+                <span className="text-2xl">🧠</span>
+                <div>
+                  <div className={`text-sm font-bold ${dm ? 'text-purple-300' : 'text-purple-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+                    Repasar ahora
+                  </div>
+                  <div className={`text-xs ${dm ? 'text-purple-400/70' : 'text-purple-500'}`}>
+                    {srsStats.dueQuestions.length} pendientes hoy
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 

@@ -97,6 +97,21 @@ export default function App() {
     setScreen('exam-active');
   };
 
+  const handleQuickPractice = () => {
+    const themesWithQuestions = userData.themes.filter(t => t.questions?.length > 0);
+    if (themesWithQuestions.length === 0) {
+      showToast('No hay preguntas disponibles. Genera preguntas en Temas primero.', 'error');
+      return;
+    }
+    startExam({
+      numQuestions: 10,
+      selectedThemes: themesWithQuestions.map(t => t.number),
+      failedRatio: 0,
+      penaltySystem: 'none',
+      timeLimitMinutes: null,
+    });
+  };
+
   const finishExam = async (score, flags = []) => {
     await userData.saveExamResult(examConfig, score);
     setScreen('home');
@@ -200,6 +215,7 @@ export default function App() {
             user={auth.currentUser}
             onShowProfile={() => setShowUserProfile(true)}
             srsStats={srsStats}
+            onQuickPractice={handleQuickPractice}
           />
         )}
         {screen === 'themes' && (

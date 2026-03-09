@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { calculateNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
 
+const EXAM_STATE_KEY = 'exam_paused_state';
+
 function getPenaltyValue(incorrect, system) {
   switch (system) {
     case 'none':    return 0;
@@ -18,21 +20,102 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function hashConfig(config) {
+  return JSON.stringify({
+    t: [...(config.selectedThemes || [])].sort(),
+    n: config.numQuestions,
+    p: config.penaltySystem,
+    tl: config.timeLimitMinutes,
+    fr: config.failedRatio || 0,
+  });
+}
+
+function buildQuestions(config, themes) {
+  const allQ = themes
+    .filter(t => config.selectedThemes.includes(t.number))
+    .flatMap(t => (t.questions || []).map(q => ({ ...q, themeNumber: t.number })));
+
+  const failedRatio = config.failedRatio || 0;
+  const numQ = config.numQuestions;
+
+  if (failedRatio === 0) {
+    return allQ.sort(() => Math.random() - 0.5).slice(0, Math.min(numQ, allQ.length));
+  }
+
+  const failedPool = allQ
+    .filter(q => q.errors_count > 0)
+    .sort(() => Math.random() - 0.5);
+
+  const targetFailed = Math.min(Math.round((failedRatio / 100) * numQ), failedPool.length);
+  const pickedFailed = failedPool.slice(0, targetFailed);
+  const usedIds = new Set(pickedFailed.map(q => q.id));
+
+  const regularPool = allQ
+    .filter(q => !usedIds.has(q.id))
+    .sort(() => Math.random() - 0.5)
+    .slice(0, numQ - pickedFailed.length);
+
+  return [...pickedFailed, ...regularPool]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, Math.min(numQ, allQ.length));
+}
+
+function loadSavedState(configKey) {
+  try {
+    const raw = sessionStorage.getItem(EXAM_STATE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (saved?.configKey !== configKey) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
 function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({});
+
+  const configKey = hashConfig(config);
+
+  // ─── Inicialización con posible restauración ────────────────
+  const [questions] = useState(() => {
+    const saved = loadSavedState(configKey);
+    if (saved?.questions?.length > 0) return saved.questions;
+    return buildQuestions(config, themes);
+  });
+
+  const [current, setCurrent] = useState(() => {
+    const saved = loadSavedState(configKey);
+    return saved?.current ?? 0;
+  });
+
+  const [answers, setAnswers] = useState(() => {
+    const saved = loadSavedState(configKey);
+    return saved?.answers ?? {};
+  });
+
+  const [answeredQuestions, setAnsweredQuestions] = useState(() => {
+    const saved = loadSavedState(configKey);
+    return new Set(saved?.answeredQuestions ?? []);
+  });
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const saved = loadSavedState(configKey);
+    if (saved?.timeLeft !== undefined) return saved.timeLeft;
+    return config.timeLimitMinutes ? config.timeLimitMinutes * 60 : null;
+  });
+
+  const [wasRestored] = useState(() => {
+    const saved = loadSavedState(configKey);
+    return (saved?.answeredQuestions?.length ?? 0) > 0;
+  });
+
   const [showResults, setShowResults] = useState(false);
-  const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
-  const [timeLeft, setTimeLeft] = useState(
-    config.timeLimitMinutes ? config.timeLimitMinutes * 60 : null
-  );
   const [timeExpired, setTimeExpired] = useState(false);
   const timerRef = useRef(null);
 
   // ─── Reportes de preguntas ──────────────────────────────────
-  // flags: { [questionIndex]: { comment: string, open: boolean } }
   const [flags, setFlags] = useState({});
 
   function toggleFlag(idx) {
@@ -48,37 +131,26 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
     setFlags(prev => ({ ...prev, [idx]: { ...prev[idx], open: false } }));
   }
 
-  const [questions] = useState(() => {
-    const allQ = themes
-      .filter(t => config.selectedThemes.includes(t.number))
-      .flatMap(t => (t.questions || []).map(q => ({ ...q, themeNumber: t.number })));
-
-    const failedRatio = config.failedRatio || 0;
-    const numQ = config.numQuestions;
-
-    if (failedRatio === 0) {
-      return allQ.sort(() => Math.random() - 0.5).slice(0, Math.min(numQ, allQ.length));
+  // ─── Persistir estado en sessionStorage ────────────────────
+  useEffect(() => {
+    if (showResults) {
+      sessionStorage.removeItem(EXAM_STATE_KEY);
+      return;
     }
+    try {
+      sessionStorage.setItem(EXAM_STATE_KEY, JSON.stringify({
+        configKey,
+        questions,
+        answers,
+        current,
+        timeLeft,
+        answeredQuestions: [...answeredQuestions],
+        savedAt: Date.now(),
+      }));
+    } catch {}
+  }, [answers, current, timeLeft, showResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const failedPool = allQ
-      .filter(q => q.errors_count > 0)
-      .sort(() => Math.random() - 0.5);
-
-    const targetFailed = Math.min(Math.round((failedRatio / 100) * numQ), failedPool.length);
-    const pickedFailed = failedPool.slice(0, targetFailed);
-    const usedIds = new Set(pickedFailed.map(q => q.id));
-
-    const regularPool = allQ
-      .filter(q => !usedIds.has(q.id))
-      .sort(() => Math.random() - 0.5)
-      .slice(0, numQ - pickedFailed.length);
-
-    return [...pickedFailed, ...regularPool]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, Math.min(numQ, allQ.length));
-  });
-
-  // Countdown timer
+  // ─── Countdown timer ────────────────────────────────────────
   useEffect(() => {
     if (timeLeft === null || showResults) return;
 
@@ -95,7 +167,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [showResults]);
+  }, [showResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAnswer = (selectedIndex) => {
     const q = questions[current];
@@ -122,8 +194,8 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
     }
   };
 
-  // Pasar score + flags al padre
   const handleFinish = (score) => {
+    sessionStorage.removeItem(EXAM_STATE_KEY);
     const activeFlags = Object.entries(flags)
       .filter(([, f]) => f.comment?.trim())
       .map(([idx, f]) => ({
@@ -223,6 +295,15 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   return (
     <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+
+        {/* Banner de examen recuperado */}
+        {wasRestored && current === (loadSavedState(configKey)?.current ?? 0) && (
+          <div className={`rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${dm ? 'bg-blue-500/10 border border-blue-500/30 text-blue-300' : 'bg-blue-50 border border-blue-200 text-blue-700'}`}>
+            <span>💾</span>
+            <span className="font-medium">Examen recuperado</span>
+            <span className={dm ? 'text-blue-400/60' : 'text-blue-500/60'}>— continuando donde lo dejaste</span>
+          </div>
+        )}
 
         {/* Progress header */}
         <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>

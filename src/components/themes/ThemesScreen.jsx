@@ -444,6 +444,22 @@ function ThemesScreen({
       {/* SCROLLABLE CONTENT */}
       <div className="px-4 pt-3" style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-4">
+
+        {/* Banner modo invitado */}
+        {currentUser?.isGuest && (
+          <div className="rounded-2xl p-4 border border-amber-400/30" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.10), rgba(234,88,12,0.10))' }}>
+            <div className="flex items-start gap-3">
+              <span className="text-xl mt-0.5">⚠️</span>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-400 text-sm">Modo Prueba — Datos temporales</p>
+                <p className={`text-xs mt-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Todo lo que añadas aquí (temas, documentos, preguntas) se perderá al cerrar sesión o recargar la página.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress panel — visible when bulk generation is running or just finished */}
         {queueProgress && (
           <div className={`rounded-2xl p-4 space-y-2 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-200 shadow-sm'}`}>

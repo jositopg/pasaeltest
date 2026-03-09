@@ -227,6 +227,20 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
           </div>
         </div>
 
+        {/* Hint de validación */}
+        {!canStart && (
+          <div className={`rounded-xl p-3 flex items-start gap-2 text-sm ${
+            dm ? 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300' : 'bg-amber-50 border border-amber-200 text-amber-700'
+          }`}>
+            <span className="mt-0.5">👆</span>
+            <span>
+              {selectedThemes.length === 0
+                ? 'Selecciona al menos un tema de la lista de abajo para comenzar.'
+                : 'Los temas seleccionados no tienen preguntas. Ve a Temas → IA para generarlas.'}
+            </span>
+          </div>
+        )}
+
         {/* Botón comenzar */}
         <button
           onClick={() => onStartExam({
