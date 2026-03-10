@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
+function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeTestName }) {
   const { dm, cx } = useTheme();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,6 +108,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
             <div className="flex-1">
               <h1 className={`font-bold text-2xl ${cx.heading}`}>Preguntas</h1>
               <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
+                {activeTestName && <span className={`font-semibold ${dm ? 'text-blue-400' : 'text-blue-600'}`}>{activeTestName} · </span>}
                 {allQuestions.length} en total · {filtered.length} mostradas
               </p>
             </div>

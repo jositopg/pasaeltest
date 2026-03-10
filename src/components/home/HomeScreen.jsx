@@ -77,29 +77,9 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             style={{ fontFamily: 'Sora, system-ui' }}>
             ¿Qué estudias hoy?
           </p>
-          {/* Barra de progreso general */}
-          <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className={`text-xs font-medium ${cx.muted}`}>
-                Progreso general
-              </span>
-              <span className="text-xs font-bold" style={{ color: '#2563EB' }}>
-                {stats.themesCompleted || 0}/90 temas
-              </span>
-            </div>
-            <div className={`h-2 rounded-full overflow-hidden ${dm ? 'bg-[#1E293B]' : 'bg-slate-100'}`}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${Math.round((stats.themesCompleted || 0) / 90 * 100)}%`,
-                  background: 'linear-gradient(90deg, #2563EB, #7C3AED)'
-                }}
-              />
-            </div>
-          </div>
-
           {/* Objetivo diario */}
           {(profile?.dailyGoal || 20) > 0 && (
-            <div className={`mt-4 pt-4 border-t ${dm ? 'border-white/5' : 'border-slate-100'}`}>
+            <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
                 <span className={`text-xs font-medium ${cx.muted}`}>
                   Meta diaria
@@ -183,14 +163,14 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             </button>
 
             <button
-              onClick={() => onNavigate('themes')}
+              onClick={() => onNavigate('exams')}
               className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
                 ${dm ? 'bg-[#0F172A] border border-[#1E293B] hover:border-blue-500/30' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'}`}
             >
               <span className="text-2xl">📚</span>
               <div>
                 <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                  Temas
+                  Exámenes
                 </div>
                 <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Gestionar contenido</div>
               </div>

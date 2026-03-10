@@ -292,9 +292,22 @@ function ThemesScreen({
       {/* STICKY HEADER — cubre Dynamic Island, botones quedan bajo la zona segura */}
       <div className={`sticky top-0 z-10 px-4 pb-3 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="max-w-2xl mx-auto space-y-3">
-        {/* Header fila 1: título + acciones */}
+        {/* Header fila 1: back + título + acciones */}
         <div className="flex items-center gap-3">
-          <h1 className={`font-bold text-2xl flex-1 ${cx.heading}`}>Temas</h1>
+          <button
+            onClick={() => onNavigate('exams')}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${dm ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
+          >
+            <Icons.ChevronLeft />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-bold text-xl leading-tight ${cx.heading}`}>Temas</h1>
+            {tests.length > 0 && (
+              <p className={`text-xs truncate ${dm ? 'text-blue-400/80' : 'text-blue-600'}`}>
+                {tests.find(t => t.id === activeTestId)?.name || 'Mi Examen'}
+              </p>
+            )}
+          </div>
           {!selectionMode && !repoCleanMode && (
             <button
               onClick={() => setSelectionMode(true)}
@@ -401,38 +414,20 @@ function ThemesScreen({
           </div>
         )}
 
-        {/* Test activo */}
-        {tests.length > 0 && (
+        {/* Compartir — solo admin */}
+        {isAdmin && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowTestSwitcher(true)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
+              onClick={openShareModal}
+              title="Compartir este test como plan oficial"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
                 dm
-                  ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
-                  : 'bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100'
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'
+                  : 'bg-green-50 border border-green-200 text-green-600 hover:bg-green-100'
               }`}
             >
-              <span>{tests.find(t => t.id === activeTestId)?.name || 'Mi Test'}</span>
-              <span className="opacity-50 text-xs">▾</span>
+              🔗 Compartir
             </button>
-            {isAdmin && (
-              <button
-                onClick={openShareModal}
-                title="Compartir este test como plan oficial"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
-                  dm
-                    ? 'bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20'
-                    : 'bg-green-50 border border-green-200 text-green-600 hover:bg-green-100'
-                }`}
-              >
-                🔗
-              </button>
-            )}
-            {tests.length > 1 && (
-              <span className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-                {tests.length} tests
-              </span>
-            )}
           </div>
         )}
 

@@ -35,6 +35,7 @@ import BottomNav from './components/layout/BottomNav';
 import QuestionsScreen from './components/questions/QuestionsScreen';
 import AdminScreen from './components/admin/AdminScreen';
 import JoinPlanScreen from './components/plans/JoinPlanScreen';
+import ExamsScreen from './components/exams/ExamsScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
@@ -274,6 +275,20 @@ export default function App() {
             answeredToday={answeredToday}
           />
         )}
+        {screen === 'exams' && (
+          <ExamsScreen
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            themes={userData.themes}
+            onSwitchTest={userData.switchTest}
+            onCreateTest={userData.createTest}
+            onRenameTest={userData.renameTest}
+            onDeleteTest={userData.deleteTest}
+            onNavigate={setScreen}
+            currentUser={auth.currentUser}
+            showToast={showToast}
+          />
+        )}
         {screen === 'themes' && (
           <ThemesScreen
             themes={userData.themes}
@@ -328,6 +343,7 @@ export default function App() {
             onUpdateTheme={userData.updateTheme}
             onNavigate={setScreen}
             showToast={showToast}
+            activeTestName={activeTest?.name}
           />
         )}
         {screen === 'heatmap' && (

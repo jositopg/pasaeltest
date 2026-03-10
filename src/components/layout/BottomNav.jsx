@@ -6,10 +6,13 @@ function BottomNav({ current, onNavigate }) {
   const { dm } = useTheme();
   const items = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
-    { id: 'themes', icon: Icons.Book, label: 'Temas' },
+    { id: 'exams', icon: Icons.Book, label: 'Exámenes' },
     { id: 'questions', icon: Icons.Questions, label: 'Preguntas' },
     { id: 'stats', icon: Icons.Stats, label: 'Stats' }
   ];
+
+  // 'themes' is a sub-screen of 'exams' — keep exams tab highlighted
+  const activeId = current === 'themes' ? 'exams' : current;
 
   return (
     // Outer: total height = 72px content + home-bar safe area.
@@ -28,7 +31,7 @@ function BottomNav({ current, onNavigate }) {
       {/* Inner row: always 72px, items fill evenly with flex-1 — no overflow on any screen */}
       <div className="flex items-center max-w-lg mx-auto px-1" style={{ height: '72px' }}>
         {items.map(item => {
-          const isActive = current === item.id;
+          const isActive = activeId === item.id;
           return (
             <button
               key={item.id}
