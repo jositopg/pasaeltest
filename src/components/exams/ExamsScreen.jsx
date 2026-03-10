@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import { supabase } from '../../supabaseClient';
 
 function ExamsScreen({
   tests = [],
@@ -15,14 +16,29 @@ function ExamsScreen({
   showToast,
 }) {
   const { dm, cx } = useTheme();
+  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
+
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
+  // Share modal
+  const [shareModal, setShareModal] = useState(null); // null | { loading } | { form, testId } | { published, slug } | { error }
+  const [shareForm, setShareForm] = useState({ slug: '', description: '' });
+  const [shareSubmitting, setShareSubmitting] = useState(false);
+  const [shareError, setShareError] = useState('');
+
   const activeThemeCount = themes.filter(t => t.questions?.length > 0).length;
   const activeQuestionCount = themes.reduce((acc, t) => acc + (t.questions?.length || 0), 0);
+
+  function toSlug(str) {
+    return str.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -56,6 +72,57 @@ function ExamsScreen({
       onNavigate('themes');
     }
   };
+
+  async function openShareModal(test) {
+    setShareModal({ loading: true });
+    setShareError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No hay sesión activa.');
+      const res = await fetch('/api/manage-plans', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) { setShareModal({ error: data.error || `Error ${res.status}` }); return; }
+      const existing = (data.plans || []).find(p => p.id === test.id);
+      if (existing) {
+        setShareModal({ published: true, slug: existing.invite_slug });
+      } else {
+        setShareForm({ slug: toSlug(test.name || ''), description: '' });
+        setShareModal({ form: true, testId: test.id });
+      }
+    } catch (e) {
+      setShareModal({ error: e.message || 'Error desconocido' });
+    }
+  }
+
+  async function handlePublish() {
+    setShareError('');
+    if (!shareForm.slug) { setShareError('Escribe un slug para el enlace.'); return; }
+    setShareSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/manage-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ testId: shareModal.testId, cover_emoji: '📋', ...shareForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setShareError(data.error || `Error ${res.status}`); return; }
+      setShareModal({ published: true, slug: shareForm.slug });
+      navigator.clipboard.writeText(`${window.location.origin}/?join=${shareForm.slug}`).catch(() => {});
+      showToast('✅ Plan publicado y enlace copiado', 'success');
+    } catch (e) {
+      setShareError(e.message);
+    } finally {
+      setShareSubmitting(false);
+    }
+  }
+
+  function copyShareLink(slug) {
+    navigator.clipboard.writeText(`${window.location.origin}/?join=${slug}`)
+      .then(() => showToast('🔗 Enlace copiado', 'success'));
+  }
 
   return (
     <div className={`min-h-full ${cx.screen} transition-colors`}
@@ -117,22 +184,14 @@ function ExamsScreen({
               key={test.id}
               className={`rounded-2xl p-4 transition-all ${
                 isActive
-                  ? dm
-                    ? 'bg-blue-500/15 border border-blue-500/40'
-                    : 'bg-blue-50 border border-blue-300 shadow-sm'
-                  : dm
-                    ? 'bg-white/5 border border-white/10'
-                    : 'bg-white border border-slate-200 shadow-sm'
+                  ? dm ? 'bg-blue-500/15 border border-blue-500/40' : 'bg-blue-50 border border-blue-300 shadow-sm'
+                  : dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${
-                    isActive
-                      ? 'bg-blue-500 text-white'
-                      : dm ? 'bg-white/10 text-gray-300' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${
+                  isActive ? 'bg-blue-500 text-white' : dm ? 'bg-white/10 text-gray-300' : 'bg-slate-100 text-slate-600'
+                }`}>
                   {test.cover_emoji || '📋'}
                 </div>
 
@@ -174,6 +233,13 @@ function ExamsScreen({
                       className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-blue-400' : 'text-slate-300 hover:text-blue-500'}`}
                       title="Renombrar"
                     >✏</button>
+                    {isAdmin && (
+                      <button
+                        onClick={e => { e.stopPropagation(); openShareModal(test); }}
+                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-green-400' : 'text-slate-300 hover:text-green-600'}`}
+                        title="Compartir como plan oficial"
+                      >🔗</button>
+                    )}
                     {tests.length > 1 && (
                       <button
                         onClick={e => { e.stopPropagation(); setDeletingId(test.id); }}
@@ -211,6 +277,90 @@ function ExamsScreen({
         )}
 
       </div>
+
+      {/* Share Modal */}
+      {shareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
+
+            {shareModal.loading && (
+              <div className="flex justify-center py-6">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {shareModal.error && (
+              <>
+                <h3 className="font-bold text-lg text-white">Error</h3>
+                <p className="text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2">{shareModal.error}</p>
+                <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">Cerrar</button>
+              </>
+            )}
+
+            {shareModal.published && (
+              <>
+                <h3 className="font-bold text-lg text-white">Plan publicado ✅</h3>
+                <p className="text-gray-400 text-sm">
+                  Slug: <code className="text-green-400 bg-white/5 px-1.5 rounded">{shareModal.slug}</code>
+                </p>
+                <div className="bg-white/5 rounded-xl px-3 py-2 text-xs text-gray-400 break-all">
+                  {window.location.origin}/?join={shareModal.slug}
+                </div>
+                <button
+                  onClick={() => copyShareLink(shareModal.slug)}
+                  className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
+                >🔗 Copiar enlace</button>
+                <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">Cerrar</button>
+              </>
+            )}
+
+            {shareModal.form && (
+              <>
+                <h3 className="font-bold text-lg text-white">Compartir como plan oficial</h3>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Código del enlace (slug)</label>
+                  <input
+                    type="text"
+                    value={shareForm.slug}
+                    onChange={e => setShareForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                    placeholder="guardia-civil-2025"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none"
+                  />
+                  {shareForm.slug && (
+                    <p className="text-xs text-gray-600 mt-1">{window.location.origin}/?join={shareForm.slug}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Descripción (opcional)</label>
+                  <textarea
+                    value={shareForm.description}
+                    onChange={e => setShareForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Descripción breve..."
+                    rows={2}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
+                  />
+                </div>
+
+                {shareError && <p className="text-red-400 text-xs">{shareError}</p>}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShareModal(null); setShareError(''); }}
+                    className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium"
+                  >Cancelar</button>
+                  <button
+                    onClick={handlePublish}
+                    disabled={shareSubmitting}
+                    className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+                  >{shareSubmitting ? 'Publicando...' : 'Publicar y copiar'}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
