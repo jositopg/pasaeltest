@@ -65,12 +65,12 @@ const useAuth = () => {
     setAuthLoading(false);
   };
 
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    if (user.isFirstLogin) {
-      setShowOnboarding(true);
-    }
+  const handleLogin = async (user) => {
+    // Re-fetch desde DB para obtener role y datos actualizados,
+    // independientemente de lo que traiga el objeto del formulario.
+    const isFirstLogin = user?.isFirstLogin || false;
+    await checkSession();
+    if (isFirstLogin) setShowOnboarding(true);
   };
 
   const handleLogout = async () => {

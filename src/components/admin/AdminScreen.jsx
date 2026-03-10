@@ -669,6 +669,7 @@ export default function AdminScreen({ onNavigate }) {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [adminToken, setAdminToken] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -679,15 +680,28 @@ export default function AdminScreen({ onNavigate }) {
 
       setAdminToken(session.access_token);
 
-      const res = await fetch('/api/admin-stats', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      // Obtener el rol del usuario desde la DB
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      const role = profile?.role || 'user';
+      setUserRole(role);
 
-      if (res.status === 403) throw new Error('No tienes permisos de administrador.');
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-
-      setStats(await res.json());
-      setLastUpdated(new Date());
+      // Solo super_admin carga las estadísticas globales
+      if (role === 'super_admin') {
+        const res = await fetch('/api/admin-stats', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+        setStats(await res.json());
+        setLastUpdated(new Date());
+      } else {
+        // org_admin: no carga stats globales, solo accede a sus secciones
+        setStats({});
+        setLastUpdated(new Date());
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -751,7 +765,8 @@ export default function AdminScreen({ onNavigate }) {
       {stats && (
         <div className="max-w-2xl mx-auto px-4 pt-6 space-y-6">
 
-          {/* KPI CARDS */}
+          {/* KPI CARDS — solo super_admin */}
+          {userRole === 'super_admin' && stats.totals && (
           <div className="grid grid-cols-2 gap-3">
             <KpiCard label="Usuarios" value={stats.totals.users} color="blue" />
             <KpiCard label="Temas" value={formatNum(stats.totals.themes)} color="purple" />
@@ -768,79 +783,74 @@ export default function AdminScreen({ onNavigate }) {
               color="orange"
             />
           </div>
+          )}
 
-          {/* GEMINI USAGE HOY */}
-          <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-5">
-            <h2 className="font-bold text-base flex items-center gap-2">
-              🤖 Gemini — Uso Hoy
-              <span className="text-xs text-gray-500 font-normal">(límite gratuito: 250 llamadas/día)</span>
-            </h2>
-
-            <UsageGauge real={stats.aiUsage.today.realCalls} total={250} />
-
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-gray-400 text-xs mb-1">Llamadas reales</p>
-                <p className="font-bold text-white text-lg">{stats.aiUsage.today.realCalls}</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-gray-400 text-xs mb-1">Ahorradas (caché)</p>
-                <p className="font-bold text-green-400 text-lg">+{stats.aiUsage.today.cacheHits}</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-gray-400 text-xs mb-1">Tokens entrada</p>
-                <p className="font-bold text-white">{formatNum(stats.aiUsage.today.tokensIn)}</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-gray-400 text-xs mb-1">Tokens salida</p>
-                <p className="font-bold text-white">{formatNum(stats.aiUsage.today.tokensOut)}</p>
-              </div>
-            </div>
-
-            {/* Coste estimado (paid tier) */}
-            <div className="bg-white/5 rounded-xl p-3 flex justify-between items-center">
-              <div>
-                <p className="text-xs text-gray-400">Coste estimado hoy (si pagado)</p>
-                <p className="text-xs text-gray-600 mt-0.5">$0.15/1M in · $0.60/1M out</p>
-              </div>
-              <p className="font-bold text-white text-lg">${stats.aiUsage.today.costEst.toFixed(2)}</p>
-            </div>
-
-            {/* Calls by type */}
-            {Object.keys(stats.aiUsage.today.callsByType).length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Por tipo de operación</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(stats.aiUsage.today.callsByType).map(([type, count]) => (
-                    <span key={type} className="px-2.5 py-1 rounded-lg bg-white/5 text-xs font-medium text-gray-300">
-                      {type}: {count}
-                    </span>
-                  ))}
+          {/* GEMINI USAGE HOY + ÚLTIMOS 7 DÍAS — solo super_admin */}
+          {userRole === 'super_admin' && stats.aiUsage && (<>
+            <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-5">
+              <h2 className="font-bold text-base flex items-center gap-2">
+                🤖 Gemini — Uso Hoy
+                <span className="text-xs text-gray-500 font-normal">(límite gratuito: 250 llamadas/día)</span>
+              </h2>
+              <UsageGauge real={stats.aiUsage.today.realCalls} total={250} />
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-white/5 rounded-xl p-3">
+                  <p className="text-gray-400 text-xs mb-1">Llamadas reales</p>
+                  <p className="font-bold text-white text-lg">{stats.aiUsage.today.realCalls}</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-3">
+                  <p className="text-gray-400 text-xs mb-1">Ahorradas (caché)</p>
+                  <p className="font-bold text-green-400 text-lg">+{stats.aiUsage.today.cacheHits}</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-3">
+                  <p className="text-gray-400 text-xs mb-1">Tokens entrada</p>
+                  <p className="font-bold text-white">{formatNum(stats.aiUsage.today.tokensIn)}</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-3">
+                  <p className="text-gray-400 text-xs mb-1">Tokens salida</p>
+                  <p className="font-bold text-white">{formatNum(stats.aiUsage.today.tokensOut)}</p>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* ÚLTIMOS 7 DÍAS */}
-          <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
-            <h2 className="font-bold text-base mb-4">📊 Llamadas — Últimos 7 días</h2>
-            <WeekChart data={stats.aiUsage.weekByDay} />
-            <div className="flex gap-4 mt-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-2 rounded-sm" style={{ background: 'linear-gradient(to top, #3B82F6, #8B5CF6)' }} />
-                Llamadas reales
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-2 rounded-sm bg-indigo-500/50" />
-                Caché (ahorradas)
-              </span>
+              <div className="bg-white/5 rounded-xl p-3 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-gray-400">Coste estimado hoy (si pagado)</p>
+                  <p className="text-xs text-gray-600 mt-0.5">$0.15/1M in · $0.60/1M out</p>
+                </div>
+                <p className="font-bold text-white text-lg">${stats.aiUsage.today.costEst.toFixed(2)}</p>
+              </div>
+              {Object.keys(stats.aiUsage.today.callsByType).length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Por tipo de operación</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(stats.aiUsage.today.callsByType).map(([type, count]) => (
+                      <span key={type} className="px-2.5 py-1 rounded-lg bg-white/5 text-xs font-medium text-gray-300">
+                        {type}: {count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+            <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+              <h2 className="font-bold text-base mb-4">📊 Llamadas — Últimos 7 días</h2>
+              <WeekChart data={stats.aiUsage.weekByDay} />
+              <div className="flex gap-4 mt-3 text-xs text-gray-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-2 rounded-sm" style={{ background: 'linear-gradient(to top, #3B82F6, #8B5CF6)' }} />
+                  Llamadas reales
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-2 rounded-sm bg-indigo-500/50" />
+                  Caché (ahorradas)
+                </span>
+              </div>
+            </div>
+          </>)}
 
-          {/* REPORTES DE PREGUNTAS */}
-          {adminToken && <ReportsSection token={adminToken} />}
+          {/* REPORTES DE PREGUNTAS — solo super_admin */}
+          {adminToken && userRole === 'super_admin' && <ReportsSection token={adminToken} />}
 
-          {/* PLANES OFICIALES */}
+          {/* PLANES OFICIALES — todos los admins */}
           {adminToken && (
             <PlansSection
               token={adminToken}
@@ -848,10 +858,11 @@ export default function AdminScreen({ onNavigate }) {
             />
           )}
 
-          {/* ORGANIZACIONES Y ROLES */}
-          {adminToken && <OrgManagementSection token={adminToken} />}
+          {/* ORGANIZACIONES Y ROLES — solo super_admin */}
+          {adminToken && userRole === 'super_admin' && <OrgManagementSection token={adminToken} />}
 
-          {/* USUARIOS */}
+          {/* USUARIOS — solo super_admin */}
+          {userRole === 'super_admin' && stats.users && (
           <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
             <h2 className="font-bold text-base mb-4">👥 Usuarios ({stats.users.length})</h2>
             <div className="space-y-2">
@@ -872,8 +883,10 @@ export default function AdminScreen({ onNavigate }) {
               )}
             </div>
           </div>
+          )} {/* end USUARIOS */}
 
-          {/* PREGUNTAS */}
+          {/* PREGUNTAS — solo super_admin */}
+          {userRole === 'super_admin' && stats.totals && (
           <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
             <h2 className="font-bold text-base mb-4">❓ Preguntas ({formatNum(stats.totals.questions)})</h2>
 
@@ -913,9 +926,10 @@ export default function AdminScreen({ onNavigate }) {
               ))}
             </div>
           </div>
+          )} {/* end PREGUNTAS */}
 
-          {/* CACHÉ TOP */}
-          {stats.aiUsage.cache.topHits.length > 0 && (
+          {/* CACHÉ TOP — solo super_admin */}
+          {userRole === 'super_admin' && stats.aiUsage?.cache?.topHits?.length > 0 && (
             <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
               <h2 className="font-bold text-base mb-3">💾 Caché — Top reutilizaciones</h2>
               <div className="space-y-2">
@@ -933,8 +947,8 @@ export default function AdminScreen({ onNavigate }) {
             </div>
           )}
 
-          {/* NOTA API_USAGE */}
-          {stats.aiUsage.today.total === 0 && (
+          {/* NOTA API_USAGE — solo super_admin */}
+          {userRole === 'super_admin' && stats.aiUsage?.today?.total === 0 && (
             <div className="rounded-2xl bg-yellow-500/10 border border-yellow-500/30 p-4">
               <p className="text-yellow-400 text-sm font-semibold mb-1">⚠️ Sin datos de uso de API</p>
               <p className="text-yellow-400/70 text-xs">
