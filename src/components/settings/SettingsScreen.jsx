@@ -12,7 +12,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
     name: '',
     examName: '',
     numThemes: 90,
-    penaltyRatio: 3,
     notifications: false,
     dailyGoal: 20,
   });
@@ -25,14 +24,9 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
   // Cargar perfil desde props
   useEffect(() => {
     if (profileProp) {
-      const legacyMap = { none: 0, each2: 2, classic: 3, each4: 4, each1: 1 };
-      const penaltyRatio = profileProp.penaltyRatio !== undefined
-        ? profileProp.penaltyRatio
-        : (legacyMap[profileProp.penaltySystem] ?? 3);
       setProfile(prev => ({
         ...prev,
         ...profileProp,
-        penaltyRatio,
         notifications: profileProp.notifications || false,
         dailyGoal: profileProp.dailyGoal ?? 20,
       }));
@@ -153,44 +147,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
               className={inputClass} />
           </div>
 
-          <div>
-            <label className={labelClass}>Penalización por errores</label>
-            <div className={`flex items-center justify-between p-3 rounded-xl mb-3
-              ${cx.inner}`}>
-              <div>
-                <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Sin penalización</p>
-                <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Los errores no restan puntos</p>
-              </div>
-              <button
-                onClick={() => setProfile({ ...profile, penaltyRatio: profile.penaltyRatio === 0 ? 3 : 0 })}
-                className={`${toggleBase} ${profile.penaltyRatio === 0 ? 'bg-blue-500' : dm ? 'bg-slate-700' : 'bg-slate-300'}`}>
-                <div className={`${toggleKnob} ${profile.penaltyRatio === 0 ? 'translate-x-6' : ''}`} />
-              </button>
-            </div>
-            {profile.penaltyRatio !== 0 && (
-              <div>
-                <label className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'} mb-1.5 block`}>
-                  Errores para quitar 1 acierto
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => { const v = (profile.penaltyRatio || 3) - 1; if (v >= 1) setProfile({ ...profile, penaltyRatio: v }); }}
-                    className={`w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >−</button>
-                  <div className={`flex-1 text-center rounded-xl px-4 py-3 font-bold text-xl ${dm ? 'bg-[#1E293B] text-white' : 'bg-slate-50 text-slate-800 border border-slate-200'}`}>
-                    {profile.penaltyRatio || 3}
-                  </div>
-                  <button
-                    onClick={() => setProfile({ ...profile, penaltyRatio: (profile.penaltyRatio || 3) + 1 })}
-                    className={`w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >+</button>
-                </div>
-                <p className={`text-xs mt-2 text-center ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {profile.penaltyRatio || 3} {(profile.penaltyRatio || 3) === 1 ? 'error' : 'errores'} quitan 1 acierto
-                </p>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* OBJETIVOS */}

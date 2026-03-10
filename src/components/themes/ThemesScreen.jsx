@@ -41,7 +41,7 @@ function ThemesScreen({
   const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
 
   // ─── Share modal (admin only) ──────────────────────────────
-  const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form }
+  const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form } | { error }
   const [shareForm, setShareForm] = useState({ slug: '', description: '' });
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareError, setShareError] = useState('');
@@ -59,15 +59,16 @@ function ThemesScreen({
     setShareError('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No hay sesión activa. Vuelve a iniciar sesión.');
       const res = await fetch('/api/manage-plans', {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await res.json();
-      const existing = (data.plans || []).find(p => {
-        // buscar por testId — el plan original tiene el mismo id que el test del admin
-        // los planes son los tests del admin con is_official=true
-        return p.id === activeTestId;
-      });
+      if (!res.ok) {
+        setShareModal({ error: data.error || `Error ${res.status}` });
+        return;
+      }
+      const existing = (data.plans || []).find(p => p.id === activeTestId);
       if (existing) {
         setShareModal({ published: true, slug: existing.invite_slug, plan: existing });
       } else {
@@ -76,8 +77,7 @@ function ThemesScreen({
         setShareModal({ form: true });
       }
     } catch (e) {
-      setShareModal(null);
-      showToast('Error al comprobar el plan', 'error');
+      setShareModal({ error: e.message || 'Error desconocido' });
     }
   }
 
@@ -808,6 +808,17 @@ function ThemesScreen({
                 <div className="flex justify-center py-6">
                   <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
+              )}
+
+              {shareModal.error && (
+                <>
+                  <h3 className="font-bold text-lg text-white">Error al acceder</h3>
+                  <p className="text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2">{shareModal.error}</p>
+                  <p className="text-gray-500 text-xs">Si el error menciona columnas de base de datos, ejecuta las migraciones en el dashboard de Supabase.</p>
+                  <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">
+                    Cerrar
+                  </button>
+                </>
               )}
 
               {shareModal.published && (
