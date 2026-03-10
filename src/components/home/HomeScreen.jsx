@@ -3,7 +3,7 @@ import Icons from '../common/Icons';
 import { GRADIENT_BG, GRADIENT_STYLE } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPractice, srsStats }) {
+function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPractice, srsStats, answeredToday = 0 }) {
   const { darkMode } = useTheme();
   const dm = darkMode;
   return (
@@ -78,7 +78,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             style={{ fontFamily: 'Sora, system-ui' }}>
             ¿Qué estudias hoy?
           </p>
-          {/* Barra de progreso */}
+          {/* Barra de progreso general */}
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
               <span className={`text-xs font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -97,6 +97,35 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
               />
             </div>
           </div>
+
+          {/* Objetivo diario */}
+          {(profile?.dailyGoal || 20) > 0 && (
+            <div className={`mt-4 pt-4 border-t ${dm ? 'border-white/5' : 'border-slate-100'}`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className={`text-xs font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Meta diaria
+                </span>
+                <span className={`text-xs font-bold ${
+                  answeredToday >= (profile?.dailyGoal || 20) ? 'text-green-500' : ''
+                }`} style={answeredToday < (profile?.dailyGoal || 20) ? { color: '#F59E0B' } : {}}>
+                  {Math.min(answeredToday, profile?.dailyGoal || 20)}/{profile?.dailyGoal || 20} preguntas
+                </span>
+              </div>
+              <div className={`h-2 rounded-full overflow-hidden ${dm ? 'bg-[#1E293B]' : 'bg-slate-100'}`}>
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${Math.min(100, Math.round((answeredToday / (profile?.dailyGoal || 20)) * 100))}%`,
+                    background: answeredToday >= (profile?.dailyGoal || 20)
+                      ? 'linear-gradient(90deg, #10B981, #34D399)'
+                      : 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                  }}
+                />
+              </div>
+              {answeredToday >= (profile?.dailyGoal || 20) && (
+                <p className="text-xs text-green-500 font-semibold mt-1.5 text-center">✅ ¡Meta del día alcanzada!</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* STATS GRID */}

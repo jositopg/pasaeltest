@@ -11,6 +11,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 // Utils
 import { getSRSStats, getDueQuestions } from './utils/srs';
+import { exportData, importData } from './utils/exportImport';
 import { supabase } from './supabaseClient';
 
 // Common components
@@ -76,6 +77,37 @@ export default function App() {
     return getSRSStats(userData.themes);
   }, [userData.themes]);
 
+  // ─── Objetivo diario ────────────────────────────────────────
+  const answeredToday = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return userData.themes
+      .flatMap(t => t.questions || [])
+      .filter(q => q.last_review?.startsWith(today))
+      .length;
+  }, [userData.themes]);
+
+  // ─── Notificaciones SRS ────────────────────────────────────
+  useEffect(() => {
+    if (!userData.profile?.notifications) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const due = srsStats.dueQuestions?.length;
+    if (!due) return;
+
+    const lastRaw = localStorage.getItem('lastSRSNotification');
+    const last = lastRaw ? parseInt(lastRaw) : 0;
+    const FOUR_HOURS = 4 * 60 * 60 * 1000;
+    if (Date.now() - last < FOUR_HOURS) return;
+
+    try {
+      new Notification('PasaElTest — Repaso pendiente 🧠', {
+        body: `Tienes ${due} pregunta${due !== 1 ? 's' : ''} por repasar hoy.`,
+        icon: '/pwa-192x192.png',
+        tag: 'srs-reminder',
+      });
+      localStorage.setItem('lastSRSNotification', Date.now().toString());
+    } catch {}
+  }, [srsStats.dueQuestions?.length, userData.profile?.notifications]);
+
   // ─── Handlers ──────────────────────────────────────────────
   const handleLogin = (user) => {
     auth.handleLogin(user);
@@ -110,6 +142,18 @@ export default function App() {
       penaltySystem: 'none',
       timeLimitMinutes: null,
     });
+  };
+
+  // ─── Exportar / Importar ────────────────────────────────────
+  const handleExportData = () => {
+    const activeTest = userData.tests?.find(t => t.id === userData.activeTestId);
+    const stats = exportData(userData.themes, activeTest?.name || 'Mi Test');
+    showToast(`✅ Exportadas ${stats.totalQuestions} preguntas de ${stats.totalThemes} temas`, 'success');
+  };
+
+  const handleImportData = (jsonData) => {
+    const result = importData(jsonData, userData.themes, userData.updateTheme);
+    return result;
   };
 
   const finishExam = async (score, flags = []) => {
@@ -216,6 +260,7 @@ export default function App() {
             onShowProfile={() => setShowUserProfile(true)}
             srsStats={srsStats}
             onQuickPractice={handleQuickPractice}
+            answeredToday={answeredToday}
           />
         )}
         {screen === 'themes' && (
@@ -287,6 +332,8 @@ export default function App() {
             profile={userData.profile}
             onUpdateProfile={userData.setProfile}
             user={auth.currentUser}
+            onExportData={handleExportData}
+            onImportData={handleImportData}
           />
         )}
         {screen === 'admin' && (

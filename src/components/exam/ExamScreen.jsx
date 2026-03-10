@@ -110,6 +110,10 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
     const saved = loadSavedState(configKey);
     return (saved?.answeredQuestions?.length ?? 0) > 0;
   });
+  const [showRestoreBanner, setShowRestoreBanner] = useState(() => {
+    const saved = loadSavedState(configKey);
+    return (saved?.answeredQuestions?.length ?? 0) > 0;
+  });
 
   const [showResults, setShowResults] = useState(false);
   const [timeExpired, setTimeExpired] = useState(false);
@@ -297,11 +301,11 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
 
         {/* Banner de examen recuperado */}
-        {wasRestored && current === (loadSavedState(configKey)?.current ?? 0) && (
+        {showRestoreBanner && (
           <div className={`rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${dm ? 'bg-blue-500/10 border border-blue-500/30 text-blue-300' : 'bg-blue-50 border border-blue-200 text-blue-700'}`}>
             <span>💾</span>
-            <span className="font-medium">Examen recuperado</span>
-            <span className={dm ? 'text-blue-400/60' : 'text-blue-500/60'}>— continuando donde lo dejaste</span>
+            <span className="font-medium flex-1">Examen recuperado — continuando donde lo dejaste</span>
+            <button onClick={() => setShowRestoreBanner(false)} className="opacity-50 hover:opacity-100 text-lg leading-none">×</button>
           </div>
         )}
 
