@@ -16,22 +16,31 @@ const useAuth = () => {
         if (DEBUG) console.log('Auth event:', event, session);
 
         if (event === 'SIGNED_IN' && session) {
-          const user = session.user;
-          const { data: profile } = await supabase.from('users').select('role, organization_id').eq('id', user.id).single();
-          setCurrentUser({
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.name || 'Usuario',
-            createdAt: user.created_at,
-            subscription: 'free',
-            role: profile?.role || 'user',
-            organizationId: profile?.organization_id || null,
-            isGuest: false,
-            isFirstLogin: false,
-          });
-          setIsAuthenticated(true);
+          try {
+            const user = session.user;
+            const { data: profile } = await supabase.from('users').select('role, organization_id').eq('id', user.id).single();
+            setCurrentUser({
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.name || 'Usuario',
+              createdAt: user.created_at,
+              subscription: 'free',
+              role: profile?.role || 'user',
+              organizationId: profile?.organization_id || null,
+              isGuest: false,
+              isFirstLogin: false,
+            });
+            setIsAuthenticated(true);
+          } catch {}
           setAuthLoading(false);
         } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setAuthLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          // Token renovado — no hacer nada, el estado ya es correcto
+        } else if (!session) {
+          // Sesión expirada sin SIGNED_OUT explícito
           setCurrentUser(null);
           setIsAuthenticated(false);
           setAuthLoading(false);
@@ -44,32 +53,43 @@ const useAuth = () => {
 
   const checkSession = async () => {
     setAuthLoading(true);
-    const { user } = await authHelpers.getUser();
+    // Timeout de seguridad: si algo se cuelga, desbloquear la app en 8s
+    const fallback = setTimeout(() => setAuthLoading(false), 8000);
+    try {
+      // getSession() lee de localStorage sin llamada de red — rápido y offline-safe
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
-    if (user) {
-      const { data: profile } = await supabase.from('users').select('role, organization_id').eq('id', user.id).single();
-      setCurrentUser({
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || 'Usuario',
-        createdAt: user.created_at,
-        subscription: 'free',
-        role: profile?.role || 'user',
-        organizationId: profile?.organization_id || null,
-        isGuest: false,
-        isFirstLogin: false,
-      });
-      setIsAuthenticated(true);
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users').select('role, organization_id').eq('id', user.id).single();
+        setCurrentUser({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.name || 'Usuario',
+          createdAt: user.created_at,
+          subscription: 'free',
+          role: profile?.role || 'user',
+          organizationId: profile?.organization_id || null,
+          isGuest: false,
+          isFirstLogin: false,
+        });
+        setIsAuthenticated(true);
+      }
+    } catch {
+      // Sesión inválida o red caída — limpiar silenciosamente
+      try { await supabase.auth.signOut(); } catch {}
+    } finally {
+      clearTimeout(fallback);
+      setAuthLoading(false);
     }
-
-    setAuthLoading(false);
   };
 
   const handleLogin = async (user) => {
-    // Re-fetch desde DB para obtener role y datos actualizados,
-    // independientemente de lo que traiga el objeto del formulario.
     const isFirstLogin = user?.isFirstLogin || false;
-    await checkSession();
+    try {
+      await checkSession();
+    } catch {}
     if (isFirstLogin) setShowOnboarding(true);
   };
 
