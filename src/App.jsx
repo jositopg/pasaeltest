@@ -145,14 +145,24 @@ export default function App() {
   };
 
   // ─── Exportar / Importar ────────────────────────────────────
+  const activeTest = userData.tests?.find(t => t.id === userData.activeTestId);
+  const activeTestIsCloned = !!(activeTest?.cloned_from);
+
   const handleExportData = () => {
-    const activeTest = userData.tests?.find(t => t.id === userData.activeTestId);
+    if (activeTestIsCloned) {
+      showToast('No puedes exportar un plan oficial compartido.', 'error');
+      return;
+    }
     const stats = exportData(userData.themes, activeTest?.name || 'Mi Test');
     showToast(`✅ Exportadas ${stats.totalQuestions} preguntas de ${stats.totalThemes} temas`, 'success');
   };
 
-  const handleImportData = (jsonData) => {
-    const result = importData(jsonData, userData.themes, userData.updateTheme);
+  const handleImportData = async (file) => {
+    if (activeTestIsCloned) {
+      showToast('No puedes importar preguntas en un plan oficial compartido.', 'error');
+      return { importedThemes: 0, importedQuestions: 0 };
+    }
+    const result = await importData(file, userData.themes, userData.updateTheme);
     return result;
   };
 
@@ -335,6 +345,7 @@ export default function App() {
             user={auth.currentUser}
             onExportData={handleExportData}
             onImportData={handleImportData}
+            isClonedTest={activeTestIsCloned}
           />
         )}
         {screen === 'admin' && (

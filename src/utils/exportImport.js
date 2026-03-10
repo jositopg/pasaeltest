@@ -1,91 +1,137 @@
 /**
- * Exportar/importar datos de PasaElTest en formato JSON
+ * Exportar/importar preguntas de PasaElTest en formato Excel (.xlsx)
+ * Mucho más accesible que JSON — cualquier usuario puede abrir y editar el archivo.
+ *
+ * Columnas: Tema Nº | Nombre Tema | Pregunta | Opción A | Opción B | Opción C | Opción D | Correcta | Dificultad | Explicación
+ * "Correcta" es una letra (A/B/C/D) — fácil de entender
  */
 
+import * as XLSX from 'xlsx';
+import { normalizeDifficulty } from './constants';
+
+const COLUMNS = ['Tema Nº', 'Nombre Tema', 'Pregunta', 'Opción A', 'Opción B', 'Opción C', 'Opción D', 'Correcta', 'Dificultad', 'Explicación'];
+const LETTER = ['A', 'B', 'C', 'D'];
+
 export function exportData(themes, testName = 'Mi Test') {
-  const themesWithContent = themes.filter(t => t.questions?.length > 0 || t.name !== `Tema ${t.number}`);
+  const rows = [];
+  let totalQuestions = 0;
+  let totalThemes = 0;
 
-  const exportObj = {
-    version: '1.1',
-    exportedAt: new Date().toISOString(),
-    app: 'PasaElTest',
-    test: { name: testName },
-    themes: themesWithContent.map(t => ({
-      number: t.number,
-      name: t.name,
-      questions: (t.questions || []).map(q => ({
-        text: q.text,
-        options: q.options,
-        correct: q.correct,
-        difficulty: q.difficulty || 'media',
-        explanation: q.explanation || '',
-      })),
-    })),
-    stats: {
-      totalThemes: themesWithContent.length,
-      totalQuestions: themesWithContent.reduce((s, t) => s + (t.questions?.length || 0), 0),
-    },
-  };
-
-  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `pasaeltest-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  return exportObj.stats;
-}
-
-export function importData(jsonData, currentThemes, onUpdateTheme) {
-  if (!jsonData?.themes || !Array.isArray(jsonData.themes)) {
-    throw new Error('Formato de archivo no válido. Debe ser un backup de PasaElTest.');
-  }
-
-  let importedQuestions = 0;
-  let importedThemes = 0;
-
-  for (const importedTheme of jsonData.themes) {
-    const currentTheme = currentThemes.find(t => t.number === importedTheme.number);
-    if (!currentTheme) continue;
-
-    // Actualizar nombre si no es el genérico
-    const newName = importedTheme.name && importedTheme.name !== `Tema ${importedTheme.number}`
-      ? importedTheme.name
-      : currentTheme.name;
-
-    // Evitar duplicados por texto de pregunta
-    const existingTexts = new Set((currentTheme.questions || []).map(q => q.text?.trim().toLowerCase()));
-    const newQuestions = (importedTheme.questions || [])
-      .filter(q => q.text && !existingTexts.has(q.text.trim().toLowerCase()))
-      .map(q => ({
-        id: `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        text: q.text,
-        options: q.options || [],
-        correct: q.correct ?? 0,
-        difficulty: q.difficulty || 'media',
-        explanation: q.explanation || '',
-        stability: 1,
-        srs_difficulty: 5,
-        next_review: null,
-        last_review: null,
-        attempts: 0,
-        errors_count: 0,
-      }));
-
-    if (newQuestions.length > 0 || newName !== currentTheme.name) {
-      onUpdateTheme({
-        ...currentTheme,
-        name: newName,
-        questions: [...(currentTheme.questions || []), ...newQuestions],
+  for (const theme of themes) {
+    if (!theme.questions?.length) continue;
+    totalThemes++;
+    for (const q of theme.questions) {
+      const options = q.options || [];
+      rows.push({
+        'Tema Nº': theme.number,
+        'Nombre Tema': theme.name,
+        'Pregunta': q.text || '',
+        'Opción A': options[0] || '',
+        'Opción B': options[1] || '',
+        'Opción C': options[2] || '',
+        'Opción D': options[3] || '',
+        'Correcta': LETTER[q.correct] || 'A',
+        'Dificultad': q.difficulty || 'media',
+        'Explicación': q.explanation || '',
       });
-      importedQuestions += newQuestions.length;
-      importedThemes++;
+      totalQuestions++;
     }
   }
 
-  return { importedThemes, importedQuestions };
+  const ws = XLSX.utils.json_to_sheet(rows, { header: COLUMNS });
+
+  // Ancho de columnas para legibilidad
+  ws['!cols'] = [
+    { wch: 8 }, { wch: 20 }, { wch: 50 }, { wch: 30 }, { wch: 30 },
+    { wch: 30 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 40 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Preguntas');
+
+  const filename = `${testName.replace(/[^a-z0-9]/gi, '_')}_preguntas_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(wb, filename);
+
+  return { totalThemes, totalQuestions };
+}
+
+export function importData(file, currentThemes, onUpdateTheme) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!rows.length) throw new Error('El archivo está vacío.');
+
+        // Detectar si tiene columna "Tema Nº" (nuestro formato) o es el formato antiguo de JSON
+        const firstRow = rows[0];
+        if (!('Pregunta' in firstRow)) {
+          throw new Error('Formato no reconocido. Usa un archivo exportado desde PasaElTest.');
+        }
+
+        let importedQuestions = 0;
+        let importedThemes = 0;
+
+        // Agrupar filas por tema
+        const byTheme = {};
+        for (const row of rows) {
+          const num = parseInt(row['Tema Nº']) || 0;
+          if (!byTheme[num]) byTheme[num] = { name: row['Nombre Tema'] || `Tema ${num}`, questions: [] };
+
+          const correctLetter = String(row['Correcta'] || 'A').toUpperCase().trim();
+          const correctIndex = LETTER.indexOf(correctLetter) !== -1
+            ? LETTER.indexOf(correctLetter)
+            : (parseInt(correctLetter) || 0);
+
+          const options = [row['Opción A'], row['Opción B'], row['Opción C'], row['Opción D']]
+            .map(o => String(o || '').trim())
+            .filter(Boolean);
+
+          if (!row['Pregunta'] || options.length < 2) continue;
+
+          byTheme[num].questions.push({
+            text: String(row['Pregunta']).trim(),
+            options,
+            correct: correctIndex,
+            difficulty: normalizeDifficulty(String(row['Dificultad'] || 'media')),
+            explanation: String(row['Explicación'] || '').trim(),
+          });
+        }
+
+        // Fusionar con temas existentes (sin duplicados)
+        for (const [numStr, imported] of Object.entries(byTheme)) {
+          const num = parseInt(numStr);
+          const current = currentThemes.find(t => t.number === num);
+          if (!current) continue;
+
+          const existingTexts = new Set((current.questions || []).map(q => q.text?.trim().toLowerCase()));
+          const newQs = imported.questions
+            .filter(q => !existingTexts.has(q.text.toLowerCase()))
+            .map(q => ({
+              ...q,
+              id: `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              stability: 1, srs_difficulty: 5, next_review: null,
+              last_review: null, attempts: 0, errors_count: 0,
+            }));
+
+          const newName = imported.name && imported.name !== `Tema ${num}` ? imported.name : current.name;
+
+          if (newQs.length > 0 || newName !== current.name) {
+            onUpdateTheme({ ...current, name: newName, questions: [...(current.questions || []), ...newQs] });
+            importedQuestions += newQs.length;
+            importedThemes++;
+          }
+        }
+
+        resolve({ importedThemes, importedQuestions });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo.'));
+    reader.readAsArrayBuffer(file);
+  });
 }

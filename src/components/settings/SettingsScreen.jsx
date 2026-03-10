@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user, onExportData, onImportData }) {
+function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user, onExportData, onImportData, isClonedTest }) {
   const { dm, cx } = useTheme();
   const fileInputRef = useRef(null);
 
@@ -67,10 +67,8 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
 
     setImportStatus('loading');
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
       if (onImportData) {
-        const result = onImportData(data);
+        const result = await onImportData(file);
         setImportStatus({ ok: true, message: `✅ ${result.importedQuestions} preguntas importadas en ${result.importedThemes} temas` });
       }
     } catch (err) {
@@ -241,50 +239,56 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
               style={{ fontFamily: 'Sora, system-ui' }}>Datos</h2>
           </div>
           <p className={`text-xs -mt-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            Haz copia de seguridad o transfiere tus preguntas a otro dispositivo.
+            Exporta tus preguntas a Excel para editarlas o hacer copia de seguridad.
           </p>
 
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleExport}
-              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-                dm
-                  ? 'bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25'
-                  : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
-              }`}
-            >
-              ⬇️ Exportar datos (JSON)
-            </button>
+          {isClonedTest ? (
+            <div className={`rounded-xl p-3 text-sm ${dm ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+              🔒 Este test es un plan oficial compartido. Solo puedes exportar e importar preguntas en tests que hayas creado tú.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleExport}
+                className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                  dm
+                    ? 'bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25'
+                    : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+                }`}
+              >
+                ⬇️ Exportar preguntas (Excel)
+              </button>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={handleImportFile}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={importStatus === 'loading'}
-              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-                dm
-                  ? 'bg-green-500/15 border border-green-500/30 text-green-300 hover:bg-green-500/25'
-                  : 'bg-green-50 border border-green-200 text-green-700 hover:bg-green-100'
-              } disabled:opacity-50`}
-            >
-              {importStatus === 'loading' ? '⏳ Importando...' : '⬆️ Importar backup (JSON)'}
-            </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importStatus === 'loading'}
+                className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                  dm
+                    ? 'bg-green-500/15 border border-green-500/30 text-green-300 hover:bg-green-500/25'
+                    : 'bg-green-50 border border-green-200 text-green-700 hover:bg-green-100'
+                } disabled:opacity-50`}
+              >
+                {importStatus === 'loading' ? '⏳ Importando...' : '⬆️ Importar desde Excel'}
+              </button>
 
-            {importStatus && importStatus !== 'loading' && (
-              <p className={`text-sm text-center font-medium ${importStatus.ok ? 'text-green-500' : 'text-red-500'}`}>
-                {importStatus.message}
+              {importStatus && importStatus !== 'loading' && (
+                <p className={`text-sm text-center font-medium ${importStatus.ok ? 'text-green-500' : 'text-red-500'}`}>
+                  {importStatus.message}
+                </p>
+              )}
+
+              <p className={`text-xs text-center ${dm ? 'text-slate-600' : 'text-slate-400'}`}>
+                El archivo Excel se puede abrir y editar en Excel o Google Sheets.
               </p>
-            )}
-
-            <p className={`text-xs text-center ${dm ? 'text-slate-600' : 'text-slate-400'}`}>
-              La importación añade preguntas nuevas sin borrar las existentes.
-            </p>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* ADMIN (solo visible para el administrador) */}
