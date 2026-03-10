@@ -27,14 +27,7 @@ const useUserData = (isAuthenticated, currentUser) => {
     }
   }, [isAuthenticated, currentUser]);
 
-  const createInitialThemes = (numThemes = 90) => {
-    return Array.from({ length: numThemes }, (_, i) => ({
-      number: i + 1,
-      name: `Tema ${i + 1}`,
-      documents: [],
-      questions: []
-    }));
-  };
+  const createInitialThemes = () => [];
 
   const mapThemeFromDB = (theme) => ({
     id: theme.id,
@@ -120,21 +113,9 @@ const useUserData = (isAuthenticated, currentUser) => {
 
         if (themesError) {
           console.error('Error loading themes:', themesError);
-          setThemes(createInitialThemes());
-        } else if (themesData && themesData.length > 0) {
-          setThemes(themesData.map(mapThemeFromDB));
+          setThemes([]);
         } else {
-          // Nuevo test sin temas — crear temas iniciales
-          const initialThemes = createInitialThemes();
-          const { data: created, error: createError } = await dbHelpers.createThemesBatchForTest(
-            currentUser.id, firstTestId, initialThemes
-          );
-          if (createError) {
-            console.error('Error creating initial themes:', createError);
-            setThemes(initialThemes);
-          } else if (created) {
-            setThemes(created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] })));
-          }
+          setThemes(themesData?.length > 0 ? themesData.map(mapThemeFromDB) : []);
         }
       } else if (testsList.length === 0) {
         // No hay tests ni temas — usuario completamente nuevo sin migration
@@ -146,15 +127,8 @@ const useUserData = (isAuthenticated, currentUser) => {
         if (newTest) {
           setTests([newTest]);
           setActiveTestId(newTest.id);
-          const initialThemes = createInitialThemes();
-          const { data: created } = await dbHelpers.createThemesBatchForTest(currentUser.id, newTest.id, initialThemes);
-          setThemes(created
-            ? created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }))
-            : initialThemes
-          );
-        } else {
-          setThemes(createInitialThemes());
         }
+        setThemes([]);
       }
 
       // 4. Historial de exámenes
@@ -192,19 +166,41 @@ const useUserData = (isAuthenticated, currentUser) => {
     try {
       const { data: newTest, error } = await dbHelpers.createTest(currentUser.id, name);
       if (error || !newTest) { console.error('Error creating test:', error); return; }
-
-      const initialThemes = createInitialThemes();
-      const { data: created } = await dbHelpers.createThemesBatchForTest(currentUser.id, newTest.id, initialThemes);
-
       setTests(prev => [...prev, newTest]);
       setActiveTestId(newTest.id);
-      setThemes(created
-        ? created.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }))
-        : initialThemes
-      );
+      setThemes([]);
     } catch (error) {
       console.error('Error creating test:', error);
     }
+  };
+
+  const addTheme = async (name) => {
+    const nextNumber = themes.length > 0 ? Math.max(...themes.map(t => t.number)) + 1 : 1;
+    const themeName = name || `Tema ${nextNumber}`;
+    if (!currentUser || currentUser.isGuest) {
+      const newTheme = { id: `temp-${Date.now()}`, number: nextNumber, name: themeName, documents: [], questions: [] };
+      setThemes(prev => [...prev, newTheme]);
+      return newTheme;
+    }
+    const { data, error } = await dbHelpers.createThemesBatchForTest(currentUser.id, activeTestId, [{ number: nextNumber, name: themeName }]);
+    if (error || !data?.[0]) { console.error('Error adding theme:', error); return null; }
+    const newTheme = { id: data[0].id, number: data[0].number, name: data[0].name, documents: [], questions: [] };
+    setThemes(prev => [...prev, newTheme]);
+    return newTheme;
+  };
+
+  const addThemesBatch = async (themesToAdd) => {
+    if (!themesToAdd?.length) return [];
+    if (!currentUser || currentUser.isGuest) {
+      const newThemes = themesToAdd.map(t => ({ id: `temp-${Date.now()}-${t.number}`, number: t.number, name: t.name, documents: [], questions: [] }));
+      setThemes(prev => [...prev, ...newThemes]);
+      return newThemes;
+    }
+    const { data, error } = await dbHelpers.createThemesBatchForTest(currentUser.id, activeTestId, themesToAdd);
+    if (error || !data) { console.error('Error adding themes batch:', error); return []; }
+    const newThemes = data.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }));
+    setThemes(prev => [...prev, ...newThemes]);
+    return newThemes;
   };
 
   const renameTest = async (testId, name) => {
@@ -413,6 +409,8 @@ const useUserData = (isAuthenticated, currentUser) => {
     tests,
     activeTestId,
     createTest,
+    addTheme,
+    addThemesBatch,
     switchTest,
     renameTest,
     deleteTest,

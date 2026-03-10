@@ -11,7 +11,7 @@ import { supabase } from '../../supabaseClient';
 
 function ThemesScreen({
   themes, tests = [], activeTestId,
-  onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
+  onUpdateTheme, onAddTheme, onAddThemesBatch, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
   onNavigate, showToast,
   genQueue = {},
   currentUser,
@@ -164,26 +164,40 @@ function ThemesScreen({
     t.number.toString().includes(searchTerm)
   );
 
-  const handleBulkImport = (bulkText) => {
-    const lines = bulkText.trim().split('\n');
-    const updates = [];
+  const handleBulkImport = async (bulkText) => {
+    const lines = bulkText.trim().split('\n').filter(l => l.trim());
+    const toUpdate = [];
+    const toCreate = [];
+    let nextFreeNumber = themes.length > 0 ? Math.max(...themes.map(t => t.number)) + 1 : 1;
 
     lines.forEach(line => {
-      const match = line.match(/(?:Tema\s*)?(\d+)[\s.:,|]+(.+)/i);
-      if (match) {
-        const number = parseInt(match[1]);
-        const name = match[2].trim();
-        const theme = themes.find(t => t.number === number);
-        if (theme) updates.push({ ...theme, name });
+      const matchNum = line.match(/(?:Tema\s*)?(\d+)[\s.:,|]+(.+)/i);
+      if (matchNum) {
+        const number = parseInt(matchNum[1]);
+        const name = matchNum[2].trim();
+        const existing = themes.find(t => t.number === number);
+        if (existing) toUpdate.push({ ...existing, name });
+        else toCreate.push({ number, name });
+      } else {
+        // Sin número — asignar correlativo
+        const name = line.replace(/^[-*•]+\s*/, '').trim();
+        if (name) { toCreate.push({ number: nextFreeNumber++, name }); }
       }
     });
 
-    updates.forEach(theme => onUpdateTheme(theme));
+    toUpdate.forEach(theme => onUpdateTheme(theme));
+
+    let created = [];
+    if (toCreate.length > 0 && onAddThemesBatch) {
+      created = await onAddThemesBatch(toCreate) || [];
+    }
+
     setShowBulkImport(false);
 
-    if (updates.length > 0) {
+    const allImported = [...toUpdate, ...created];
+    if (allImported.length > 0) {
       setImportedThemesPanel(
-        updates.map(t => ({ number: t.number, name: t.name, status: 'idle' }))
+        allImported.map(t => ({ number: t.number, name: t.name, status: 'idle' }))
       );
     }
   };
@@ -315,6 +329,13 @@ function ThemesScreen({
               title="Seleccionar temas para renombrar en masa"
             >☑</button>
           )}
+          <button
+            onClick={() => onAddTheme && onAddTheme()}
+            className={`px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${dm ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+            title="Añadir un tema"
+          >
+            <Icons.Plus />
+          </button>
           <button
             onClick={() => setShowBulkImport(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
@@ -530,6 +551,25 @@ function ThemesScreen({
             </div>
           </div>
         </div>
+
+        {/* Empty state */}
+        {themes.length === 0 && (
+          <div className={`text-center py-12 rounded-2xl ${cx.cardAlt}`}>
+            <div className="text-4xl mb-3">📂</div>
+            <p className={`font-semibold text-sm ${cx.heading}`}>Este examen no tiene temas todavía</p>
+            <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>Importa una lista de temas o añade uno a uno</p>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => onAddTheme && onAddTheme()}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >+ Añadir tema</button>
+              <button
+                onClick={() => setShowBulkImport(true)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+              >Importar lista</button>
+            </div>
+          </div>
+        )}
 
         {/* Theme list */}
         <div className="space-y-2">

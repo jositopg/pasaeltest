@@ -9,7 +9,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
   const [profile, setProfile] = useState({
     name: '',
     examName: '',
-    numThemes: 90,
     notifications: false,
     dailyGoal: 20,
   });
@@ -123,16 +122,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
             <label className={labelClass}>Nombre</label>
             <input type="text" value={profile.name || ''} placeholder="Tu nombre"
               onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              className={inputClass} />
-          </div>
-
-          <div>
-            <label className={labelClass}>Número de temas</label>
-            <input type="number" min="1" value={profile.numThemes || 90}
-              onChange={(e) => {
-                const v = parseInt(e.target.value);
-                if (v >= 1) setProfile({ ...profile, numThemes: v });
-              }}
               className={inputClass} />
           </div>
 

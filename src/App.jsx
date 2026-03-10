@@ -295,6 +295,8 @@ export default function App() {
             tests={userData.tests}
             activeTestId={userData.activeTestId}
             onUpdateTheme={userData.updateTheme}
+            onAddTheme={userData.addTheme}
+            onAddThemesBatch={userData.addThemesBatch}
             onCreateTest={userData.createTest}
             onSwitchTest={userData.switchTest}
             onRenameTest={userData.renameTest}
