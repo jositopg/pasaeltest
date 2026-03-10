@@ -18,8 +18,7 @@ function ThemesScreen({
   genQueue = {},
   currentUser,
 }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -291,13 +290,13 @@ function ThemesScreen({
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`}>
+    <div className={`min-h-full ${cx.screen} transition-colors`}>
       {/* STICKY HEADER — cubre Dynamic Island, botones quedan bajo la zona segura */}
-      <div className={`sticky top-0 z-10 px-4 pb-3 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-3 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="max-w-2xl mx-auto space-y-3">
         {/* Header fila 1: título + acciones */}
         <div className="flex items-center gap-3">
-          <h1 className={`font-bold text-2xl flex-1 ${dm ? 'text-white' : 'text-slate-800'}`}>Temas</h1>
+          <h1 className={`font-bold text-2xl flex-1 ${cx.heading}`}>Temas</h1>
           {!selectionMode && !repoCleanMode && (
             <button
               onClick={() => setSelectionMode(true)}
@@ -322,7 +321,7 @@ function ThemesScreen({
                 const allSelected = allNumbers.every(n => selectedNumbers.has(n));
                 setSelectedNumbers(allSelected ? new Set() : new Set(allNumbers));
               }}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${cx.btnGhost}`}
             >
               {filteredThemes.every(t => selectedNumbers.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
             </button>
@@ -350,7 +349,7 @@ function ThemesScreen({
                 const allSelected = withDocs.every(n => repoCleanSelected.has(n));
                 setRepoCleanSelected(allSelected ? new Set() : new Set(withDocs));
               }}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${cx.btnGhost}`}
             >
               {filteredThemes.filter(t => t.documents?.length > 0).every(t => repoCleanSelected.has(t.number)) ? 'Deseleccionar todo' : 'Seleccionar todo'}
             </button>
@@ -462,7 +461,7 @@ function ThemesScreen({
 
         {/* Progress panel — visible when bulk generation is running or just finished */}
         {queueProgress && (
-          <div className={`rounded-2xl p-4 space-y-2 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-200 shadow-sm'}`}>
+          <div className={`rounded-2xl p-4 space-y-2 ${cx.cardAlt}`}>
             {/* Header row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -473,7 +472,7 @@ function ThemesScreen({
                 ) : (
                   <span className="text-green-400 text-sm">✓</span>
                 )}
-                <span className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>
+                <span className={`font-semibold text-sm ${cx.heading}`}>
                   {queueProgress.type === 'repos' ? '⚡ Repositorios' : '📝 Preguntas'}:&nbsp;
                   <span className={dm ? 'text-slate-300' : 'text-slate-600'}>{queueProgress.done}/{queueProgress.total}</span>
                 </span>
@@ -597,7 +596,7 @@ function ThemesScreen({
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-semibold text-sm sm:text-base ${dm ? 'text-white' : 'text-slate-800'}`}>
+                    <h3 className={`font-semibold text-sm sm:text-base ${cx.heading}`}>
                       Tema {theme.number}
                     </h3>
                     {isEditing ? (
@@ -617,7 +616,7 @@ function ThemesScreen({
                         }`}
                       />
                     ) : (
-                      <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
+                      <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${cx.body}`}>
                         {theme.name}
                       </p>
                     )}

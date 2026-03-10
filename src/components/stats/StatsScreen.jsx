@@ -4,8 +4,7 @@ import { GRADIENT_BG } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
 function StatsScreen({ examHistory, onNavigate, themes }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   const totalExams = examHistory.length;
   const avg = totalExams > 0
     ? (examHistory.reduce((s, e) => s + (parseFloat(e.percentage) || 0), 0) / totalExams).toFixed(1)
@@ -35,15 +34,15 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
     };
   }).reverse();
 
-  const cardClass = `rounded-2xl p-5 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
+  const cardClass = `rounded-2xl p-5 ${cx.cardAlt}`;
   const maxBar = Math.max(...last7Days.map(d => d.count), 1);
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+    <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
 
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={() => onNavigate('home')}
             className={`w-10 h-10 rounded-2xl flex items-center justify-center ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}>
@@ -97,7 +96,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
               <p className="text-2xl font-black mt-1" style={{ fontFamily: 'Sora, system-ui', color: '#F59E0B' }}>
                 {hasStudiedToday ? '🔥 Activo' : '💤 Inactivo'}
               </p>
-              <p className={`text-xs mt-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+              <p className={`text-xs mt-1 ${cx.muted}`}>
                 {hasStudiedToday ? '¡Ya estudiaste hoy!' : 'Haz un examen para mantener la racha'}
               </p>
             </div>
@@ -162,10 +161,10 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
                 const color = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
                 return (
                   <div key={i} className={`flex items-center justify-between p-3 rounded-xl
-                    ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+                    ${cx.inner}`}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                      <span className={`text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <span className={`text-sm ${cx.muted}`}>
                         {new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                       </span>
                     </div>
@@ -180,7 +179,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
           ) : (
             <div className="text-center py-10">
               <p className="text-4xl mb-2">📝</p>
-              <p className={`text-sm font-semibold ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Sin exámenes aún</p>
+              <p className={`text-sm font-semibold ${cx.muted}`}>Sin exámenes aún</p>
               <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>¡Haz tu primer examen!</p>
             </div>
           )}

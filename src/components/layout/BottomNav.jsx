@@ -3,7 +3,7 @@ import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
 function BottomNav({ current, onNavigate }) {
-  const { darkMode } = useTheme();
+  const { dm } = useTheme();
   const items = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
     { id: 'themes', icon: Icons.Book, label: 'Temas' },
@@ -16,7 +16,7 @@ function BottomNav({ current, onNavigate }) {
     // paddingBottom pushes the inner row up above the home indicator.
     <div
       className={`fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-xl
-        ${darkMode
+        ${dm
           ? 'bg-[#0F172A]/95 border-t border-[#1E293B]'
           : 'bg-white/95 border-t border-slate-200/80'
         }`}
@@ -37,7 +37,7 @@ function BottomNav({ current, onNavigate }) {
                 transition-all duration-200 active:scale-90
                 ${isActive
                   ? 'text-white'
-                  : darkMode ? 'text-slate-500' : 'text-slate-500'
+                  : dm ? 'text-slate-500' : 'text-slate-500'
                 }`}
               style={isActive ? {
                 background: 'linear-gradient(135deg, #2563EB, #7C3AED)',

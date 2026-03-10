@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
  * Props: show, onClose, onImport, importedThemesPanel, onCreateRepo, onDismissPanel
  */
 export default function BulkImportModal({ show, onClose, onImport, importedThemesPanel, onCreateRepo, onDismissPanel }) {
-  const { darkMode: dm } = useTheme();
+  const { dm, cx } = useTheme();
   const [bulkText, setBulkText] = useState('');
 
   if (!show && !importedThemesPanel) return null;
@@ -84,8 +84,8 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
           dm ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'
         }`}>
           <div>
-            <h2 className={`font-bold text-xl ${dm ? 'text-white' : 'text-slate-800'}`}>Importar Nombres de Temas</h2>
-            <p className={`text-sm mt-1 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Pega la lista completa de tus temas</p>
+            <h2 className={`font-bold text-xl ${cx.heading}`}>Importar Nombres de Temas</h2>
+            <p className={`text-sm mt-1 ${cx.muted}`}>Pega la lista completa de tus temas</p>
           </div>
           <button
             onClick={onClose}

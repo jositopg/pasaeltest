@@ -3,8 +3,7 @@ import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
 function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   const [numQuestions, setNumQuestions] = useState(20);
   const [failedRatio, setFailedRatio] = useState(0);
   const [penaltySystem, setPenaltySystem] = useState('classic');
@@ -40,11 +39,11 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
 
   const inputCls = `flex-1 text-center rounded-xl px-4 py-3 font-bold text-xl ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-slate-50 text-slate-800 border border-slate-200'}`;
   const btnCls = `w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`;
-  const cardCls = `rounded-2xl p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`;
-  const labelCls = `text-sm font-semibold block mb-3 ${dm ? 'text-gray-300' : 'text-slate-600'}`;
+  const cardCls = `rounded-2xl p-6 ${cx.card}`;
+  const labelCls = `text-sm font-semibold block mb-3 ${cx.body}`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
+    <div className={`min-h-full ${cx.screen} p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-6">
 
         {/* Header */}
@@ -52,7 +51,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
           <button onClick={() => onNavigate('home')} className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}>
             <Icons.ChevronLeft />
           </button>
-          <h1 className={`font-bold text-2xl ${dm ? 'text-white' : 'text-slate-800'}`}>Configurar Examen</h1>
+          <h1 className={`font-bold text-2xl ${cx.heading}`}>Configurar Examen</h1>
         </div>
 
         {/* Número de preguntas */}
@@ -71,7 +70,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
             <button onClick={() => setNumQuestions(n => n + 5)} className={btnCls}>+</button>
           </div>
           {totalAvailable > 0 && (
-            <p className={`text-xs mt-2 text-center ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+            <p className={`text-xs mt-2 text-center ${cx.muted}`}>
               {totalAvailable} disponibles
               {numQuestions > totalAvailable && (
                 <span className="text-amber-500 ml-1">· Se usarán todas ({totalAvailable})</span>
@@ -96,7 +95,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
         {/* Preguntas falladas */}
         <div className={cardCls}>
           <div className="flex items-center justify-between mb-1">
-            <label className={`text-sm font-semibold ${dm ? 'text-gray-300' : 'text-slate-600'}`}>Preguntas falladas</label>
+            <label className={`text-sm font-semibold ${cx.body}`}>Preguntas falladas</label>
             <span className={`text-sm font-bold ${failedRatio > 0 ? 'text-orange-500' : dm ? 'text-gray-400' : 'text-slate-400'}`}>
               {failedRatio}%
             </span>
@@ -148,7 +147,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
         <div className={cardCls}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className={`text-sm font-semibold ${dm ? 'text-gray-300' : 'text-slate-600'}`}>Tiempo límite</p>
+              <p className={`text-sm font-semibold ${cx.body}`}>Tiempo límite</p>
               <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>El examen termina automáticamente</p>
             </div>
             <button
@@ -169,17 +168,17 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
                 onChange={(e) => setTimeLimitMinutes(Math.max(1, parseInt(e.target.value) || 1))}
                 className={inputCls}
               />
-              <span className={`text-sm font-medium ${dm ? 'text-gray-400' : 'text-slate-500'}`}>min</span>
+              <span className={`text-sm font-medium ${cx.muted}`}>min</span>
               <button onClick={() => setTimeLimitMinutes(m => m + 5)} className={btnCls}>+</button>
             </div>
           )}
         </div>
 
         {/* Seleccionar Temas */}
-        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${cx.card}`}>
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className={`font-semibold text-sm sm:text-base ${dm ? 'text-white' : 'text-slate-800'}`}>Seleccionar Temas</h3>
-            <span className={`text-xs sm:text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>{selectedThemes.length} seleccionados</span>
+            <h3 className={`font-semibold text-sm sm:text-base ${cx.heading}`}>Seleccionar Temas</h3>
+            <span className={`text-xs sm:text-sm ${cx.muted}`}>{selectedThemes.length} seleccionados</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-4">

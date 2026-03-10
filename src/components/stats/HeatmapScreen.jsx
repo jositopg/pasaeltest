@@ -4,8 +4,7 @@ import { GRADIENT_BG } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
 function HeatmapScreen({ themes, onNavigate }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   const themeStats = themes.map(theme => {
     const questions = theme.questions || [];
     const total = questions.length;
@@ -27,14 +26,14 @@ function HeatmapScreen({ themes, onNavigate }) {
     return { bg: '#2563EB', text: 'white' };
   };
 
-  const cardClass = `rounded-2xl p-5 ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
+  const cardClass = `rounded-2xl p-5 ${cx.cardAlt}`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+    <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
 
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={() => onNavigate('home')}
             className={`w-10 h-10 rounded-2xl flex items-center justify-center ${dm ? 'bg-[#1E293B] text-slate-300' : 'bg-white text-slate-600 shadow-sm'}`}>
@@ -89,7 +88,7 @@ function HeatmapScreen({ themes, onNavigate }) {
               {top10Critical.map((stat, idx) => {
                 const colors = getHeatColor(stat.errorRate);
                 return (
-                  <div key={stat.number} className={`flex items-center gap-3 p-3 rounded-xl ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+                  <div key={stat.number} className={`flex items-center gap-3 p-3 rounded-xl ${cx.inner}`}>
                     <span className={`text-lg font-black w-7 text-center ${dm ? 'text-slate-400' : 'text-slate-600'}`}>#{idx+1}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-semibold truncate ${dm ? 'text-slate-300' : 'text-slate-600'}`}>

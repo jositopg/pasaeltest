@@ -4,8 +4,7 @@ import { calculateNextReview, getDifficultyColor, formatNextReview } from '../..
 import { useTheme } from '../../context/ThemeContext';
 
 function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
 
   // sessionQuestions puede cambiar si el usuario hace "Repetir falladas"
   const [sessionQuestions, setSessionQuestions] = useState(() =>
@@ -20,11 +19,11 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
   if (!sessionQuestions || sessionQuestions.length === 0) {
     return (
-      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+      <div className={`min-h-full ${cx.screen} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
           <div className="text-6xl mb-4">🎉</div>
-          <h2 className={`text-xl font-bold mb-2 ${dm ? 'text-white' : 'text-slate-800'}`}>¡Todo al día!</h2>
-          <p className={`mb-6 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+          <h2 className={`text-xl font-bold mb-2 ${cx.heading}`}>¡Todo al día!</h2>
+          <p className={`mb-6 ${cx.muted}`}>
             No tienes preguntas pendientes de repaso. Vuelve mañana o genera más preguntas.
           </p>
           <button
@@ -54,28 +53,28 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
     };
 
     return (
-      <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+      <div className={`min-h-full ${cx.screen} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-6">
           <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="text-5xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}</div>
-            <h2 className={`text-2xl font-bold mb-2 ${dm ? 'text-white' : 'text-slate-800'}`}>Repaso completado</h2>
+            <h2 className={`text-2xl font-bold mb-2 ${cx.heading}`}>Repaso completado</h2>
             <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent my-4">
               {pct}%
             </div>
           </div>
 
-          <div className={`rounded-2xl p-6 space-y-3 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+          <div className={`rounded-2xl p-6 space-y-3 ${cx.card}`}>
             <div className="flex justify-between">
-              <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Correctas</span>
+              <span className={cx.body}>Correctas</span>
               <span className="text-green-500 font-bold">{sessionStats.correct}</span>
             </div>
             <div className="flex justify-between">
-              <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Incorrectas</span>
+              <span className={cx.body}>Incorrectas</span>
               <span className="text-red-500 font-bold">{sessionStats.incorrect}</span>
             </div>
             <div className="flex justify-between">
-              <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Total repasadas</span>
-              <span className={`font-bold ${dm ? 'text-white' : 'text-slate-800'}`}>{sessionStats.total}</span>
+              <span className={cx.body}>Total repasadas</span>
+              <span className={`font-bold ${cx.heading}`}>{sessionStats.total}</span>
             </div>
           </div>
 
@@ -166,7 +165,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   };
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
+    <div className={`min-h-full ${cx.screen} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -177,8 +176,8 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             <Icons.ChevronLeft />
           </button>
           <div className="flex-1">
-            <h1 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Repaso Inteligente</h1>
-            <p className={`text-xs ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+            <h1 className={`font-bold text-lg ${cx.heading}`}>Repaso Inteligente</h1>
+            <p className={`text-xs ${cx.muted}`}>
               {current + 1} / {sessionQuestions.length} · Tema {q.themeNumber}
             </p>
           </div>
@@ -196,8 +195,8 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
         </div>
 
         {/* Question */}
-        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
-          <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${dm ? 'text-white' : 'text-slate-800'}`}>
+        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-6 ${cx.card}`}>
+          <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${cx.heading}`}>
             {q.text}
           </p>
           <p className={`text-xs mt-3 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
@@ -251,17 +250,17 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             {wasCorrect ? (
               <div>
                 <p className={`font-semibold mb-1 ${dm ? 'text-green-400' : 'text-green-600'}`}>✓ ¡Correcto!</p>
-                <p className={`text-sm ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
-                  Respuesta: <span className={`font-semibold ${dm ? 'text-white' : 'text-slate-800'}`}>{(q.options || q.opciones)[q.correct]}</span>
+                <p className={`text-sm ${cx.body}`}>
+                  Respuesta: <span className={`font-semibold ${cx.heading}`}>{(q.options || q.opciones)[q.correct]}</span>
                 </p>
               </div>
             ) : (
               <div>
                 <p className={`font-semibold mb-1 ${dm ? 'text-red-400' : 'text-red-600'}`}>✗ Incorrecto</p>
-                <p className={`text-sm ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
+                <p className={`text-sm ${cx.body}`}>
                   Tu respuesta: <span className="font-semibold text-red-500">{(q.options || q.opciones)[selectedAnswer]}</span>
                 </p>
-                <p className={`text-sm mt-1 ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
+                <p className={`text-sm mt-1 ${cx.body}`}>
                   La correcta: <span className="font-semibold text-green-500">{(q.options || q.opciones)[q.correct]}</span>
                 </p>
               </div>
@@ -269,14 +268,14 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
             {/* Explicación pedagógica */}
             {q.explanation && (
-              <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+              <div className={`pt-3 border-t ${cx.divider}`}>
                 <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${dm ? 'text-blue-400' : 'text-blue-600'}`}>💡 Explicación</p>
-                <p className={`text-sm leading-relaxed ${dm ? 'text-gray-300' : 'text-slate-600'}`}>{q.explanation}</p>
+                <p className={`text-sm leading-relaxed ${cx.body}`}>{q.explanation}</p>
               </div>
             )}
 
             {/* SRS feedback */}
-            <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className={`pt-3 border-t ${cx.divider}`}>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
                   📊 Dificultad: {(calculateNextReview(q, wasCorrect).srs_difficulty || 5).toFixed(1)}/10

@@ -4,14 +4,13 @@ import { GRADIENT_BG, GRADIENT_STYLE } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
 function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPractice, srsStats, answeredToday = 0 }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+    <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
       
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <p className={`text-xs font-semibold uppercase tracking-widest ${dm ? 'text-blue-400' : 'text-blue-600'}`}>
@@ -54,7 +53,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
               <span className="text-xl mt-0.5">⚠️</span>
               <div className="flex-1">
                 <p className="font-semibold text-amber-400 text-sm">Modo Prueba — Datos temporales</p>
-                <p className={`text-xs mt-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xs mt-1 ${cx.muted}`}>
                   Tu progreso no se guarda al cerrar sesión.
                 </p>
                 <button
@@ -70,8 +69,8 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
 
         {/* SALUDO */}
         <div className={`rounded-2xl p-5 animate-fade-in-up stagger-1
-          ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-md'}`}>
-          <p className={`text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+          ${cx.cardAlt}`}>
+          <p className={`text-sm ${cx.muted}`}>
             {user?.isGuest ? 'Bienvenido al modo prueba' : `Hola, ${user?.name?.split(' ')[0] || 'usuario'} 👋`}
           </p>
           <p className={`font-display font-bold text-xl mt-1 ${dm ? 'text-slate-100' : 'text-slate-800'}`}
@@ -81,7 +80,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
           {/* Barra de progreso general */}
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-              <span className={`text-xs font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-xs font-medium ${cx.muted}`}>
                 Progreso general
               </span>
               <span className="text-xs font-bold" style={{ color: '#2563EB' }}>
@@ -102,7 +101,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
           {(profile?.dailyGoal || 20) > 0 && (
             <div className={`mt-4 pt-4 border-t ${dm ? 'border-white/5' : 'border-slate-100'}`}>
               <div className="flex justify-between items-center mb-2">
-                <span className={`text-xs font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                <span className={`text-xs font-medium ${cx.muted}`}>
                   Meta diaria
                 </span>
                 <span className={`text-xs font-bold ${
@@ -137,7 +136,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
           ].map((stat, i) => (
             <div key={i}
               className={`rounded-2xl p-3 text-center
-                ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`}>
+                ${cx.cardAlt}`}>
               <div className="text-xl mb-1">{stat.icon}</div>
               <div className="font-display font-bold text-lg" style={{ fontFamily: 'Sora, system-ui', color: '#2563EB' }}>
                 {stat.value}

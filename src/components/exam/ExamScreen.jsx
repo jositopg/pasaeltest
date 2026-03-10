@@ -73,8 +73,7 @@ function loadSavedState(configKey) {
 }
 
 function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
 
   const configKey = hashConfig(config);
 
@@ -231,9 +230,9 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   // Empty state
   if (questions.length === 0) {
     return (
-      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+      <div className={`min-h-screen ${cx.screen} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
-          <h2 className={`text-xl font-bold mb-4 ${dm ? 'text-white' : 'text-slate-800'}`}>Sin preguntas</h2>
+          <h2 className={`text-xl font-bold mb-4 ${cx.heading}`}>Sin preguntas</h2>
           <p className={`mb-6 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Genera preguntas primero</p>
           <button onClick={() => onNavigate('themes')} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold">
             Ir a Temas
@@ -247,7 +246,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   if (showResults) {
     const score = calculateScore();
     return (
-      <div className={`min-h-screen ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+      <div className={`min-h-screen ${cx.screen} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-6">
           <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             {score.timeExpired && (
@@ -255,29 +254,29 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
                 ⏱ Tiempo agotado
               </div>
             )}
-            <h2 className={`text-2xl font-bold mb-4 ${dm ? 'text-white' : 'text-slate-800'}`}>¡Completado!</h2>
+            <h2 className={`text-2xl font-bold mb-4 ${cx.heading}`}>¡Completado!</h2>
             <div className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               {score.percentage}%
             </div>
           </div>
-          <div className={`rounded-2xl p-6 space-y-3 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+          <div className={`rounded-2xl p-6 space-y-3 ${cx.card}`}>
             <div className="flex justify-between">
-              <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Correctas</span>
+              <span className={cx.body}>Correctas</span>
               <span className="text-green-500 font-bold">{score.correct}</span>
             </div>
             <div className="flex justify-between">
-              <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Incorrectas</span>
+              <span className={cx.body}>Incorrectas</span>
               <span className="text-red-500 font-bold">{score.incorrect}</span>
             </div>
             {score.unanswered > 0 && (
               <div className="flex justify-between">
-                <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Sin responder</span>
+                <span className={cx.body}>Sin responder</span>
                 <span className="text-gray-400 font-bold">{score.unanswered}</span>
               </div>
             )}
             {config.penaltySystem !== 'none' && (
               <div className="flex justify-between">
-                <span className={dm ? 'text-gray-300' : 'text-slate-600'}>Penalización</span>
+                <span className={cx.body}>Penalización</span>
                 <span className="text-orange-500 font-bold">-{score.penalty}</span>
               </div>
             )}
@@ -297,7 +296,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   const timerWarning = timeLeft !== null && timeLeft <= 60;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
+    <div className={`min-h-full ${cx.screen} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>
       <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
 
         {/* Banner de examen recuperado */}
@@ -310,7 +309,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
         )}
 
         {/* Progress header */}
-        <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+        <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 ${cx.card}`}>
           <div className="flex justify-between mb-2 gap-2">
             <span className={`text-xs sm:text-sm ${dm ? 'text-gray-300' : 'text-slate-500'}`}>
               Pregunta {current + 1}/{questions.length}
@@ -330,8 +329,8 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
         </div>
 
         {/* Question */}
-        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
-          <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${dm ? 'text-white' : 'text-slate-800'}`}>{q.text}</p>
+        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 ${cx.card}`}>
+          <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${cx.heading}`}>{q.text}</p>
         </div>
 
         {/* Options */}
@@ -374,30 +373,30 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
             {userAnswer === q.correct ? (
               <div>
                 <p className="text-green-600 dark:text-green-400 font-semibold mb-2">✓ ¡Correcto!</p>
-                <p className={`text-sm ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
-                  La respuesta correcta es: <span className={`font-semibold ${dm ? 'text-white' : 'text-slate-800'}`}>{q.options[q.correct]}</span>
+                <p className={`text-sm ${cx.body}`}>
+                  La respuesta correcta es: <span className={`font-semibold ${cx.heading}`}>{q.options[q.correct]}</span>
                 </p>
               </div>
             ) : (
               <div>
                 <p className="text-red-600 dark:text-red-400 font-semibold mb-2">✗ Incorrecto</p>
-                <p className={`text-sm ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
+                <p className={`text-sm ${cx.body}`}>
                   Tu respuesta: <span className="font-semibold text-red-500">{q.options[userAnswer]}</span>
                 </p>
-                <p className={`text-sm mt-1 ${dm ? 'text-gray-300' : 'text-slate-600'}`}>
+                <p className={`text-sm mt-1 ${cx.body}`}>
                   La correcta es: <span className="font-semibold text-green-500">{q.options[q.correct]}</span>
                 </p>
               </div>
             )}
             {q.explanation && (
-              <div className={`pt-3 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+              <div className={`pt-3 border-t ${cx.divider}`}>
                 <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${dm ? 'text-blue-400' : 'text-blue-600'}`}>💡 Explicación</p>
-                <p className={`text-sm leading-relaxed ${dm ? 'text-gray-300' : 'text-slate-600'}`}>{q.explanation}</p>
+                <p className={`text-sm leading-relaxed ${cx.body}`}>{q.explanation}</p>
               </div>
             )}
 
             {/* Botón reportar error */}
-            <div className={`pt-2 border-t ${dm ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className={`pt-2 border-t ${cx.divider}`}>
               {flags[current]?.comment && !flags[current]?.open ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-orange-400">🚩 Reporte guardado</span>

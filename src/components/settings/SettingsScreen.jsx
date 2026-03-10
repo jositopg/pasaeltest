@@ -5,8 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 const ADMIN_EMAIL = 'josedlp7@gmail.com';
 
 function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user, onExportData, onImportData }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
   const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState({
@@ -88,14 +87,10 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
     setTimeout(() => setImportStatus(null), 5000);
   };
 
-  const inputClass = `w-full rounded-xl px-4 py-3 text-sm outline-none transition-all
-    ${dm
-      ? 'bg-[#1E293B] border border-[#334155] text-slate-100 focus:border-blue-500'
-      : 'bg-[#F8FAFF] border border-slate-200 text-slate-800 focus:border-blue-500'
-    }`;
+  const inputClass = `w-full rounded-xl px-4 py-3 text-sm outline-none transition-all ${cx.input}`;
 
   const cardClass = `rounded-2xl p-5 space-y-4
-    ${dm ? 'bg-[#0F172A] border border-[#1E293B]' : 'bg-white border border-slate-100 shadow-sm'}`;
+    ${cx.cardAlt}`;
 
   const labelClass = `text-xs font-semibold uppercase tracking-wide mb-1.5 block
     ${dm ? 'text-slate-400' : 'text-slate-500'}`;
@@ -104,11 +99,11 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
   const toggleKnob = `absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors duration-300`}
+    <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
 
       {/* HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pb-4 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-4 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <button
             onClick={() => onNavigate('home')}
@@ -161,7 +156,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
           <div>
             <label className={labelClass}>Penalización por errores</label>
             <div className={`flex items-center justify-between p-3 rounded-xl mb-3
-              ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+              ${cx.inner}`}>
               <div>
                 <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Sin penalización</p>
                 <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Los errores no restan puntos</p>
@@ -245,7 +240,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
           </div>
 
           <div className={`flex items-center justify-between p-3 rounded-xl
-            ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+            ${cx.inner}`}>
             <div>
               <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Modo oscuro</p>
               <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Reduce la fatiga visual</p>
@@ -266,7 +261,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
           </div>
 
           <div className={`flex items-center justify-between p-3 rounded-xl
-            ${dm ? 'bg-[#1E293B]' : 'bg-slate-50'}`}>
+            ${cx.inner}`}>
             <div>
               <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Recordatorio de repaso</p>
               <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>

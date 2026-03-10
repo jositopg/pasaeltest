@@ -3,8 +3,7 @@ import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
 function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
-  const { darkMode } = useTheme();
-  const dm = darkMode;
+  const { dm, cx } = useTheme();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTheme, setFilterTheme] = useState('all');
@@ -101,13 +100,13 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
   const inputCls = `rounded-xl px-3 py-2 text-sm outline-none ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-white text-slate-800 border border-slate-200'}`;
 
   return (
-    <div className={`min-h-full ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'} transition-colors`}>
+    <div className={`min-h-full ${cx.screen} transition-colors`}>
       {/* STICKY HEADER */}
-      <div className={`sticky top-0 z-10 px-4 pb-3 ${dm ? 'bg-[#080C14]' : 'bg-[#F0F4FF]'}`} style={{ paddingTop: 'var(--pt-header)' }}>
+      <div className={`sticky top-0 z-10 px-4 pb-3 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="max-w-2xl mx-auto space-y-2">
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <h1 className={`font-bold text-2xl ${dm ? 'text-white' : 'text-slate-800'}`}>Preguntas</h1>
+              <h1 className={`font-bold text-2xl ${cx.heading}`}>Preguntas</h1>
               <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                 {allQuestions.length} en total · {filtered.length} mostradas
               </p>
@@ -117,7 +116,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
               className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 selectMode
                   ? 'bg-orange-500 text-white'
-                  : dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm'
+                  : cx.btnNav
               }`}
             >
               {selectMode ? 'Cancelar' : '☑ Seleccionar'}
@@ -192,7 +191,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast }) {
 
         {/* Lista de preguntas */}
         {filtered.length === 0 ? (
-          <div className={`text-center py-16 rounded-2xl ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+          <div className={`text-center py-16 rounded-2xl ${cx.card}`}>
             <div className="text-4xl mb-3">📭</div>
             <p className={`font-semibold ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
               {allQuestions.length === 0 ? 'Aún no hay preguntas generadas' : 'No hay resultados'}
