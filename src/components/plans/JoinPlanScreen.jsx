@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 
-export default function JoinPlanScreen({ slug, currentUser, onSuccess, onCancel }) {
+export default function JoinPlanScreen({ slug, currentUser, onSuccess, onCancel, onGoToLogin }) {
   const [planInfo, setPlanInfo] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | ready | joining | alreadyJoined | error | notFound
   const [alreadyTestId, setAlreadyTestId] = useState(null);
@@ -28,6 +28,11 @@ export default function JoinPlanScreen({ slug, currentUser, onSuccess, onCancel 
     setStatus('joining');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setErrorMsg('Necesitas iniciar sesión con una cuenta real para unirte a un plan. Los planes no están disponibles en modo prueba.');
+        setStatus('error');
+        return;
+      }
       const res = await fetch('/api/clone-plan', {
         method: 'POST',
         headers: {
@@ -88,12 +93,30 @@ export default function JoinPlanScreen({ slug, currentUser, onSuccess, onCancel 
               <h2 className="text-white font-bold text-xl mb-2">Error</h2>
               <p className="text-gray-400 text-sm">{errorMsg}</p>
             </div>
-            <button
-              onClick={onCancel}
-              className="w-full py-3.5 rounded-2xl bg-white/10 text-white font-semibold"
-            >
-              Ir a la app
-            </button>
+            {!currentUser?.isGuest && (
+              <button
+                onClick={onCancel}
+                className="w-full py-3.5 rounded-2xl bg-white/10 text-white font-semibold"
+              >
+                Ir a la app
+              </button>
+            )}
+            {currentUser?.isGuest && onGoToLogin && (
+              <button
+                onClick={onGoToLogin}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold"
+              >
+                Crear cuenta gratis
+              </button>
+            )}
+            {currentUser?.isGuest && (
+              <button
+                onClick={onCancel}
+                className="w-full py-3 text-gray-500 text-sm"
+              >
+                Continuar en modo prueba
+              </button>
+            )}
           </div>
         )}
 
