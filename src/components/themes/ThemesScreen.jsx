@@ -9,8 +9,6 @@ import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../supabaseClient';
 
-const ADMIN_EMAIL = 'josedlp7@gmail.com';
-
 function ThemesScreen({
   themes, tests = [], activeTestId,
   onUpdateTheme, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
@@ -38,7 +36,7 @@ function ThemesScreen({
   const [generateReposConfirm, setGenerateReposConfirm] = useState(false);
   const [generateQuestionsConfirm, setGenerateQuestionsConfirm] = useState(false);
 
-  const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
 
   // ─── Share modal (admin only) ──────────────────────────────
   const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form } | { error }

@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
-import { authHelpers } from '../supabaseClient';
+import { authHelpers, supabase } from '../supabaseClient';
 import { DEBUG } from '../utils/constants';
 
-/**
- * Hook para gestionar autenticación con Supabase
- */
 const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -13,22 +10,24 @@ const useAuth = () => {
 
   useEffect(() => {
     checkSession();
-    
+
     const { data: { subscription } } = authHelpers.onAuthStateChange(
       async (event, session) => {
         if (DEBUG) console.log('Auth event:', event, session);
-        
+
         if (event === 'SIGNED_IN' && session) {
           const user = session.user;
+          const { data: profile } = await supabase.from('users').select('role, organization_id').eq('id', user.id).single();
           setCurrentUser({
             id: user.id,
             email: user.email,
             name: user.user_metadata?.name || 'Usuario',
-            oposicion: user.user_metadata?.oposicion || 'Sin especificar',
             createdAt: user.created_at,
             subscription: 'free',
+            role: profile?.role || 'user',
+            organizationId: profile?.organization_id || null,
             isGuest: false,
-            isFirstLogin: false
+            isFirstLogin: false,
           });
           setIsAuthenticated(true);
           setAuthLoading(false);
@@ -40,29 +39,29 @@ const useAuth = () => {
       }
     );
 
-    return () => {
-      subscription?.unsubscribe();
-    };
+    return () => { subscription?.unsubscribe(); };
   }, []);
 
   const checkSession = async () => {
     setAuthLoading(true);
     const { user } = await authHelpers.getUser();
-    
+
     if (user) {
+      const { data: profile } = await supabase.from('users').select('role, organization_id').eq('id', user.id).single();
       setCurrentUser({
         id: user.id,
         email: user.email,
         name: user.user_metadata?.name || 'Usuario',
-        oposicion: user.user_metadata?.oposicion || 'Sin especificar',
         createdAt: user.created_at,
         subscription: 'free',
+        role: profile?.role || 'user',
+        organizationId: profile?.organization_id || null,
         isGuest: false,
-        isFirstLogin: false
+        isFirstLogin: false,
       });
       setIsAuthenticated(true);
     }
-    
+
     setAuthLoading(false);
   };
 
@@ -82,16 +81,13 @@ const useAuth = () => {
     } catch (error) {
       console.error('Error logging out:', error);
     }
-    // Always clean up local state
     setCurrentUser(null);
     setIsAuthenticated(false);
   };
 
   const handleOnboardingComplete = (newProfile, updatedUser) => {
     setShowOnboarding(false);
-    if (updatedUser) {
-      setCurrentUser(updatedUser);
-    }
+    if (updatedUser) setCurrentUser(updatedUser);
     return newProfile;
   };
 

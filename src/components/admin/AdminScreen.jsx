@@ -456,6 +456,211 @@ function PlansSection({ token, adminTests }) {
   );
 }
 
+// ─── Org Management ───────────────────────────────────────────
+
+function OrgManagementSection({ token }) {
+  const [users, setUsers] = useState([]);
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(null);
+  const [showNewOrg, setShowNewOrg] = useState(false);
+  const [orgForm, setOrgForm] = useState({ name: '', slug: '', cover_emoji: '🏫', ownerId: '' });
+  const [orgError, setOrgError] = useState('');
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [roleChanges, setRoleChanges] = useState({}); // userId -> { role, organization_id }
+
+  function toSlug(str) {
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [usersRes, orgsRes] = await Promise.all([
+        fetch('/api/manage-orgs?type=users', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/manage-orgs?type=orgs', { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      const [ud, od] = await Promise.all([usersRes.json(), orgsRes.json()]);
+      setUsers(ud.users || []);
+      setOrgs(od.orgs || []);
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  async function handleSaveRole(userId) {
+    const change = roleChanges[userId];
+    if (!change) return;
+    setSaving(userId);
+    try {
+      await fetch('/api/manage-orgs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action: 'set_role', userId, ...change }),
+      });
+      fetchAll();
+      setRoleChanges(prev => { const n = {...prev}; delete n[userId]; return n; });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function handleCreateOrg() {
+    setOrgError('');
+    if (!orgForm.name || !orgForm.slug) { setOrgError('Nombre y slug requeridos'); return; }
+    setCreatingOrg(true);
+    try {
+      const res = await fetch('/api/manage-orgs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action: 'create_org', ...orgForm, ownerId: orgForm.ownerId || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setOrgError(data.error || 'Error'); return; }
+      setShowNewOrg(false);
+      setOrgForm({ name: '', slug: '', cover_emoji: '🏫', ownerId: '' });
+      fetchAll();
+    } finally {
+      setCreatingOrg(false);
+    }
+  }
+
+  const ROLE_LABELS = { user: '👤 Usuario', org_admin: '🏫 Admin Org', super_admin: '🛡️ Super Admin' };
+
+  return (
+    <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-base">🏢 Organizaciones y Roles</h2>
+        <button
+          onClick={() => setShowNewOrg(v => !v)}
+          className="text-xs px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 font-medium"
+        >
+          + Nueva org
+        </button>
+      </div>
+
+      {/* Nueva org form */}
+      {showNewOrg && (
+        <div className="bg-white/5 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-white">Nueva Organización</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={orgForm.name}
+              onChange={e => setOrgForm(f => ({ ...f, name: e.target.value, slug: toSlug(e.target.value) }))}
+              placeholder="Nombre de la org"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none col-span-2"
+            />
+            <input
+              value={orgForm.slug}
+              onChange={e => setOrgForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+              placeholder="slug-url"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none"
+            />
+            <input
+              value={orgForm.cover_emoji}
+              onChange={e => setOrgForm(f => ({ ...f, cover_emoji: e.target.value }))}
+              placeholder="Emoji"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none text-center"
+            />
+            <select
+              value={orgForm.ownerId}
+              onChange={e => setOrgForm(f => ({ ...f, ownerId: e.target.value }))}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none col-span-2"
+            >
+              <option value="">Sin propietario asignado</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.email} ({ROLE_LABELS[u.role] || u.role})</option>)}
+            </select>
+          </div>
+          {orgError && <p className="text-red-400 text-xs">{orgError}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setShowNewOrg(false)} className="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-xs">Cancelar</button>
+            <button onClick={handleCreateOrg} disabled={creatingOrg} className="flex-1 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold disabled:opacity-60">
+              {creatingOrg ? 'Creando...' : 'Crear'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Orgs list */}
+      {orgs.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 mb-2">Organizaciones ({orgs.length})</p>
+          <div className="space-y-1.5">
+            {orgs.map(org => (
+              <div key={org.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
+                <span className="text-lg">{org.cover_emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white font-medium truncate">{org.name}</p>
+                  <p className="text-xs text-gray-500">{org.slug} · {org.owner?.email || 'Sin propietario'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Users + roles */}
+      <div>
+        <p className="text-xs text-gray-500 mb-2">Usuarios y roles ({users.length})</p>
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {users.map(u => {
+              const change = roleChanges[u.id] || {};
+              const currentRole = change.role !== undefined ? change.role : u.role;
+              const currentOrgId = change.organization_id !== undefined ? change.organization_id : u.organization_id;
+              const hasChange = roleChanges[u.id] !== undefined;
+              return (
+                <div key={u.id} className="bg-white/5 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm text-white truncate">{u.email}</p>
+                      {u.name && <p className="text-xs text-gray-500 truncate">{u.name}</p>}
+                    </div>
+                    <span className="text-xs text-gray-600 shrink-0">{timeAgo(u.created_at)}</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={currentRole || 'user'}
+                      onChange={e => setRoleChanges(prev => ({ ...prev, [u.id]: { ...prev[u.id], role: e.target.value } }))}
+                      className="flex-1 bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none"
+                    >
+                      <option value="user">👤 Usuario</option>
+                      <option value="org_admin">🏫 Admin Org</option>
+                      <option value="super_admin">🛡️ Super Admin</option>
+                    </select>
+                    <select
+                      value={currentOrgId || ''}
+                      onChange={e => setRoleChanges(prev => ({ ...prev, [u.id]: { ...prev[u.id], organization_id: e.target.value || null } }))}
+                      className="flex-1 bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none"
+                    >
+                      <option value="">Sin organización</option>
+                      {orgs.map(org => <option key={org.id} value={org.id}>{org.cover_emoji} {org.name}</option>)}
+                    </select>
+                    {hasChange && (
+                      <button
+                        onClick={() => handleSaveRole(u.id)}
+                        disabled={saving === u.id}
+                        className="px-3 py-1.5 rounded-lg bg-green-600/30 text-green-400 text-xs font-semibold hover:bg-green-600/40 disabled:opacity-50 shrink-0"
+                      >
+                        {saving === u.id ? '...' : 'Guardar'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main AdminScreen ─────────────────────────────────────────
 
 export default function AdminScreen({ onNavigate }) {
@@ -642,6 +847,9 @@ export default function AdminScreen({ onNavigate }) {
               adminTests={stats.adminTests || []}
             />
           )}
+
+          {/* ORGANIZACIONES Y ROLES */}
+          {adminToken && <OrgManagementSection token={adminToken} />}
 
           {/* USUARIOS */}
           <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
