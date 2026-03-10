@@ -310,6 +310,9 @@ export default function App() {
             themes={userData.themes}
             onStartExam={startExam}
             onNavigate={setScreen}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            onSwitchTest={userData.switchTest}
           />
         )}
         {screen === 'exam-active' && (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
+function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeTestId, onSwitchTest }) {
   const { dm, cx } = useTheme();
   const [numQuestions, setNumQuestions] = useState(20);
   const [failedRatio, setFailedRatio] = useState(0);
@@ -51,8 +51,44 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate }) {
           <button onClick={() => onNavigate('home')} className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}>
             <Icons.ChevronLeft />
           </button>
-          <h1 className={`font-bold text-2xl ${cx.heading}`}>Configurar Examen</h1>
+          <h1 className={`font-bold text-2xl ${cx.heading}`}>Crear Test</h1>
         </div>
+
+        {/* Selector de examen */}
+        {tests.length > 1 && (
+          <div className={cardCls}>
+            <label className={labelCls}>¿De qué examen quieres hacer el test?</label>
+            <div className="space-y-2">
+              {tests.map(test => (
+                <button
+                  key={test.id}
+                  onClick={() => {
+                    if (test.id !== activeTestId) {
+                      onSwitchTest(test.id);
+                      setSelectedThemes([]);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all ${
+                    test.id === activeTestId
+                      ? 'bg-blue-500 text-white'
+                      : dm ? 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>{test.cover_emoji || '📋'}</span>
+                  <span className="flex-1 truncate">{test.name}</span>
+                  {test.id === activeTestId && <span className="text-white/80 text-xs">✓ Activo</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tests.length === 1 && (
+          <div className={`rounded-2xl px-4 py-3 flex items-center gap-2 ${dm ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200'}`}>
+            <span>{tests[0]?.cover_emoji || '📋'}</span>
+            <span className={`text-sm font-semibold ${cx.heading}`}>{tests[0]?.name || 'Mi Examen'}</span>
+          </div>
+        )}
 
         {/* Número de preguntas */}
         <div className={cardCls}>

@@ -139,7 +139,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             <div className="flex items-center gap-3">
               <span className="text-2xl">📝</span>
               <div className="text-left">
-                <div className="text-sm font-bold" style={{ fontFamily: 'Sora, system-ui' }}>Crear Examen</div>
+                <div className="text-sm font-bold" style={{ fontFamily: 'Sora, system-ui' }}>Crear Test</div>
                 <div className="text-xs opacity-75">Practica con preguntas tipo test</div>
               </div>
             </div>
