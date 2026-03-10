@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     process.env.SERVICE_ROLE_KEY_SUPABASE
   );
 
-  const { user, role, error: roleError } = await verifyRole(req, supabase, 'org_admin');
+  const { user, role, error: roleError } = await verifyRole(req, supabase, 'user');
   if (roleError === 'No token') return res.status(401).json({ error: 'No token' });
   if (roleError === 'Invalid token') return res.status(401).json({ error: 'Token inválido' });
   if (roleError) return res.status(403).json({ error: 'Forbidden' });
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
       .eq('is_official', true)
       .order('created_at', { ascending: false });
 
-    // org_admin solo ve sus propios planes; super_admin ve todos
-    if (role === 'org_admin') {
+    // super_admin ve todos; cualquier otro rol solo ve sus propios planes
+    if (role !== 'super_admin') {
       query = query.eq('user_id', user.id);
     }
 

@@ -16,7 +16,7 @@ function ExamsScreen({
   showToast,
 }) {
   const { dm, cx } = useTheme();
-  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -233,11 +233,12 @@ function ExamsScreen({
                       className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-blue-400' : 'text-slate-300 hover:text-blue-500'}`}
                       title="Renombrar"
                     >✏</button>
-                    {isAdmin && (
+                    {/* Compartir: visible para todos salvo en tests clonados de otro */}
+                    {!test.cloned_from && (
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
                         className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-green-400' : 'text-slate-300 hover:text-green-600'}`}
-                        title="Compartir como plan oficial"
+                        title="Compartir este examen"
                       >🔗</button>
                     )}
                     {tests.length > 1 && (
