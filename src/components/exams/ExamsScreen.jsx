@@ -230,21 +230,21 @@ function ExamsScreen({
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={e => { e.stopPropagation(); setRenamingId(test.id); setRenameValue(test.name); }}
-                      className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-blue-400' : 'text-slate-300 hover:text-blue-500'}`}
+                      className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-blue-500/15 hover:text-blue-300' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
                       title="Renombrar"
                     >✏</button>
                     {/* Compartir: visible para todos salvo en tests clonados de otro */}
                     {!test.cloned_from && (
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
-                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-green-400' : 'text-slate-300 hover:text-green-600'}`}
+                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
                         title="Compartir este examen"
                       >🔗</button>
                     )}
                     {tests.length > 1 && (
                       <button
                         onClick={e => { e.stopPropagation(); setDeletingId(test.id); }}
-                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-gray-600 hover:text-red-400' : 'text-slate-300 hover:text-red-500'}`}
+                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-red-500/15 hover:text-red-300' : 'text-slate-500 hover:bg-red-50 hover:text-red-500'}`}
                         title="Eliminar"
                       >🗑</button>
                     )}

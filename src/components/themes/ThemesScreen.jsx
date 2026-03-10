@@ -622,12 +622,12 @@ function ThemesScreen({
                         onClick={(e) => { e.stopPropagation(); createRepoInline(theme); }}
                         disabled={generatingRepos[theme.number] === 'loading'}
                         title="Generar repositorio IA con el nombre del tema"
-                        className={`p-1 rounded text-base leading-none transition-colors ${
+                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
                           generatingRepos[theme.number] === 'loading'
                             ? 'text-purple-400 cursor-wait'
                             : generatingRepos[theme.number] === 'done'
                               ? 'text-green-400'
-                              : dm ? 'text-gray-600 hover:text-purple-400' : 'text-slate-300 hover:text-purple-500'
+                              : dm ? 'text-slate-400 hover:bg-purple-500/15 hover:text-purple-300' : 'text-slate-500 hover:bg-purple-50 hover:text-purple-600'
                         }`}
                       >
                         {generatingRepos[theme.number] === 'loading'
@@ -641,12 +641,12 @@ function ThemesScreen({
                         onClick={(e) => { e.stopPropagation(); generateQuestionsInline(theme); }}
                         disabled={generatingQuestions[theme.number] === 'loading'}
                         title="Generar preguntas con IA para este tema"
-                        className={`p-1 rounded text-base leading-none transition-colors ${
+                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
                           generatingQuestions[theme.number] === 'loading'
                             ? 'text-green-400 cursor-wait'
                             : generatingQuestions[theme.number] === 'done'
                               ? 'text-green-400'
-                              : dm ? 'text-gray-600 hover:text-green-400' : 'text-slate-300 hover:text-green-600'
+                              : dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'
                         }`}
                       >
                         {generatingQuestions[theme.number] === 'loading'
@@ -662,8 +662,8 @@ function ThemesScreen({
                           setEditingName(theme.name);
                         }}
                         title="Renombrar tema"
-                        className={`p-1 rounded text-base leading-none transition-colors ${
-                          dm ? 'text-gray-600 hover:text-blue-400' : 'text-slate-300 hover:text-blue-500'
+                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
+                          dm ? 'text-slate-400 hover:bg-blue-500/15 hover:text-blue-300' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'
                         }`}
                       >
                         ✏
@@ -676,8 +676,8 @@ function ThemesScreen({
                           handleResetName(theme);
                         }}
                         title="Resetear a nombre por defecto"
-                        className={`p-1 rounded text-sm leading-none transition-colors ${
-                          dm ? 'text-gray-600 hover:text-red-400' : 'text-slate-300 hover:text-red-500'
+                        className={`p-1.5 rounded-lg text-sm leading-none transition-colors ${
+                          dm ? 'text-slate-400 hover:bg-red-500/15 hover:text-red-300' : 'text-slate-500 hover:bg-red-50 hover:text-red-500'
                         }`}
                       >
                         ↺

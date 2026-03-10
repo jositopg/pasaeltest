@@ -304,7 +304,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
           <div className={`rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${dm ? 'bg-blue-500/10 border border-blue-500/30 text-blue-300' : 'bg-blue-50 border border-blue-200 text-blue-700'}`}>
             <span>💾</span>
             <span className="font-medium flex-1">Examen recuperado — continuando donde lo dejaste</span>
-            <button onClick={() => setShowRestoreBanner(false)} className="opacity-50 hover:opacity-100 text-lg leading-none">×</button>
+            <button onClick={() => setShowRestoreBanner(false)} className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${dm ? 'text-blue-300/60 hover:bg-blue-500/20 hover:text-blue-200' : 'text-blue-500/60 hover:bg-blue-100 hover:text-blue-700'}`}>×</button>
           </div>
         )}
 
@@ -434,7 +434,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
               ) : (
                 <button
                   onClick={() => toggleFlag(current)}
-                  className={`text-xs ${dm ? 'text-gray-600 hover:text-orange-400' : 'text-slate-400 hover:text-orange-500'} transition-colors`}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors ${dm ? 'text-slate-400 hover:bg-orange-500/15 hover:text-orange-300' : 'text-slate-500 hover:bg-orange-50 hover:text-orange-600'}`}
                 >
                   🚩 Reportar error en esta pregunta
                 </button>

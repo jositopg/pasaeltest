@@ -26,7 +26,7 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             <button
               onClick={() => onNavigate('settings')}
               className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all
-                ${dm ? 'bg-[#1E293B] text-slate-400 hover:text-slate-200' : 'bg-white text-slate-400 hover:text-slate-700 shadow-sm'}`}
+                ${dm ? 'bg-[#1E293B] text-slate-300 hover:text-white' : 'bg-white text-slate-500 hover:text-slate-800 shadow-sm'}`}
             >
               <Icons.Settings />
             </button>
