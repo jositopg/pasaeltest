@@ -229,7 +229,7 @@ export default function App() {
             setScreen('themes');
           }}
           onCancel={() => { setJoinSlug(null); setScreen('home'); }}
-          onGoToLogin={() => { setJoinSlug(null); auth.logout(); }}
+          onGoToLogin={() => { setJoinSlug(null); auth.handleLogout(); }}
         />
       </>
     );
