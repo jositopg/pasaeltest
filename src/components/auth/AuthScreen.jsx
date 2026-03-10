@@ -8,7 +8,6 @@ function AuthScreen({ onLogin }) {
     email: '',
     password: '',
     name: '',
-    oposicion: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -75,10 +74,7 @@ function AuthScreen({ onLogin }) {
         const { data, error } = await authHelpers.signUp(
           formData.email,
           formData.password,
-          {
-            name: formData.name,
-            oposicion: formData.oposicion
-          }
+          { name: formData.name }
         );
         
         if (error) {
@@ -94,7 +90,6 @@ function AuthScreen({ onLogin }) {
           id: data.user.id,
           email: data.user.email,
           name: formData.name,
-          oposicion: formData.oposicion,
           createdAt: data.user.created_at,
           subscription: 'free',
           isGuest: false,
@@ -156,13 +151,6 @@ function AuthScreen({ onLogin }) {
                 <input type="text" required value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Tu nombre completo"
-                  className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Tipo de examen</label>
-                <input type="text" required value={formData.oposicion}
-                  onChange={(e) => setFormData({...formData, oposicion: e.target.value})}
-                  placeholder="Ej: Guardia Civil, Selectividad, Grado Medicina..."
                   className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
               </div>
             </>

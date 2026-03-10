@@ -5,7 +5,6 @@ function OnboardingScreen({ user, onComplete }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState({
     numThemes: 90,
-    penaltySystem: 'classic',
     notifications: false,
     darkMode: false
   });
@@ -54,9 +53,7 @@ function OnboardingScreen({ user, onComplete }) {
   const handleComplete = async () => {
     const profile = {
       name: user.name,
-      examName: user.oposicion,
       numThemes: config.numThemes,
-      penaltySystem: config.penaltySystem,
       darkMode: config.darkMode,
       notifications: config.notifications
     };
@@ -131,21 +128,7 @@ function OnboardingScreen({ user, onComplete }) {
                 />
               </div>
               
-              <div>
-                <label className="block text-gray-300 text-sm mb-2">Sistema de penalización</label>
-                <select
-                  value={config.penaltySystem}
-                  onChange={(e) => setConfig({...config, penaltySystem: e.target.value})}
-                  className="w-full bg-white/5 text-white rounded-xl px-4 py-3 border border-white/10"
-                >
-                  <option value="classic">Clásico (3 incorrectas = -1)</option>
-                  <option value="strict">Estricto (2 incorrectas = -1)</option>
-                  <option value="permissive">Permisivo (4 incorrectas = -1)</option>
-                  <option value="none">Sin penalización</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-between bg-white/5 rounded-xl p-4">
+<div className="flex items-center justify-between bg-white/5 rounded-xl p-4">
                 <span className="text-gray-300">Modo oscuro</span>
                 <button
                   onClick={() => setConfig({...config, darkMode: !config.darkMode})}

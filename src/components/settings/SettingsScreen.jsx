@@ -131,13 +131,6 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
           </div>
 
           <div>
-            <label className={labelClass}>Tipo de examen</label>
-            <input type="text" value={profile.examName || ''} placeholder="Ej: Guardia Civil, Administrativo..."
-              onChange={(e) => setProfile({ ...profile, examName: e.target.value })}
-              className={inputClass} />
-          </div>
-
-          <div>
             <label className={labelClass}>Número de temas</label>
             <input type="number" min="1" value={profile.numThemes || 90}
               onChange={(e) => {
