@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { dbHelpers } from '../supabaseClient';
 import { DEFAULT_PROFILE } from '../utils/constants';
 
@@ -15,10 +15,17 @@ const useUserData = (isAuthenticated, currentUser) => {
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState([]);
   const [activeTestId, setActiveTestId] = useState(null);
+  const loadedUserIdRef = React.useRef(null);
 
   // Cargar datos cuando el usuario se autentica
   useEffect(() => {
-    if (!isAuthenticated || !currentUser) return;
+    if (!isAuthenticated || !currentUser) {
+      loadedUserIdRef.current = null;
+      return;
+    }
+    // Evitar doble carga si el userId no ha cambiado
+    if (loadedUserIdRef.current === currentUser.id) return;
+    loadedUserIdRef.current = currentUser.id;
 
     if (currentUser.isGuest) {
       loadGuestData();

@@ -53,32 +53,57 @@ const useAuth = () => {
 
   const checkSession = async () => {
     setAuthLoading(true);
-    // Timeout de seguridad: si algo se cuelga, desbloquear la app en 8s
-    const fallback = setTimeout(() => setAuthLoading(false), 8000);
+    // Timeout de seguridad: si algo se cuelga, desbloquear la app en 6s
+    const fallback = setTimeout(() => {
+      setAuthLoading(false);
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    }, 6000);
     try {
-      // getSession() lee de localStorage sin llamada de red — rápido y offline-safe
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
+      // getSession() lee de localStorage — puede devolver sesión expirada
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('users').select('role, organization_id').eq('id', user.id).single();
-        setCurrentUser({
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || 'Usuario',
-          createdAt: user.created_at,
-          subscription: 'free',
-          role: profile?.role || 'user',
-          organizationId: profile?.organization_id || null,
-          isGuest: false,
-          isFirstLogin: false,
-        });
-        setIsAuthenticated(true);
+      if (sessionError || !session) {
+        // Sin sesión válida — limpiar cualquier dato corrupto
+        try { await supabase.auth.signOut(); } catch {}
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        clearTimeout(fallback);
+        setAuthLoading(false);
+        return;
       }
+
+      // Verificar que el token es válido haciendo una llamada real al servidor
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        // Token expirado o inválido — forzar logout limpio
+        try { await supabase.auth.signOut(); } catch {}
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        clearTimeout(fallback);
+        setAuthLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('users').select('role, organization_id').eq('id', user.id).single();
+      setCurrentUser({
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || 'Usuario',
+        createdAt: user.created_at,
+        subscription: 'free',
+        role: profile?.role || 'user',
+        organizationId: profile?.organization_id || null,
+        isGuest: false,
+        isFirstLogin: false,
+      });
+      setIsAuthenticated(true);
     } catch {
-      // Sesión inválida o red caída — limpiar silenciosamente
+      // Error inesperado — limpiar silenciosamente
       try { await supabase.auth.signOut(); } catch {}
+      setCurrentUser(null);
+      setIsAuthenticated(false);
     } finally {
       clearTimeout(fallback);
       setAuthLoading(false);
@@ -87,9 +112,7 @@ const useAuth = () => {
 
   const handleLogin = async (user) => {
     const isFirstLogin = user?.isFirstLogin || false;
-    try {
-      await checkSession();
-    } catch {}
+    // onAuthStateChange SIGNED_IN ya gestiona el estado — no re-llamar checkSession
     if (isFirstLogin) setShowOnboarding(true);
   };
 
