@@ -95,21 +95,35 @@ export default async function handler(req, res) {
   const originalThemeIdToNumber = {};
   themes.forEach(t => { originalThemeIdToNumber[t.id] = t.number; });
 
-  // 7. Para cada tema original, obtener y clonar sus preguntas
+  // 7. Para cada tema original, obtener y clonar sus preguntas (paginado para >1000)
   let totalQuestionsCloned = 0;
   const originalThemeIds = themes.map(t => t.id);
 
-  const { data: allQuestions } = await supabase
-    .from('questions')
-    .select('theme_id, text, options, correct_answer, difficulty, explanation')
-    .in('theme_id', originalThemeIds);
+  const PAGE_SIZE = 1000;
+  let allQuestions = [];
+  let page = 0;
+  while (true) {
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data: batch, error: batchError } = await supabase
+      .from('questions')
+      .select('theme_id, text, options, correct_answer, difficulty, explanation')
+      .in('theme_id', originalThemeIds)
+      .range(from, to);
+    if (batchError) break;
+    if (!batch || batch.length === 0) break;
+    allQuestions = allQuestions.concat(batch);
+    if (batch.length < PAGE_SIZE) break;
+    page++;
+  }
 
-  if (allQuestions && allQuestions.length > 0) {
+  if (allQuestions.length > 0) {
     const questionsToInsert = allQuestions.map(q => {
       const themeNumber = originalThemeIdToNumber[q.theme_id];
       const newThemeId = themeNumberToNewId[themeNumber];
       return {
         theme_id: newThemeId,
+        user_id: user.id,
         text: q.text,
         options: q.options,
         correct_answer: q.correct_answer,
@@ -119,11 +133,12 @@ export default async function handler(req, res) {
       };
     }).filter(q => q.theme_id); // por si hay algún tema sin mapear
 
-    if (questionsToInsert.length > 0) {
-      const { error: qError } = await supabase
-        .from('questions')
-        .insert(questionsToInsert);
-      if (!qError) totalQuestionsCloned = questionsToInsert.length;
+    // Insertar en lotes de 500 para no superar límites de PostgREST
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < questionsToInsert.length; i += BATCH_SIZE) {
+      const chunk = questionsToInsert.slice(i, i + BATCH_SIZE);
+      const { error: qError } = await supabase.from('questions').insert(chunk);
+      if (!qError) totalQuestionsCloned += chunk.length;
     }
   }
 
