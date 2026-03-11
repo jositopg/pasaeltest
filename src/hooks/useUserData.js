@@ -152,6 +152,11 @@ const useUserData = (isAuthenticated, currentUser) => {
     setActiveTestId(testId);
     setLoading(true);
     try {
+      // Si el test no está en el estado local (e.g. recién clonado), re-cargar la lista de tests
+      if (currentUser && !currentUser.isGuest && !tests.find(t => t.id === testId)) {
+        const { data: testsList } = await dbHelpers.getTests(currentUser.id);
+        if (testsList) setTests(testsList);
+      }
       const { data } = await dbHelpers.getThemesByTest(testId);
       setThemes(data ? data.map(mapThemeFromDB) : []);
     } catch (error) {
