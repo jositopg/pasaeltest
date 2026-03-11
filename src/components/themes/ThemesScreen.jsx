@@ -15,6 +15,7 @@ function ThemesScreen({
   onNavigate, showToast,
   genQueue = {},
   currentUser,
+  isClonedTest = false,
 }) {
   const { dm, cx } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
@@ -774,6 +775,7 @@ function ThemesScreen({
             onClose={() => setSelectedTheme(null)}
             onUpdate={handleUpdateTheme}
             showToast={showToast}
+            readOnly={isClonedTest}
           />
         )}
 

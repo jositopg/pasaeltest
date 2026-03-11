@@ -227,7 +227,9 @@ const useUserData = (isAuthenticated, currentUser) => {
   };
 
   const deleteTest = async (testId) => {
-    if (tests.length <= 1) return; // No borrar el último test
+    const test = tests.find(t => t.id === testId);
+    // Clones siempre se pueden borrar; tests propios requieren al menos 2
+    if (!test?.cloned_from && tests.length <= 1) return;
     try {
       const { error } = await dbHelpers.deleteTest(testId);
       if (error) { console.error('Error deleting test:', error); return; }
@@ -235,8 +237,15 @@ const useUserData = (isAuthenticated, currentUser) => {
       const remaining = tests.filter(t => t.id !== testId);
       setTests(remaining);
 
-      if (activeTestId === testId && remaining.length > 0) {
-        await switchTest(remaining[0].id);
+      if (activeTestId === testId) {
+        if (remaining.length > 0) {
+          await switchTest(remaining[0].id);
+        } else {
+          // Quedó sin tests — la app creará uno vacío en el próximo ciclo de carga
+          setActiveTestId(null);
+          setThemes([]);
+          loadedUserIdRef.current = null; // forzar recarga para auto-crear Mi Test
+        }
       }
     } catch (error) {
       console.error('Error deleting test:', error);

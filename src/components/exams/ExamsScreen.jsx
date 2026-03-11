@@ -56,7 +56,9 @@ function ExamsScreen({
   };
 
   const handleDelete = async (testId) => {
-    if (tests.length <= 1) {
+    const test = tests.find(t => t.id === testId);
+    // Planes clonados siempre se pueden borrar; tests propios requieren al menos 2
+    if (!test?.cloned_from && tests.length <= 1) {
       showToast('No puedes eliminar el único examen.', 'error');
       return;
     }
@@ -241,7 +243,7 @@ function ExamsScreen({
                         title="Compartir este examen"
                       >🔗</button>
                     )}
-                    {tests.length > 1 && (
+                    {(test.cloned_from || tests.length > 1) && (
                       <button
                         onClick={e => { e.stopPropagation(); setDeletingId(test.id); }}
                         className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-red-500/15 hover:text-red-300' : 'text-slate-500 hover:bg-red-50 hover:text-red-500'}`}

@@ -9,7 +9,7 @@ import QuestionList from './QuestionList';
 import ImportQuestionsPanel from './ImportQuestionsPanel';
 import useThemeModal from '../../hooks/useThemeModal';
 
-function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
+function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = false }) {
   const { darkMode } = useTheme();
 
   const {
@@ -36,6 +36,11 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
 
         {/* HEADER FIJO */}
         <div className="flex-shrink-0 bg-slate-800 p-4 sm:p-6 border-b border-white/10">
+          {readOnly && (
+            <div className="mb-3 flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2">
+              <span className="text-blue-400 text-sm">🔒 Plan oficial — solo lectura</span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
@@ -44,27 +49,34 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
                   <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full">Sin personalizar</span>
                 )}
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onKeyPress={handleNameKeyPress}
-                  onBlur={handleSaveName}
-                  className="flex-1 bg-white/5 text-gray-300 text-sm rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors"
-                  placeholder="Ej: Constitución Española, Derecho Administrativo..."
-                />
-                {editingName !== theme.name && (
-                  <button
-                    onClick={handleSaveName}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center gap-1"
-                  >
-                    <Icons.Check />
-                    Guardar
-                  </button>
-                )}
-              </div>
-              <p className="text-gray-500 text-xs mt-1">💡 Escribe un nombre y presiona Enter o click fuera para guardar</p>
+              {!readOnly && (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyPress={handleNameKeyPress}
+                      onBlur={handleSaveName}
+                      className="flex-1 bg-white/5 text-gray-300 text-sm rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 focus:outline-none transition-colors"
+                      placeholder="Ej: Constitución Española, Derecho Administrativo..."
+                    />
+                    {editingName !== theme.name && (
+                      <button
+                        onClick={handleSaveName}
+                        className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors flex items-center gap-1"
+                      >
+                        <Icons.Check />
+                        Guardar
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">💡 Escribe un nombre y presiona Enter o click fuera para guardar</p>
+                </>
+              )}
+              {readOnly && (
+                <p className="text-gray-300 text-sm font-medium">{theme.name}</p>
+              )}
             </div>
             <button onClick={onClose} className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors flex-shrink-0">
               <Icons.X />
@@ -76,32 +88,34 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
         <div className="flex-1 overflow-y-auto" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: 'calc(90vh - 140px)' }}>
           <div className="p-4 sm:p-6 space-y-6">
 
-            <DocumentSection
-              theme={theme}
-              showAddDoc={showAddDoc}
-              docType={docType}
-              docContent={docContent}
-              isSearching={isSearching}
-              isGeneratingQuestions={isGeneratingQuestions}
-              generationProgress={generationProgress}
-              generationPercent={generationPercent}
-              showAutoGenerate={showAutoGenerate}
-              isAutoGenerating={isAutoGenerating}
-              onToggleAddDoc={() => setShowAddDoc(!showAddDoc)}
-              onDocTypeChange={setDocType}
-              onDocContentChange={setDocContent}
-              onAddDoc={handleAddDocument}
-              onFileUpload={handleFileUpload}
-              onAISearch={handleAISearch}
-              onAutoGenerate={handleAutoGenerateRepository}
-              onDismissAutoGenerate={() => setShowAutoGenerate(false)}
-              onDeleteDoc={(idx, doc) => {
-                const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
-                setDeleteConfirm({ show: true, docIndex: idx, docName });
-              }}
-              onGenerateFromDoc={generateQuestionsFromDocuments}
-              fileInputRef={fileInputRef}
-            />
+            {!readOnly && (
+              <DocumentSection
+                theme={theme}
+                showAddDoc={showAddDoc}
+                docType={docType}
+                docContent={docContent}
+                isSearching={isSearching}
+                isGeneratingQuestions={isGeneratingQuestions}
+                generationProgress={generationProgress}
+                generationPercent={generationPercent}
+                showAutoGenerate={showAutoGenerate}
+                isAutoGenerating={isAutoGenerating}
+                onToggleAddDoc={() => setShowAddDoc(!showAddDoc)}
+                onDocTypeChange={setDocType}
+                onDocContentChange={setDocContent}
+                onAddDoc={handleAddDocument}
+                onFileUpload={handleFileUpload}
+                onAISearch={handleAISearch}
+                onAutoGenerate={handleAutoGenerateRepository}
+                onDismissAutoGenerate={() => setShowAutoGenerate(false)}
+                onDeleteDoc={(idx, doc) => {
+                  const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
+                  setDeleteConfirm({ show: true, docIndex: idx, docName });
+                }}
+                onGenerateFromDoc={generateQuestionsFromDocuments}
+                fileInputRef={fileInputRef}
+              />
+            )}
 
             {/* BANCO DE PREGUNTAS */}
             <div>
@@ -129,32 +143,34 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast }) {
                 </div>
               </div>
 
-              <QuestionGeneratorPanel
-                isGenerating={isGeneratingQuestions}
-                progress={generationProgress}
-                percent={generationPercent}
-                hasDocuments={!!theme.documents?.length}
-                estimatedTotal={estimatedTotal}
-                currentCount={questionCount}
-                coveragePercent={coveragePercent}
-                onGenerate={generateQuestionsFromDocuments}
-                onToggleManual={() => setShowAddQuestion(!showAddQuestion)}
-                showManual={showAddQuestion}
-              />
-
-              <ManualQuestionForm
-                show={showAddQuestion}
-                question={newQuestion}
-                onChange={setNewQuestion}
-                onAdd={handleManualQuestionAdd}
-                onClose={() => setShowAddQuestion(false)}
-              />
-
-              <ImportQuestionsPanel
-                theme={theme}
-                onImportFile={handleImportFile}
-                showToast={showToast}
-              />
+              {!readOnly && (
+                <>
+                  <QuestionGeneratorPanel
+                    isGenerating={isGeneratingQuestions}
+                    progress={generationProgress}
+                    percent={generationPercent}
+                    hasDocuments={!!theme.documents?.length}
+                    estimatedTotal={estimatedTotal}
+                    currentCount={questionCount}
+                    coveragePercent={coveragePercent}
+                    onGenerate={generateQuestionsFromDocuments}
+                    onToggleManual={() => setShowAddQuestion(!showAddQuestion)}
+                    showManual={showAddQuestion}
+                  />
+                  <ManualQuestionForm
+                    show={showAddQuestion}
+                    question={newQuestion}
+                    onChange={setNewQuestion}
+                    onAdd={handleManualQuestionAdd}
+                    onClose={() => setShowAddQuestion(false)}
+                  />
+                  <ImportQuestionsPanel
+                    theme={theme}
+                    onImportFile={handleImportFile}
+                    showToast={showToast}
+                  />
+                </>
+              )}
 
               {theme.questions?.length > 0 && (
                 <QuestionList

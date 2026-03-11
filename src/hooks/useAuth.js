@@ -117,15 +117,13 @@ const useAuth = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      if (currentUser && !currentUser.isGuest) {
-        await authHelpers.signOut();
-      }
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+    // Limpiar estado local inmediatamente — la UI responde sin esperar la red
     setCurrentUser(null);
     setIsAuthenticated(false);
+    // signOut en background para invalidar el token en el servidor
+    if (currentUser && !currentUser.isGuest) {
+      authHelpers.signOut().catch(() => {});
+    }
   };
 
   const handleOnboardingComplete = (newProfile, updatedUser) => {

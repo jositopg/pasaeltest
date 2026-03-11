@@ -305,6 +305,7 @@ export default function App() {
             showToast={showToast}
             genQueue={genQueue}
             currentUser={auth.currentUser}
+            isClonedTest={activeTestIsCloned}
           />
         )}
         {screen === 'exam' && (
