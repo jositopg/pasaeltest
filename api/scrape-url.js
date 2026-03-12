@@ -11,17 +11,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verificar autenticación
+  // Validar token solo si fue enviado (guests no tienen sesión Supabase)
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token' });
-
-  const supabase = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.SERVICE_ROLE_KEY_SUPABASE
-  );
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
+  if (token) {
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.SERVICE_ROLE_KEY_SUPABASE
+    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
+  }
 
   const { url } = req.body;
 

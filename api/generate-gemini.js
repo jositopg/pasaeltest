@@ -20,9 +20,8 @@ export default async function handler(req, res) {
     });
   }
 
-  // Verificar autenticación
+  // Leer token si existe (guests no tienen sesión Supabase)
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token' });
 
   try {
     // 1. Leer datos del frontend
@@ -58,9 +57,11 @@ export default async function handler(req, res) {
       process.env.SERVICE_ROLE_KEY_SUPABASE
     );
 
-    // Validar token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
+    // Validar token solo si fue enviado (guests no tienen sesión Supabase)
+    if (token) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
+    }
 
     // 5. BUSCAR EN CACHÉ si está habilitado
     if (useCache) {
