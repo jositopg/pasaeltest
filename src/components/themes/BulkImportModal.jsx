@@ -25,7 +25,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
           <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
             <div>
               <h3 className="text-white font-bold">Temas importados</h3>
-              <p className="text-gray-400 text-xs mt-0.5">Crea el repositorio IA para cada tema que quieras</p>
+              <p className="text-gray-400 text-xs mt-0.5">Genera material IA para cada tema que quieras</p>
             </div>
             <button onClick={onDismissPanel} className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors text-white">
               <Icons.X />
@@ -65,7 +65,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
 
           <div className="p-4 border-t border-white/10 shrink-0">
             <p className="text-gray-500 text-xs text-center">
-              {importedThemesPanel.filter(t => t.status === 'done').length}/{importedThemesPanel.length} repositorios creados
+              {importedThemesPanel.filter(t => t.status === 'done').length}/{importedThemesPanel.length} materiales generados
             </p>
           </div>
         </div>

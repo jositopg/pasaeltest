@@ -34,7 +34,7 @@ export default function DocumentSection({
     <div>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-white font-semibold">Repositorio de Conocimiento</h3>
+          <h3 className="text-white font-semibold">Material de Estudio</h3>
           <p className="text-gray-500 text-xs mt-1">
             {theme.documents?.length > 0
               ? `${theme.documents.length} documento${theme.documents.length > 1 ? 's' : ''} optimizado${theme.documents.length > 1 ? 's' : ''}`
@@ -55,7 +55,7 @@ export default function DocumentSection({
               <p className="text-green-300 font-bold text-sm mb-1">✨ Generación Automática Disponible</p>
               <p className="text-green-200 text-xs mb-3">
                 Detectamos que este tema se llama <strong>"{theme.name}"</strong>.
-                ¿Quieres que busquemos y generemos un repositorio automático con contenido oficial?
+                ¿Quieres que busquemos y generemos material de estudio automático con contenido oficial?
               </p>
               <div className="flex gap-2">
                 <button
@@ -63,7 +63,7 @@ export default function DocumentSection({
                   disabled={isAutoGenerating}
                   className="bg-green-500 text-white font-bold text-xs px-4 py-2 rounded-lg hover:bg-green-400 transition-colors flex items-center gap-2"
                 >
-                  <span>🚀</span> Generar Repositorio Automático
+                  <span>🚀</span> Generar Material Automático
                 </button>
                 <button
                   onClick={onDismissAutoGenerate}
@@ -83,7 +83,7 @@ export default function DocumentSection({
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
             <div className="flex-1">
-              <p className="text-blue-300 font-semibold text-sm">Generando repositorio automático...</p>
+              <p className="text-blue-300 font-semibold text-sm">Generando material de estudio...</p>
               <p className="text-blue-200 text-xs mt-1">Buscando información oficial sobre "{theme.name}"</p>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function DocumentSection({
                   <button
                     onClick={() => onGenerateFromDoc([doc])}
                     disabled={isGeneratingQuestions}
-                    title="Generar preguntas solo desde este repositorio"
+                    title="Generar preguntas solo desde este material"
                     className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-all active:scale-95 disabled:opacity-50"
                   >
                     ⚡
@@ -267,8 +267,8 @@ export default function DocumentSection({
         ) : (
           <div className="text-center py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
             <div className="text-4xl mb-3">📚</div>
-            <p className="text-gray-400 font-medium">No hay documentos en el repositorio</p>
-            <p className="text-gray-600 text-sm mt-1">Añade documentos o usa búsqueda IA para comenzar</p>
+            <p className="text-gray-400 font-medium">Aún no hay material de estudio</p>
+            <p className="text-gray-600 text-sm mt-1">Añade contenido o usa búsqueda IA para empezar</p>
           </div>
         )}
       </div>

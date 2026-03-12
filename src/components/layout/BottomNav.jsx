@@ -6,7 +6,7 @@ function BottomNav({ current, onNavigate }) {
   const { dm } = useTheme();
   const items = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
-    { id: 'exams', icon: Icons.Book, label: 'Exámenes' },
+    { id: 'exams', icon: Icons.Book, label: 'Planes' },
     { id: 'questions', icon: Icons.Questions, label: 'Preguntas' },
     { id: 'stats', icon: Icons.Stats, label: 'Stats' }
   ];

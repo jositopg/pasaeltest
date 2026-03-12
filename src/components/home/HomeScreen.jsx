@@ -170,9 +170,9 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
               <span className="text-2xl">📚</span>
               <div>
                 <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                  Exámenes
+                  Mis Planes
                 </div>
-                <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Gestionar contenido</div>
+                <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Temario y contenido</div>
               </div>
             </button>
 

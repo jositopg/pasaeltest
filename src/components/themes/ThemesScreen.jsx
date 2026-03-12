@@ -239,7 +239,7 @@ function ThemesScreen({
       const newDoc = {
         type: 'ai-search',
         content: themeEntry.name,
-        fileName: `Repositorio: ${themeEntry.name}`,
+        fileName: `Material: ${themeEntry.name}`,
         addedAt: new Date().toISOString(),
         searchResults: { query: themeEntry.name, content, processedContent: content },
         processedContent: content
@@ -288,7 +288,7 @@ function ThemesScreen({
     setRepoCleanMode(false);
     setRepoCleanSelected(new Set());
     setRepoCleanConfirm(false);
-    showToast(`🗑 ${n} repositorio${n !== 1 ? 's' : ''} eliminado${n !== 1 ? 's' : ''}`, 'success');
+    showToast(`🗑 Material de ${n} tema${n !== 1 ? 's' : ''} eliminado`, 'success');
   };
 
   const handleBulkReset = () => {
@@ -496,7 +496,7 @@ function ThemesScreen({
                   <span className="text-green-400 text-sm">✓</span>
                 )}
                 <span className={`font-semibold text-sm ${cx.heading}`}>
-                  {queueProgress.type === 'repos' ? '⚡ Repositorios' : '📝 Preguntas'}:&nbsp;
+                  {queueProgress.type === 'repos' ? '⚡ Material' : '📝 Preguntas'}:&nbsp;
                   <span className={dm ? 'text-slate-300' : 'text-slate-600'}>{queueProgress.done}/{queueProgress.total}</span>
                 </span>
               </div>
@@ -665,12 +665,12 @@ function ThemesScreen({
                   </div>
 
                   <div className="flex items-start gap-1 shrink-0">
-                    {/* Botón ⚡ generar repositorio rápido — visible si tiene nombre y sin docs */}
+                    {/* Botón ⚡ generar material rápido — visible si tiene nombre y sin docs */}
                     {!selectionMode && !isEditing && !isDefaultName && !hasDocuments && (
                       <button
                         onClick={(e) => { e.stopPropagation(); createRepoInline(theme); }}
                         disabled={generatingRepos[theme.number] === 'loading'}
-                        title="Generar repositorio IA con el nombre del tema"
+                        title="Generar material IA con el nombre del tema"
                         className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
                           generatingRepos[theme.number] === 'loading'
                             ? 'text-purple-400 cursor-wait'
@@ -818,8 +818,8 @@ function ThemesScreen({
         />
         <ConfirmDialog
           show={repoCleanConfirm}
-          title="¿Borrar repositorios seleccionados?"
-          message={`Se eliminarán los documentos de ${repoCleanSelected.size} tema${repoCleanSelected.size !== 1 ? 's' : ''}. Después podrás regenerarlos con ⚡ Repos.`}
+          title="¿Borrar material seleccionado?"
+          message={`Se eliminará el material de ${repoCleanSelected.size} tema${repoCleanSelected.size !== 1 ? 's' : ''}. Después podrás regenerarlo con ⚡.`}
           confirmLabel="Sí, borrar"
           danger
           onConfirm={confirmRepoClean}
@@ -827,8 +827,8 @@ function ThemesScreen({
         />
         <ConfirmDialog
           show={generateReposConfirm}
-          title="¿Generar repositorios para todos los temas?"
-          message={`Se generará un repositorio IA para cada tema con nombre personalizado que aún no tenga documentos. Este proceso puede tardar varios minutos.`}
+          title="¿Generar material para todos los temas?"
+          message={`Se generará material IA para cada tema con nombre personalizado que aún no tenga contenido. Este proceso puede tardar varios minutos.`}
           confirmLabel="Sí, generar"
           onConfirm={() => { setGenerateReposConfirm(false); handleGenerateAll(); }}
           onCancel={() => setGenerateReposConfirm(false)}
@@ -836,7 +836,7 @@ function ThemesScreen({
         <ConfirmDialog
           show={generateQuestionsConfirm}
           title="¿Generar preguntas para todos los temas?"
-          message={`Se generarán preguntas tipo test para cada tema que tenga repositorio. Este proceso puede tardar varios minutos.`}
+          message={`Se generarán preguntas tipo test para cada tema que tenga material de estudio. Este proceso puede tardar varios minutos.`}
           confirmLabel="Sí, generar"
           onConfirm={() => { setGenerateQuestionsConfirm(false); handleGenerateAllQuestions(); }}
           onCancel={() => setGenerateQuestionsConfirm(false)}

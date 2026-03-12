@@ -59,7 +59,7 @@ function ExamsScreen({
     const test = tests.find(t => t.id === testId);
     // Planes clonados siempre se pueden borrar; tests propios requieren al menos 2
     if (!test?.cloned_from && tests.length <= 1) {
-      showToast('No puedes eliminar el único examen.', 'error');
+      showToast('No puedes eliminar el único plan.', 'error');
       return;
     }
     await onDeleteTest(testId);
@@ -134,7 +134,7 @@ function ExamsScreen({
       <div className={`sticky top-0 z-10 px-4 pb-3 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <h1 className={`font-bold text-2xl ${cx.heading}`} style={{ fontFamily: 'Sora, system-ui' }}>
-            Mis Exámenes
+            Mis Planes
           </h1>
           <button
             onClick={() => setCreating(true)}
@@ -151,7 +151,7 @@ function ExamsScreen({
         {/* Formulario crear */}
         {creating && (
           <div className={`rounded-2xl p-4 space-y-3 ${cx.cardAlt}`}>
-            <p className={`text-sm font-semibold ${cx.heading}`}>Nuevo examen</p>
+            <p className={`text-sm font-semibold ${cx.heading}`}>Nuevo plan</p>
             <input
               autoFocus
               type="text"
@@ -269,12 +269,12 @@ function ExamsScreen({
 
         {tests.length === 0 && (
           <div className={`text-center py-16 rounded-2xl ${cx.card}`}>
-            <div className="text-4xl mb-3">📋</div>
+            <div className="text-4xl mb-3">📚</div>
             <p className={`font-semibold ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-              No tienes ningún examen todavía
+              No tienes ningún plan todavía
             </p>
             <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>
-              Crea tu primer examen con el botón de arriba
+              Crea un plan propio o únete a uno con un enlace de invitación
             </p>
           </div>
         )}

@@ -9,7 +9,7 @@ export default function GenerationBanner({ progress }) {
   const isDone = progress.done >= progress.total && !progress.currentName;
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   const icon = progress.type === 'repos' ? '⚡' : '📝';
-  const label = progress.type === 'repos' ? 'repositorios' : 'preguntas';
+  const label = progress.type === 'repos' ? 'materiales' : 'preguntas';
   const errorCount = progress.errors?.length || 0;
 
   return (
