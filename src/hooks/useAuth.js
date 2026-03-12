@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { authHelpers, supabase } from '../supabaseClient';
+import { authHelpers } from '../supabaseClient';
 import { DEBUG } from '../utils/constants';
+
+const buildUser = (user) => ({
+  id: user.id,
+  email: user.email,
+  name: user.user_metadata?.name || 'Usuario',
+  createdAt: user.created_at,
+  subscription: 'free',
+  isGuest: false,
+  isFirstLogin: false,
+});
 
 const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -22,33 +32,15 @@ const useAuth = () => {
     }, 3000);
 
     const { data: { subscription } } = authHelpers.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (DEBUG) console.log('Auth event:', event, !!session);
 
         if (event === 'INITIAL_SESSION') {
-          // Sesión inicial al montar la app (desde localStorage, sin llamada al servidor)
-          try {
-            if (session?.user) {
-              const user = session.user;
-              const { data: profile } = await supabase
-                .from('users')
-                .select('role, organization_id')
-                .eq('id', user.id)
-                .single();
-              setCurrentUser({
-                id: user.id,
-                email: user.email,
-                name: user.user_metadata?.name || 'Usuario',
-                createdAt: user.created_at,
-                subscription: 'free',
-                role: profile?.role || 'user',
-                organizationId: profile?.organization_id || null,
-                isGuest: false,
-                isFirstLogin: false,
-              });
-              setIsAuthenticated(true);
-            }
-          } catch {}
+          // Sesión inicial desde localStorage — sin llamada al servidor
+          if (session?.user) {
+            setCurrentUser(buildUser(session.user));
+            setIsAuthenticated(true);
+          }
           if (!resolved) {
             resolved = true;
             clearTimeout(fallback);
@@ -56,26 +48,8 @@ const useAuth = () => {
           }
 
         } else if (event === 'SIGNED_IN' && session) {
-          try {
-            const user = session.user;
-            const { data: profile } = await supabase
-              .from('users')
-              .select('role, organization_id')
-              .eq('id', user.id)
-              .single();
-            setCurrentUser({
-              id: user.id,
-              email: user.email,
-              name: user.user_metadata?.name || 'Usuario',
-              createdAt: user.created_at,
-              subscription: 'free',
-              role: profile?.role || 'user',
-              organizationId: profile?.organization_id || null,
-              isGuest: false,
-              isFirstLogin: false,
-            });
-            setIsAuthenticated(true);
-          } catch {}
+          setCurrentUser(buildUser(session.user));
+          setIsAuthenticated(true);
           setAuthLoading(false);
 
         } else if (event === 'SIGNED_OUT') {

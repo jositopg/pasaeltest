@@ -37,6 +37,12 @@ function AuthScreen({ onLogin }) {
     setError('');
     setLoading(true);
 
+    // Safety: desbloquear el botón si la red no responde en 10s
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError('La conexión tardó demasiado. Comprueba tu internet e inténtalo de nuevo.');
+    }, 10000);
+
     try {
       if (isLogin) {
         // LOGIN con Supabase
@@ -46,6 +52,7 @@ function AuthScreen({ onLogin }) {
         );
         
         if (error) {
+          clearTimeout(timeout);
           if (error.message === 'Invalid login credentials') {
             setError('Email o contraseña incorrectos');
           } else if (error.message?.toLowerCase().includes('email not confirmed')) {
@@ -57,7 +64,8 @@ function AuthScreen({ onLogin }) {
           return;
         }
 
-        // Usuario autenticado exitosamente
+        // Usuario autenticado exitosamente — onAuthStateChange SIGNED_IN toma el control
+        clearTimeout(timeout);
         onLogin({
           id: data.user.id,
           email: data.user.email,
@@ -68,7 +76,7 @@ function AuthScreen({ onLogin }) {
           isGuest: false,
           isFirstLogin: false
         });
-        
+
       } else {
         // REGISTRO con Supabase
         const { data, error } = await authHelpers.signUp(
@@ -76,8 +84,9 @@ function AuthScreen({ onLogin }) {
           formData.password,
           { name: formData.name }
         );
-        
+
         if (error) {
+          clearTimeout(timeout);
           setError(error.message === 'User already registered'
             ? 'Este email ya está registrado'
             : 'Error al crear la cuenta');
@@ -85,7 +94,7 @@ function AuthScreen({ onLogin }) {
           return;
         }
 
-        // Usuario creado (trigger de Supabase crea perfil automáticamente)
+        clearTimeout(timeout);
         onLogin({
           id: data.user.id,
           email: data.user.email,
@@ -96,10 +105,11 @@ function AuthScreen({ onLogin }) {
           isFirstLogin: true
         });
       }
-      
+
       setLoading(false);
-      
+
     } catch (err) {
+      clearTimeout(timeout);
       console.error('Error en auth:', err);
       setError('Error al procesar la solicitud');
       setLoading(false);
