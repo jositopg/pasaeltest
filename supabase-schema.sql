@@ -423,5 +423,60 @@ CREATE INDEX IF NOT EXISTS question_reports_question_id_idx ON public.question_r
 COMMENT ON TABLE public.question_reports IS 'Reportes de errores en preguntas enviados por usuarios durante exámenes';
 
 -- ============================================================================
+-- SECURITY HARDENING MIGRATION
+-- Ejecutar en Supabase SQL Editor
+-- ============================================================================
+
+-- 1. RLS en ai_cache (deny-all desde anon; serverless usa SERVICE_ROLE_KEY que bypassa RLS)
+ALTER TABLE public.ai_cache ENABLE ROW LEVEL SECURITY;
+-- Sin policies = deny all desde anon/authenticated key
+
+-- 2. RLS en api_usage (deny-all desde anon)
+ALTER TABLE public.api_usage ENABLE ROW LEVEL SECURITY;
+-- Sin policies = deny all desde anon/authenticated key
+
+-- 3. RLS en question_reports — los usuarios solo pueden ver/insertar sus propios reportes
+ALTER TABLE public.question_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert own reports" ON public.question_reports
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own reports" ON public.question_reports
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- 4. Corregir get_user_stats — añadir validación de ownership para evitar IDOR
+-- Un usuario solo puede ver sus propias estadísticas
+CREATE OR REPLACE FUNCTION get_user_stats(p_user_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_stats jsonb;
+BEGIN
+  -- Solo permite obtener estadísticas del usuario autenticado
+  IF auth.uid() IS DISTINCT FROM p_user_id THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  SELECT jsonb_build_object(
+    'total_themes', count(DISTINCT t.id),
+    'total_questions', count(DISTINCT q.id),
+    'total_documents', count(DISTINCT d.id),
+    'total_exams', count(DISTINCT e.id),
+    'avg_exam_score', avg((e.score->>'percentage')::numeric)
+  )
+  INTO v_stats
+  FROM public.themes t
+  LEFT JOIN public.questions q ON q.theme_id = t.id
+  LEFT JOIN public.documents d ON d.theme_id = t.id
+  LEFT JOIN public.exam_history e ON e.user_id = t.user_id
+  WHERE t.user_id = p_user_id;
+
+  RETURN v_stats;
+END;
+$$;
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================

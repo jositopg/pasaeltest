@@ -20,6 +20,10 @@ export default async function handler(req, res) {
     });
   }
 
+  // Verificar autenticación
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+
   try {
     // 1. Leer datos del frontend
     const {
@@ -48,11 +52,15 @@ export default async function handler(req, res) {
 
     console.log(`🔍 Prompt hash: ${promptHash.substring(0, 16)}...`);
 
-    // 4. Inicializar Supabase (para caché)
+    // 4. Inicializar Supabase (para auth + caché)
     const supabase = createClient(
       process.env.VITE_SUPABASE_URL,
       process.env.SERVICE_ROLE_KEY_SUPABASE
     );
+
+    // Validar token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
 
     // 5. BUSCAR EN CACHÉ si está habilitado
     if (useCache) {

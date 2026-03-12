@@ -4,6 +4,7 @@ import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generate
 import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
 import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/constants';
 import { jsonrepair } from 'jsonrepair';
+import { authHelpers } from '../supabaseClient';
 
 export default function useThemeModal({ theme, onUpdate, showToast }) {
   // ─── Estado documentos ────────────────────────────────────
@@ -86,9 +87,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     if (showToast) showToast(`Generando repositorio para "${theme.name}"...`, 'info');
     try {
       setIsSearching(true);
+      const token = await authHelpers.getAccessToken();
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
         body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo', useCache: false })
       });
       if (!response.ok) throw new Error('Error en la búsqueda');
@@ -154,9 +156,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     } else {
       prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingQuestionsStr, coverageInstruction);
     }
+    const token = await authHelpers.getAccessToken();
     const response = await fetch('/api/generate-gemini', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
       body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 16000, callType: 'questions' })
     });
     if (!response.ok) {
@@ -220,9 +223,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
         setGenerationProgress('🔄 Repositorio insuficiente, regenerando...');
         setGenerationPercent(15);
         try {
+          const token = await authHelpers.getAccessToken();
           const repoResp = await fetch('/api/generate-gemini', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
             body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' })
           });
           if (repoResp.ok) {
@@ -282,9 +286,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     setGenerationProgress('🔍 Buscando y procesando con IA...');
     setGenerationPercent(10);
     try {
+      const token = await authHelpers.getAccessToken();
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
         body: JSON.stringify({ prompt: OPTIMIZED_SEARCH_PROMPT(docContent, theme.name), maxTokens: 8000, callType: 'search' })
       });
       setGenerationProgress('📝 Procesando respuesta...');
@@ -355,7 +360,8 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
       setGenerationProgress('🌐 Obteniendo contenido de la web...');
       setGenerationPercent(20);
       try {
-        const response = await fetch('/api/scrape-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: docContent }) });
+        const token = await authHelpers.getAccessToken();
+        const response = await fetch('/api/scrape-url', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) }, body: JSON.stringify({ url: docContent }) });
         setGenerationPercent(60);
         if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `Error HTTP ${response.status}`); }
         const data = await response.json();

@@ -4,10 +4,24 @@
  * NO funciona con páginas que requieren JavaScript (SPAs)
  */
 
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Verificar autenticación
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SERVICE_ROLE_KEY_SUPABASE
+  );
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: 'Token inválido' });
 
   const { url } = req.body;
 
@@ -25,6 +39,27 @@ export default async function handler(req, res) {
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     return res.status(400).json({ error: 'Solo se permiten URLs http/https' });
+  }
+
+  // Bloquear IPs privadas/internas (SSRF protection)
+  const hostname = parsed.hostname.toLowerCase();
+  const isPrivate =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('172.16.') ||
+    hostname.startsWith('172.17.') ||
+    hostname.startsWith('172.18.') ||
+    hostname.startsWith('172.19.') ||
+    hostname.startsWith('172.2') ||
+    hostname.startsWith('172.30.') ||
+    hostname.startsWith('172.31.') ||
+    hostname.startsWith('169.254.') || // link-local / cloud metadata
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local');
+  if (isPrivate) {
+    return res.status(400).json({ error: 'URL no permitida' });
   }
 
   try {

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT, OPTIMIZED_QUESTION_PROMPT } from '../utils/optimizedPrompts';
 import { QUESTIONS_PER_BATCH } from '../utils/constants';
 import { buildContent, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions } from '../utils/geminiHelpers';
+import { authHelpers } from '../supabaseClient';
 
 /**
  * Persistent generation queue — lives in App.jsx so navigation doesn't kill ongoing jobs.
@@ -24,9 +25,10 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
     setGeneratingRepos(prev => ({ ...prev, [theme.number]: 'loading' }));
 
     try {
+      const token = await authHelpers.getAccessToken();
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
         body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo', useCache: false })
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
@@ -74,10 +76,12 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       let { text: documentContents, docsUsed, docsSkipped } = buildContent(latestTheme.documents);
 
       // Auto-repair: si el contenido es insuficiente, regenerar el repositorio
+      const token = await authHelpers.getAccessToken();
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
       if (documentContents.trim().length < 100 && latestTheme.documents.length > 0) {
         const repoResp = await fetch('/api/generate-gemini', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeader },
           body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' })
         });
         if (repoResp.ok) {
@@ -113,7 +117,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
 
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 16000, callType: 'questions' })
       });
       if (!response.ok) throw new Error(`API ${response.status}`);

@@ -7,7 +7,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
-import { supabase } from '../../supabaseClient';
+import { supabase, authHelpers } from '../../supabaseClient';
 
 function ThemesScreen({
   themes, tests = [], activeTestId,
@@ -212,9 +212,10 @@ function ThemesScreen({
     );
 
     try {
+      const token = await authHelpers.getAccessToken();
       const response = await fetch("/api/generate-gemini", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
         body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name), maxTokens: 8000, callType: 'repo', useCache: false })
       });
 

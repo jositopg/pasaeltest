@@ -38,6 +38,11 @@ export const authHelpers = {
 
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange(callback)
+  },
+
+  async getAccessToken() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   }
 }
 
