@@ -113,12 +113,12 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       }
 
       const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 35000), existingTexts.join('\n'));
+      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingTexts.join('\n'));
 
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
-        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 16000, callType: 'questions' })
+        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
