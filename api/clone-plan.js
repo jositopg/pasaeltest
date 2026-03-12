@@ -95,27 +95,43 @@ export default async function handler(req, res) {
   const originalThemeIdToNumber = {};
   themes.forEach(t => { originalThemeIdToNumber[t.id] = t.number; });
 
-  // 7. Para cada tema original, obtener y clonar sus preguntas (paginado para >1000)
-  let totalQuestionsCloned = 0;
   const originalThemeIds = themes.map(t => t.id);
 
-  const PAGE_SIZE = 1000;
-  let allQuestions = [];
-  let page = 0;
-  while (true) {
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    const { data: batch, error: batchError } = await supabase
-      .from('questions')
-      .select('theme_id, text, options, correct_answer, difficulty, explanation')
-      .in('theme_id', originalThemeIds)
-      .range(from, to);
-    if (batchError) break;
-    if (!batch || batch.length === 0) break;
-    allQuestions = allQuestions.concat(batch);
-    if (batch.length < PAGE_SIZE) break;
-    page++;
-  }
+  // Helper: paginar cualquier tabla sin límite de filas
+  const fetchAllRows = async (table, selectFields, filterField, filterValues, pageSize = 1000) => {
+    let all = [];
+    let page = 0;
+    // Procesar en grupos de filterValues para evitar URLs demasiado largas con IN()
+    const GROUP = 100;
+    for (let g = 0; g < filterValues.length; g += GROUP) {
+      const group = filterValues.slice(g, g + GROUP);
+      page = 0;
+      while (true) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data: batch, error } = await supabase
+          .from(table)
+          .select(selectFields)
+          .in(filterField, group)
+          .range(from, to);
+        if (error || !batch || batch.length === 0) break;
+        all = all.concat(batch);
+        if (batch.length < pageSize) break;
+        page++;
+      }
+    }
+    return all;
+  };
+
+  // 7. Clonar preguntas (ligeras ~300 bytes c/u → page grande)
+  let totalQuestionsCloned = 0;
+  const allQuestions = await fetchAllRows(
+    'questions',
+    'theme_id, text, options, correct_answer, difficulty, explanation',
+    'theme_id',
+    originalThemeIds,
+    1000
+  );
 
   if (allQuestions.length > 0) {
     const questionsToInsert = allQuestions.map(q => {
@@ -128,36 +144,27 @@ export default async function handler(req, res) {
         correct_answer: q.correct_answer,
         difficulty: q.difficulty,
         explanation: q.explanation,
-        // SRS fields left at defaults
       };
-    }).filter(q => q.theme_id); // por si hay algún tema sin mapear
+    }).filter(q => q.theme_id);
 
-    // Insertar en lotes de 500 para no superar límites de PostgREST
-    const BATCH_SIZE = 500;
-    for (let i = 0; i < questionsToInsert.length; i += BATCH_SIZE) {
-      const chunk = questionsToInsert.slice(i, i + BATCH_SIZE);
+    const Q_BATCH = 500;
+    for (let i = 0; i < questionsToInsert.length; i += Q_BATCH) {
+      const chunk = questionsToInsert.slice(i, i + Q_BATCH);
       const { error: qError } = await supabase.from('questions').insert(chunk);
       if (!qError) totalQuestionsCloned += chunk.length;
     }
   }
 
-  // 8. Clonar documentos (repositorios) — paginado igual que preguntas
+  // 8. Clonar documentos (repositorios)
+  // PAGE_SIZE=50: processed_content puede ser ~100KB por documento → ~5MB/página, seguro
   let totalDocsCloned = 0;
-  let allDocs = [];
-  page = 0;
-  while (true) {
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    const { data: batch, error: batchError } = await supabase
-      .from('documents')
-      .select('theme_id, type, content, file_name, processed_content, search_results')
-      .in('theme_id', originalThemeIds)
-      .range(from, to);
-    if (batchError || !batch || batch.length === 0) break;
-    allDocs = allDocs.concat(batch);
-    if (batch.length < PAGE_SIZE) break;
-    page++;
-  }
+  const allDocs = await fetchAllRows(
+    'documents',
+    'theme_id, type, content, file_name, processed_content, search_results',
+    'theme_id',
+    originalThemeIds,
+    50
+  );
 
   if (allDocs.length > 0) {
     const docsToInsert = allDocs.map(d => {
@@ -173,9 +180,9 @@ export default async function handler(req, res) {
       };
     }).filter(d => d.theme_id);
 
-    const BATCH_SIZE = 200;
-    for (let i = 0; i < docsToInsert.length; i += BATCH_SIZE) {
-      const chunk = docsToInsert.slice(i, i + BATCH_SIZE);
+    const D_BATCH = 20;
+    for (let i = 0; i < docsToInsert.length; i += D_BATCH) {
+      const chunk = docsToInsert.slice(i, i + D_BATCH);
       const { error: dError } = await supabase.from('documents').insert(chunk);
       if (!dError) totalDocsCloned += chunk.length;
     }

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/clone-plan.js": { "maxDuration": 60 },
+    "api/generate-gemini.js": { "maxDuration": 60 },
+    "api/scrape-url.js": { "maxDuration": 30 }
+  }
+}
