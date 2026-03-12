@@ -478,5 +478,74 @@ END;
 $$;
 
 -- ============================================================================
+-- FUNCIÓN: clone_official_plan
+-- Clona un plan oficial completo (temas + preguntas + documentos) en una sola
+-- transacción SQL. Mucho más rápido que múltiples round-trips desde serverless.
+-- Ejecutar en Supabase SQL Editor.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.clone_official_plan(
+  p_plan_id uuid,
+  p_user_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_new_test_id uuid;
+BEGIN
+  -- 1. Crear el test clonado (solo si el plan es oficial)
+  INSERT INTO public.tests (user_id, name, cloned_from)
+  SELECT p_user_id, name, p_plan_id
+  FROM public.tests
+  WHERE id = p_plan_id AND is_official = true
+  RETURNING id INTO v_new_test_id;
+
+  IF v_new_test_id IS NULL THEN
+    RAISE EXCEPTION 'Plan no encontrado o no es oficial';
+  END IF;
+
+  -- 2. Clonar temas + preguntas en una sola sentencia CTE
+  WITH inserted_themes AS (
+    INSERT INTO public.themes (user_id, test_id, number, name)
+    SELECT p_user_id, v_new_test_id, number, name
+    FROM public.themes
+    WHERE test_id = p_plan_id
+    RETURNING id AS new_id, number
+  ),
+  orig_themes AS (
+    SELECT id AS old_id, number
+    FROM public.themes
+    WHERE test_id = p_plan_id
+  ),
+  theme_map AS (
+    SELECT ot.old_id, it.new_id
+    FROM orig_themes ot
+    JOIN inserted_themes it ON it.number = ot.number
+  )
+  INSERT INTO public.questions (theme_id, text, options, correct_answer, difficulty, explanation)
+  SELECT tm.new_id, q.text, q.options, q.correct_answer, q.difficulty, q.explanation
+  FROM public.questions q
+  JOIN theme_map tm ON tm.old_id = q.theme_id;
+
+  -- 3. Clonar documentos (repositorios) — CTE separada reutilizando los nuevos temas
+  WITH theme_map AS (
+    SELECT nt.id AS new_id, ot.id AS old_id
+    FROM public.themes nt
+    JOIN public.themes ot ON ot.number = nt.number AND ot.test_id = p_plan_id
+    WHERE nt.test_id = v_new_test_id
+  )
+  INSERT INTO public.documents (theme_id, type, content, file_name, processed_content, search_results)
+  SELECT tm.new_id, d.type, d.content, d.file_name, d.processed_content, d.search_results
+  FROM public.documents d
+  JOIN theme_map tm ON tm.old_id = d.theme_id;
+
+  RETURN v_new_test_id;
+END;
+$$;
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================
