@@ -190,7 +190,12 @@ function ThemesScreen({
 
     let created = [];
     if (toCreate.length > 0 && onAddThemesBatch) {
-      created = await onAddThemesBatch(toCreate) || [];
+      const result = await onAddThemesBatch(toCreate);
+      if (result?.error) {
+        showToast(`Error al importar: ${result.error}`, 'error');
+      } else {
+        created = result?.themes || [];
+      }
     }
 
     setShowBulkImport(false);
@@ -200,6 +205,8 @@ function ThemesScreen({
       setImportedThemesPanel(
         allImported.map(t => ({ number: t.number, name: t.name, status: 'idle' }))
       );
+    } else if (lines.length > 0 && toCreate.length === 0 && toUpdate.length === 0) {
+      showToast('No se detectaron temas válidos en el texto', 'warning');
     }
   };
 
@@ -332,7 +339,7 @@ function ThemesScreen({
             >☑</button>
           )}
           <button
-            onClick={() => onAddTheme && onAddTheme()}
+            onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
             className={`px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${dm ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
             title="Añadir un tema"
           >
@@ -562,7 +569,7 @@ function ThemesScreen({
             <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>Importa una lista de temas o añade uno a uno</p>
             <div className="flex justify-center gap-2">
               <button
-                onClick={() => onAddTheme && onAddTheme()}
+                onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               >+ Añadir tema</button>
               <button

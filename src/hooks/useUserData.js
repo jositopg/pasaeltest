@@ -21,12 +21,14 @@ const useUserData = (isAuthenticated, currentUser) => {
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
       loadedUserIdRef.current = null;
+      setLoading(false);
       return;
     }
     // Evitar doble carga si el userId no ha cambiado
     if (loadedUserIdRef.current === currentUser.id) return;
     loadedUserIdRef.current = currentUser.id;
 
+    setLoading(true); // Bloquear UI inmediatamente antes de cualquier llamada async
     if (currentUser.isGuest) {
       loadGuestData();
     } else {
@@ -92,11 +94,15 @@ const useUserData = (isAuthenticated, currentUser) => {
       });
 
       // 1. Cargar tests + historial de exámenes + orphan check en paralelo
-      const [testsResult, orphanResult, examsResult] = await Promise.all([
+      // Promise.allSettled: si una query falla (red, etc.) no bloquea las demás
+      const [testsSettled, orphanSettled, examsSettled] = await Promise.allSettled([
         dbHelpers.getTests(currentUser.id),
         dbHelpers.getOrphanThemes(currentUser.id),
         dbHelpers.getExamHistory(currentUser.id),
       ]);
+      const testsResult = testsSettled.status === 'fulfilled' ? testsSettled.value : { data: null };
+      const orphanResult = orphanSettled.status === 'fulfilled' ? orphanSettled.value : { data: null };
+      const examsResult = examsSettled.status === 'fulfilled' ? examsSettled.value : { data: null };
 
       let testsList = testsResult.data || [];
 
@@ -192,27 +198,35 @@ const useUserData = (isAuthenticated, currentUser) => {
     if (!currentUser || currentUser.isGuest) {
       const newTheme = { id: `temp-${Date.now()}`, number: nextNumber, name: themeName, documents: [], questions: [] };
       setThemes(prev => [...prev, newTheme]);
-      return newTheme;
+      return { theme: newTheme };
     }
+    if (!activeTestId) return { error: 'No hay un examen activo. Recarga la página.' };
     const { data, error } = await dbHelpers.createThemesBatchForTest(currentUser.id, activeTestId, [{ number: nextNumber, name: themeName }]);
-    if (error || !data?.[0]) { console.error('Error adding theme:', error); return null; }
+    if (error || !data?.[0]) {
+      console.error('Error adding theme:', error);
+      return { error: error?.message || 'Error al crear el tema en la base de datos' };
+    }
     const newTheme = { id: data[0].id, number: data[0].number, name: data[0].name, documents: [], questions: [] };
     setThemes(prev => [...prev, newTheme]);
-    return newTheme;
+    return { theme: newTheme };
   };
 
   const addThemesBatch = async (themesToAdd) => {
-    if (!themesToAdd?.length) return [];
+    if (!themesToAdd?.length) return { themes: [] };
     if (!currentUser || currentUser.isGuest) {
       const newThemes = themesToAdd.map(t => ({ id: `temp-${Date.now()}-${t.number}`, number: t.number, name: t.name, documents: [], questions: [] }));
       setThemes(prev => [...prev, ...newThemes]);
-      return newThemes;
+      return { themes: newThemes };
     }
+    if (!activeTestId) return { themes: [], error: 'No hay un examen activo. Recarga la página.' };
     const { data, error } = await dbHelpers.createThemesBatchForTest(currentUser.id, activeTestId, themesToAdd);
-    if (error || !data) { console.error('Error adding themes batch:', error); return []; }
+    if (error || !data) {
+      console.error('Error adding themes batch:', error);
+      return { themes: [], error: error?.message || 'Error al guardar los temas en la base de datos' };
+    }
     const newThemes = data.map(t => ({ id: t.id, number: t.number, name: t.name, documents: [], questions: [] }));
     setThemes(prev => [...prev, ...newThemes]);
-    return newThemes;
+    return { themes: newThemes };
   };
 
   const renameTest = async (testId, name) => {
