@@ -12,7 +12,7 @@ const useUserData = (isAuthenticated, currentUser) => {
   const [themes, setThemes] = useState([]);
   const [examHistory, setExamHistory] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [tests, setTests] = useState([]);
   const [activeTestId, setActiveTestId] = useState(null);
   const loadedUserIdRef = React.useRef(null);
@@ -84,21 +84,24 @@ const useUserData = (isAuthenticated, currentUser) => {
     setLoading(true);
 
     try {
-      // Profile
+      // Profile (local, sin red)
       setProfile({
         ...DEFAULT_PROFILE,
         name: currentUser.name,
         examName: currentUser.oposicion,
       });
 
-      // 1. Cargar tests
-      const { data: testsData } = await dbHelpers.getTests(currentUser.id);
-      let testsList = testsData || [];
+      // 1. Cargar tests + historial de exámenes + orphan check en paralelo
+      const [testsResult, orphanResult, examsResult] = await Promise.all([
+        dbHelpers.getTests(currentUser.id),
+        dbHelpers.getOrphanThemes(currentUser.id),
+        dbHelpers.getExamHistory(currentUser.id),
+      ]);
 
-      // 2. Migración: detectar temas sin test_id (usuarios existentes antes de la feature de tests)
-      const { data: orphanCheck } = await dbHelpers.getOrphanThemes(currentUser.id);
-      if (orphanCheck && orphanCheck.length > 0) {
-        // Crear test por defecto y migrar temas huérfanos
+      let testsList = testsResult.data || [];
+
+      // 2. Migración: temas sin test_id (usuarios pre-feature de tests)
+      if (orphanResult.data && orphanResult.data.length > 0) {
         const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
           ? currentUser.oposicion
           : 'Mi Test';
@@ -111,13 +114,12 @@ const useUserData = (isAuthenticated, currentUser) => {
 
       setTests(testsList);
 
-      // 3. Cargar temas del test activo
+      // 3. Cargar temas del test activo + historial en paralelo
       const firstTestId = testsList[0]?.id;
       setActiveTestId(firstTestId || null);
 
       if (firstTestId) {
         const { data: themesData, error: themesError } = await dbHelpers.getThemesByTest(firstTestId);
-
         if (themesError) {
           console.error('Error loading themes:', themesError);
           setThemes([]);
@@ -125,8 +127,7 @@ const useUserData = (isAuthenticated, currentUser) => {
           setThemes(themesData?.length > 0 ? themesData.map(mapThemeFromDB) : []);
         }
       } else if (testsList.length === 0) {
-        // No hay tests ni temas — usuario completamente nuevo sin migration
-        // Crear test por defecto + temas
+        // Usuario nuevo sin tests — crear test por defecto
         const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
           ? currentUser.oposicion
           : 'Mi Test';
@@ -138,10 +139,9 @@ const useUserData = (isAuthenticated, currentUser) => {
         setThemes([]);
       }
 
-      // 4. Historial de exámenes
-      const { data: examsData } = await dbHelpers.getExamHistory(currentUser.id);
-      if (examsData) {
-        setExamHistory(examsData.map(exam => ({
+      // 4. Aplicar historial (ya obtenido en parallel)
+      if (examsResult.data) {
+        setExamHistory(examsResult.data.map(exam => ({
           ...exam.config,
           score: exam.score,
           date: exam.created_at
