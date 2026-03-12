@@ -123,7 +123,6 @@ export default async function handler(req, res) {
       const newThemeId = themeNumberToNewId[themeNumber];
       return {
         theme_id: newThemeId,
-        user_id: user.id,
         text: q.text,
         options: q.options,
         correct_answer: q.correct_answer,
@@ -142,9 +141,50 @@ export default async function handler(req, res) {
     }
   }
 
+  // 8. Clonar documentos (repositorios) — paginado igual que preguntas
+  let totalDocsCloned = 0;
+  let allDocs = [];
+  page = 0;
+  while (true) {
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data: batch, error: batchError } = await supabase
+      .from('documents')
+      .select('theme_id, type, content, file_name, processed_content, search_results')
+      .in('theme_id', originalThemeIds)
+      .range(from, to);
+    if (batchError || !batch || batch.length === 0) break;
+    allDocs = allDocs.concat(batch);
+    if (batch.length < PAGE_SIZE) break;
+    page++;
+  }
+
+  if (allDocs.length > 0) {
+    const docsToInsert = allDocs.map(d => {
+      const themeNumber = originalThemeIdToNumber[d.theme_id];
+      const newThemeId = themeNumberToNewId[themeNumber];
+      return {
+        theme_id: newThemeId,
+        type: d.type,
+        content: d.content,
+        file_name: d.file_name,
+        processed_content: d.processed_content,
+        search_results: d.search_results,
+      };
+    }).filter(d => d.theme_id);
+
+    const BATCH_SIZE = 200;
+    for (let i = 0; i < docsToInsert.length; i += BATCH_SIZE) {
+      const chunk = docsToInsert.slice(i, i + BATCH_SIZE);
+      const { error: dError } = await supabase.from('documents').insert(chunk);
+      if (!dError) totalDocsCloned += chunk.length;
+    }
+  }
+
   return res.status(200).json({
     testId: newTest.id,
     themesCreated: newThemes?.length || 0,
     questionsCloned: totalQuestionsCloned,
+    documentsCloned: totalDocsCloned,
   });
 }
