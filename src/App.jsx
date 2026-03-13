@@ -41,6 +41,7 @@ export default function App() {
   // ─── Navigation ────────────────────────────────────────────
   const [screen, setScreen] = useState('home');
   const [examConfig, setExamConfig] = useState(null);
+  const [reviewFailed, setReviewFailed] = useState(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
   // ─── Join plan via ?join=slug OR manual code from HomeScreen ──
@@ -155,9 +156,15 @@ export default function App() {
     return result;
   };
 
-  const finishExam = async (score, flags = []) => {
+  const finishExam = async (score, flags = [], reviewQs = null) => {
     await userData.saveExamResult(examConfig, score);
-    setScreen('home');
+    if (reviewQs?.length > 0) {
+      setReviewFailed(reviewQs);
+      setScreen('review');
+    } else {
+      setReviewFailed(null);
+      setScreen('home');
+    }
 
     // Enviar reportes de preguntas (fire-and-forget)
     if (flags.length > 0) {
@@ -319,10 +326,10 @@ export default function App() {
         )}
         {screen === 'review' && (
           <ReviewScreen
-            dueQuestions={srsStats.dueQuestions}
+            dueQuestions={reviewFailed || srsStats.dueQuestions}
             themes={userData.themes}
             onUpdateTheme={userData.updateTheme}
-            onNavigate={setScreen}
+            onNavigate={(s) => { setReviewFailed(null); setScreen(s); }}
             showToast={showToast}
           />
         )}

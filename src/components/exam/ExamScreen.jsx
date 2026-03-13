@@ -211,7 +211,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
     }
   };
 
-  const handleFinish = (score) => {
+  const handleFinish = (score, reviewQs = null) => {
     sessionStorage.removeItem(EXAM_STATE_KEY);
     const activeFlags = Object.entries(flags)
       .filter(([, f]) => f.comment?.trim())
@@ -219,15 +219,34 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
         question: questions[parseInt(idx)],
         comment: f.comment.trim(),
       }));
-    onFinish(score, activeFlags);
+    onFinish(score, activeFlags, reviewQs);
   };
 
   const calculateScore = () => {
     let correct = 0, incorrect = 0;
+    const failedQs = [];
+    const byTheme = {};
+    const byDifficulty = { facil: { c: 0, i: 0 }, media: { c: 0, i: 0 }, dificil: { c: 0, i: 0 }, unknown: { c: 0, i: 0 } };
+
     Object.entries(answers).forEach(([idx, ans]) => {
-      if (questions[idx].correct === ans) correct++;
-      else incorrect++;
+      const q = questions[idx];
+      const isCorrect = q.correct === ans;
+      if (isCorrect) correct++;
+      else { incorrect++; failedQs.push(q); }
+
+      // breakdown por tema
+      const tn = q.themeNumber;
+      if (!byTheme[tn]) byTheme[tn] = { correct: 0, incorrect: 0 };
+      if (isCorrect) byTheme[tn].correct++;
+      else byTheme[tn].incorrect++;
+
+      // breakdown por dificultad
+      const d = (q.difficulty || '').toLowerCase();
+      const key = d === 'facil' || d === 'fácil' ? 'facil' : d === 'media' ? 'media' : d === 'dificil' || d === 'difícil' ? 'dificil' : 'unknown';
+      if (isCorrect) byDifficulty[key].c++;
+      else byDifficulty[key].i++;
     });
+
     const penalty = getPenaltyValue(incorrect, config.penaltySystem);
     const final = Math.max(0, correct - penalty);
     return {
@@ -238,6 +257,9 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
       finalScore: final,
       percentage: ((final / questions.length) * 100).toFixed(1),
       timeExpired,
+      failedQs,
+      byTheme,
+      byDifficulty,
     };
   };
 
@@ -259,44 +281,114 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   // Results
   if (showResults) {
     const score = calculateScore();
+    const pct = parseFloat(score.percentage);
+    const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '💪' : '📚';
+    const themeEntries = Object.entries(score.byTheme).sort((a, b) => {
+      const ra = a[1].correct / (a[1].correct + a[1].incorrect || 1);
+      const rb = b[1].correct / (b[1].correct + b[1].incorrect || 1);
+      return ra - rb; // worst first
+    });
+    const diffLabels = { facil: { label: 'Fácil', color: 'text-green-500' }, media: { label: 'Media', color: 'text-yellow-500' }, dificil: { label: 'Difícil', color: 'text-red-500' } };
+
     return (
-      <div className={`min-h-screen ${cx.screen} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+      <div className={`min-h-screen ${cx.screen} p-4 sm:p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+        <div className="max-w-2xl mx-auto space-y-4">
+
+          {/* Hero */}
+          <div className={`rounded-3xl p-6 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             {score.timeExpired && (
-              <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-500 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+              <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-500 text-xs font-semibold px-3 py-1 rounded-full mb-3">
                 ⏱ Tiempo agotado
               </div>
             )}
-            <h2 className={`text-2xl font-bold mb-4 ${cx.heading}`}>¡Completado!</h2>
-            <div className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <div className="text-4xl mb-2">{emoji}</div>
+            <h2 className={`text-xl font-bold mb-3 ${cx.heading}`}>¡Test completado!</h2>
+            <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               {score.percentage}%
             </div>
+            <p className={`text-xs mt-2 ${cx.muted}`}>{score.finalScore} / {questions.length} puntos</p>
           </div>
-          <div className={`rounded-2xl p-6 space-y-3 ${cx.card}`}>
-            <div className="flex justify-between">
-              <span className={cx.body}>Correctas</span>
-              <span className="text-green-500 font-bold">{score.correct}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className={cx.body}>Incorrectas</span>
-              <span className="text-red-500 font-bold">{score.incorrect}</span>
-            </div>
-            {score.unanswered > 0 && (
-              <div className="flex justify-between">
-                <span className={cx.body}>Sin responder</span>
-                <span className="text-gray-400 font-bold">{score.unanswered}</span>
+
+          {/* Resumen numérico */}
+          <div className={`rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 ${cx.card}`}>
+            {[
+              { label: 'Correctas', value: score.correct, color: 'text-green-500' },
+              { label: 'Incorrectas', value: score.incorrect, color: 'text-red-500' },
+              { label: 'Sin resp.', value: score.unanswered, color: cx.muted },
+              ...(config.penaltySystem !== 'none' ? [{ label: 'Penalización', value: `-${score.penalty}`, color: 'text-orange-500' }] : []),
+            ].map(({ label, value, color }) => (
+              <div key={label} className={`text-center rounded-xl py-3 ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
+                <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                <div className={`text-xs mt-0.5 ${cx.muted}`}>{label}</div>
               </div>
-            )}
-            {config.penaltySystem !== 'none' && (
-              <div className="flex justify-between">
-                <span className={cx.body}>Penalización</span>
-                <span className="text-orange-500 font-bold">-{score.penalty}</span>
-              </div>
-            )}
+            ))}
           </div>
-          <button onClick={() => handleFinish(score)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md">
-            Volver
+
+          {/* Breakdown por tema (solo si hay varios temas) */}
+          {themeEntries.length > 1 && (
+            <div className={`rounded-2xl p-4 space-y-3 ${cx.card}`}>
+              <p className={`text-xs font-bold uppercase tracking-wide ${cx.muted}`}>Resultados por tema</p>
+              {themeEntries.map(([tn, stats]) => {
+                const total = stats.correct + stats.incorrect;
+                const pctTheme = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+                const theme = themes.find(t => t.number === parseInt(tn));
+                return (
+                  <div key={tn} className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs ${cx.body}`}>{theme?.name || `Tema ${tn}`}</span>
+                      <span className={`text-xs font-bold ${pctTheme >= 70 ? 'text-green-500' : pctTheme >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {pctTheme}% ({stats.correct}/{total})
+                      </span>
+                    </div>
+                    <div className={`w-full h-1.5 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
+                      <div
+                        className={`h-full rounded-full ${pctTheme >= 70 ? 'bg-green-500' : pctTheme >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={{ width: `${pctTheme}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Distribución por dificultad */}
+          {(() => {
+            const diffRows = Object.entries(diffLabels)
+              .map(([key, meta]) => ({ ...meta, key, c: score.byDifficulty[key].c, i: score.byDifficulty[key].i }))
+              .filter(r => r.c + r.i > 0);
+            if (diffRows.length === 0) return null;
+            return (
+              <div className={`rounded-2xl p-4 space-y-2 ${cx.card}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${cx.muted}`}>Por dificultad</p>
+                {diffRows.map(({ key, label, color, c, i }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className={`text-xs w-14 font-semibold ${color}`}>{label}</span>
+                    <div className={`flex-1 h-1.5 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round((c / (c + i)) * 100)}%` }} />
+                    </div>
+                    <span className={`text-xs tabular-nums w-14 text-right ${cx.muted}`}>{c} / {c + i}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Acciones */}
+          {score.failedQs.length > 0 && (
+            <button
+              onClick={() => handleFinish(score, score.failedQs)}
+              className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-md ${
+                dm
+                  ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
+                  : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+              }`}
+            >
+              🔁 Repasar {score.failedQs.length} fallos
+            </button>
+          )}
+          <button onClick={() => handleFinish(score, null)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md">
+            Volver al inicio
           </button>
         </div>
       </div>

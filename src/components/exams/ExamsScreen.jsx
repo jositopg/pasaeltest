@@ -24,6 +24,26 @@ function ExamsScreen({
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [plansStats, setPlansStats] = useState({}); // testId → { clones, totalQuestions }
+
+  // Academy: fetch plan stats (clones, question count) from manage-plans API
+  React.useEffect(() => {
+    if (!isAcademy) return;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/manage-plans', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const map = {};
+        (data.plans || []).forEach(p => { map[p.id] = { clones: p.clones || 0, totalQuestions: p.totalQuestions || 0 }; });
+        setPlansStats(map);
+      } catch {}
+    })();
+  }, [isAcademy]); // eslint-disable-line react-hooks/exhaustive-deps
   const [newName, setNewName] = useState('');
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -221,6 +241,11 @@ function ExamsScreen({
                   {isActive && !isRenaming && (
                     <p className={`text-xs mt-0.5 ${dm ? 'text-blue-400/70' : 'text-blue-500'}`}>
                       {activeThemeCount} temas · {activeQuestionCount} preguntas
+                    </p>
+                  )}
+                  {!isRenaming && isAcademy && plansStats[test.id] !== undefined && (
+                    <p className={`text-xs mt-0.5 ${dm ? 'text-green-400/80' : 'text-green-600'}`}>
+                      👥 {plansStats[test.id].clones} alumnos · {test.invite_slug ? '🟢 Publicado' : '⚪ Sin publicar'}
                     </p>
                   )}
                   {isDeleting && (

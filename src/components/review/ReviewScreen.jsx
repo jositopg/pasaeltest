@@ -3,17 +3,22 @@ import Icons from '../common/Icons';
 import { calculateNextReview, getDifficultyColor, formatNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
 
+const SESSION_LIMIT = 20;
+
 function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast }) {
   const { dm, cx } = useTheme();
 
+  const totalDue = dueQuestions.length;
+  const cappedQuestions = dueQuestions.slice(0, SESSION_LIMIT);
+
   // sessionQuestions puede cambiar si el usuario hace "Repetir falladas"
   const [sessionQuestions, setSessionQuestions] = useState(() =>
-    dueQuestions.map(q => ({ ...q, text: q.text || q.pregunta || 'Pregunta sin texto' }))
+    cappedQuestions.map(q => ({ ...q, text: q.text || q.pregunta || 'Pregunta sin texto' }))
   );
   const [current, setCurrent] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: dueQuestions.length });
+  const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: cappedQuestions.length });
   const [sessionComplete, setSessionComplete] = useState(false);
   const [failedInSession, setFailedInSession] = useState([]);
 
@@ -83,6 +88,17 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               El algoritmo ha ajustado las fechas de repaso. Las preguntas que fallaste volverán pronto.
             </p>
           </div>
+
+          {totalDue > SESSION_LIMIT && failedInSession.length === 0 && (
+            <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'}`}>
+              <p className={`text-sm font-semibold ${dm ? 'text-yellow-300' : 'text-yellow-700'}`}>
+                {totalDue - SESSION_LIMIT} preguntas más pendientes
+              </p>
+              <p className={`text-xs mt-1 ${dm ? 'text-yellow-400/70' : 'text-yellow-600'}`}>
+                Vuelve más tarde para continuar o inicia otra sesión
+              </p>
+            </div>
+          )}
 
           {failedInSession.length > 0 && (
             <button
@@ -179,6 +195,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             <h1 className={`font-bold text-lg ${cx.heading}`}>Repaso Inteligente</h1>
             <p className={`text-xs ${cx.muted}`}>
               {current + 1} / {sessionQuestions.length} · Tema {q.themeNumber}
+              {totalDue > SESSION_LIMIT && ` · ${totalDue} pendientes total`}
             </p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${diffColor.bg} ${diffColor.text}`}>
