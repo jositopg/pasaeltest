@@ -160,7 +160,7 @@ function AuthScreen({ onLogin }) {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { value: 'academy', icon: '🎓', title: 'Academia', subtitle: 'o Profesor' },
-                  { value: 'student', icon: '📖', title: 'Alumno', subtitle: 'de una academia' },
+                  { value: 'student', icon: '📖', title: 'Estudiante', subtitle: 'academia o por libre' },
                 ].map(opt => (
                   <button
                     key={opt.value}

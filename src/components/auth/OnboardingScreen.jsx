@@ -32,16 +32,16 @@ const STEPS_STUDENT = [
   {
     icon: '👋',
     title: '¡Bienvenido a PasaElTest!',
-    description: 'La app de práctica con preguntas tipo test. Úsala para repasar el temario de tu academia cuando y donde quieras.',
+    description: 'La app de práctica con preguntas tipo test. Estudia a tu ritmo, tanto si te prepara una academia como si lo haces por tu cuenta.',
   },
   {
-    icon: '📲',
-    title: 'Únete al plan de tu academia',
-    description: 'Tu academia o profesor te habrá dado un enlace de invitación. Úsalo para acceder a su plan de preguntas.',
+    icon: '📚',
+    title: 'Accede a tu contenido',
+    description: 'Puedes unirte al plan de tu academia con su enlace de invitación, o crear tus propios planes de estudio.',
     points: [
-      '🔗 Abre el enlace que te envió tu academia',
-      '✅ Tu plan aparecerá aquí automáticamente',
-      '📱 Practica desde el móvil en cualquier momento',
+      '🔗 Enlace de tu academia → acceso directo a su temario',
+      '✏️ O crea tu propio plan con tus apuntes',
+      '🤖 La IA genera preguntas por ti en segundos',
     ],
   },
   {
