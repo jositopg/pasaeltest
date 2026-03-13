@@ -1,36 +1,66 @@
 import React, { useState } from 'react';
 
-const steps = [
+const STEPS_ACADEMY = [
   {
-    icon: '👋',
-    title: '¡Bienvenido a PasaElTest!',
-    description: 'Tu asistente de estudio inteligente. En 3 pasos te explicamos cómo funciona.',
+    icon: '🎓',
+    title: '¡Bienvenido, academia!',
+    description: 'Con PasaElTest puedes crear planes de estudio con preguntas tipo test y compartirlos con tus alumnos en segundos.',
   },
   {
-    icon: '📚',
-    title: 'Organiza tu contenido por temas',
-    description: 'Crea temas y añade documentos, apuntes o enlaces. La IA generará preguntas tipo test automáticamente.',
+    icon: '📋',
+    title: 'Crea tu plan de estudio',
+    description: 'Un plan agrupa todos los temas de tu curso. La IA genera preguntas a partir de tus apuntes, PDFs o enlaces.',
     points: [
       '📄 Sube PDFs, pega texto o añade URLs',
       '🤖 La IA crea las preguntas por ti',
-      '♾️ Puedes tener tantos temas como necesites',
+      '♾️ Tantos temas como necesites',
+    ],
+  },
+  {
+    icon: '🔗',
+    title: 'Comparte con tus alumnos',
+    description: 'Genera un enlace de invitación para tu plan. Tus alumnos se registran y acceden directamente a tu contenido.',
+    points: [
+      '📨 Un enlace único por plan',
+      '👥 Tus alumnos lo usan desde su móvil',
+      '🔒 Solo acceden al contenido que tú creas',
+    ],
+  },
+];
+
+const STEPS_STUDENT = [
+  {
+    icon: '👋',
+    title: '¡Bienvenido a PasaElTest!',
+    description: 'La app de práctica con preguntas tipo test. Úsala para repasar el temario de tu academia cuando y donde quieras.',
+  },
+  {
+    icon: '📲',
+    title: 'Únete al plan de tu academia',
+    description: 'Tu academia o profesor te habrá dado un enlace de invitación. Úsalo para acceder a su plan de preguntas.',
+    points: [
+      '🔗 Abre el enlace que te envió tu academia',
+      '✅ Tu plan aparecerá aquí automáticamente',
+      '📱 Practica desde el móvil en cualquier momento',
     ],
   },
   {
     icon: '🎯',
-    title: 'Crea exámenes a tu medida',
-    description: 'Cada examen es independiente. Tú decides las reglas.',
+    title: 'Practica y mejora',
+    description: 'Haz tests, repasa los fallos y sigue tu progreso. Cuanto más practiques, más subirá tu nota.',
     points: [
-      '✅ Elige qué temas incluir',
-      '⚖️ Configura la penalización por fallo',
-      '⏱️ Pon límite de tiempo si quieres',
-      '📊 Guarda el historial de resultados',
+      '📝 Tests con las preguntas de tu temario',
+      '🧠 Repaso inteligente de lo que más fallas',
+      '📊 Ve tu evolución en cada tema',
     ],
   },
 ];
 
 function OnboardingScreen({ user, onComplete }) {
   const [step, setStep] = useState(0);
+
+  const isAcademy = user?.role === 'academy' || user?.user_metadata?.role === 'academy';
+  const steps = isAcademy ? STEPS_ACADEMY : STEPS_STUDENT;
 
   const handleComplete = () => {
     onComplete({
@@ -44,7 +74,7 @@ function OnboardingScreen({ user, onComplete }) {
   const s = steps[step];
 
   return (
-    <div className="min-h-screen bg-[#080C14] flex items-center justify-center p-4"
+    <div className="min-h-screen flex items-center justify-center p-4"
       style={{ background: 'radial-gradient(ellipse at top, #0F1F3D 0%, #080C14 70%)' }}>
       <div className="w-full max-w-md">
 

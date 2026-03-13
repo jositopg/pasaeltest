@@ -78,15 +78,6 @@ export default function App() {
     return getSRSStats(userData.themes);
   }, [userData.themes]);
 
-  // ─── Objetivo diario ────────────────────────────────────────
-  const answeredToday = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return userData.themes
-      .flatMap(t => t.questions || [])
-      .filter(q => q.last_review?.startsWith(today))
-      .length;
-  }, [userData.themes]);
-
   // ─── Notificaciones SRS ────────────────────────────────────
   useEffect(() => {
     if (!userData.profile?.notifications) return;
@@ -114,6 +105,14 @@ export default function App() {
     auth.handleLogin(user);
   };
 
+  // Enrich currentUser with role from login payload (stored in user_metadata at signup)
+  const currentUserWithRole = auth.currentUser
+    ? {
+        ...auth.currentUser,
+        role: auth.currentUser.role || auth.currentUser.user_metadata?.role,
+      }
+    : null;
+
   const handleOnboardingComplete = (newProfile, updatedUser) => {
     const profile = auth.handleOnboardingComplete(newProfile, updatedUser);
     userData.setProfile(profile);
@@ -128,21 +127,6 @@ export default function App() {
   const startExam = (config) => {
     setExamConfig(config);
     setScreen('exam-active');
-  };
-
-  const handleQuickPractice = () => {
-    const themesWithQuestions = userData.themes.filter(t => t.questions?.length > 0);
-    if (themesWithQuestions.length === 0) {
-      showToast('No hay preguntas disponibles. Genera preguntas en Temas primero.', 'error');
-      return;
-    }
-    startExam({
-      numQuestions: 10,
-      selectedThemes: themesWithQuestions.map(t => t.number),
-      failedRatio: 0,
-      penaltySystem: 'none',
-      timeLimitMinutes: null,
-    });
   };
 
   // ─── Exportar / Importar ────────────────────────────────────
@@ -213,8 +197,8 @@ export default function App() {
     return (
       <>
         <ToastContainer toasts={toasts} removeToast={removeToast} />
-        <OnboardingScreen 
-          user={auth.currentUser} 
+        <OnboardingScreen
+          user={currentUserWithRole}
           onComplete={handleOnboardingComplete}
           showToast={showToast}
         />
@@ -254,7 +238,7 @@ export default function App() {
 
         {showUserProfile && (
           <UserProfileModal
-            user={auth.currentUser}
+            user={currentUserWithRole}
             profile={userData.profile}
             onClose={() => setShowUserProfile(false)}
             onLogout={handleLogout}
@@ -266,13 +250,14 @@ export default function App() {
         {screen === 'home' && (
           <HomeScreen
             onNavigate={setScreen}
-            stats={userData.stats}
             profile={userData.profile}
-            user={auth.currentUser}
+            user={currentUserWithRole}
             onShowProfile={() => setShowUserProfile(true)}
             srsStats={srsStats}
-            onQuickPractice={handleQuickPractice}
-            answeredToday={answeredToday}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            themes={userData.themes}
+            onSwitchTest={userData.switchTest}
           />
         )}
         {screen === 'exams' && (

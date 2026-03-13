@@ -6,6 +6,7 @@ const buildUser = (user) => ({
   id: user.id,
   email: user.email,
   name: user.user_metadata?.name || 'Usuario',
+  role: user.user_metadata?.role || null,
   createdAt: user.created_at,
   subscription: 'free',
   isGuest: false,

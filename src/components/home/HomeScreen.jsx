@@ -1,27 +1,38 @@
 import React from 'react';
 import Icons from '../common/Icons';
-import { GRADIENT_BG, GRADIENT_STYLE } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
 
-function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPractice, srsStats, answeredToday = 0 }) {
+function HomeScreen({
+  onNavigate,
+  profile,
+  user,
+  onShowProfile,
+  srsStats,
+  tests = [],
+  activeTestId,
+  themes = [],
+  onSwitchTest,
+}) {
   const { dm, cx } = useTheme();
+
+  const activeTest = tests.find(t => t.id === activeTestId);
+  const activeThemeCount = themes.filter(t => t.questions?.length > 0).length;
+  const activeQuestionCount = themes.reduce((acc, t) => acc + (t.questions?.length || 0), 0);
+
+  const dueCount = srsStats?.dueQuestions?.length || 0;
+
   return (
     <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
-      
+
       {/* HEADER */}
       <div className={`sticky top-0 z-10 px-4 pb-4 ${cx.screen}`} style={{ paddingTop: 'var(--pt-header)' }}>
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div>
-            <p className={`text-xs font-semibold uppercase tracking-widest ${dm ? 'text-blue-400' : 'text-blue-600'}`}>
-              {profile?.examName || 'Mi Examen'}
-            </p>
-            <h1 className="font-display text-2xl font-bold mt-0.5" style={{ fontFamily: 'Sora, system-ui' }}>
-              <span style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                PasaElTest
-              </span>
-            </h1>
-          </div>
+          <h1 className="font-display text-2xl font-bold" style={{ fontFamily: 'Sora, system-ui' }}>
+            <span style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              PasaElTest
+            </span>
+          </h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => onNavigate('settings')}
@@ -52,10 +63,8 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
             <div className="flex items-start gap-3">
               <span className="text-xl mt-0.5">⚠️</span>
               <div className="flex-1">
-                <p className="font-semibold text-amber-400 text-sm">Modo Prueba — Datos temporales</p>
-                <p className={`text-xs mt-1 ${cx.muted}`}>
-                  Tu progreso no se guarda al cerrar sesión.
-                </p>
+                <p className="font-semibold text-amber-400 text-sm">Modo prueba — los datos no se guardan</p>
+                <p className={`text-xs mt-1 ${cx.muted}`}>Crea una cuenta gratis para guardar tu progreso.</p>
                 <button
                   onClick={() => window.confirm('¿Registrarte ahora? Perderás los datos actuales.') && onNavigate('settings')}
                   className="mt-2 text-xs font-semibold text-amber-400 underline underline-offset-2"
@@ -68,154 +77,107 @@ function HomeScreen({ onNavigate, stats, profile, user, onShowProfile, onQuickPr
         )}
 
         {/* SALUDO */}
-        <div className={`rounded-2xl p-5 animate-fade-in-up stagger-1
-          ${cx.cardAlt}`}>
+        <div className="animate-fade-in-up stagger-1">
           <p className={`text-sm ${cx.muted}`}>
             {user?.isGuest ? 'Bienvenido al modo prueba' : `Hola, ${user?.name?.split(' ')[0] || 'usuario'} 👋`}
           </p>
-          <p className={`font-display font-bold text-xl mt-1 ${dm ? 'text-slate-100' : 'text-slate-800'}`}
+          <p className={`font-bold text-xl mt-0.5 ${dm ? 'text-slate-100' : 'text-slate-800'}`}
             style={{ fontFamily: 'Sora, system-ui' }}>
-            ¿Qué estudias hoy?
+            ¿Qué practicamos hoy?
           </p>
-          {/* Objetivo diario */}
-          {(profile?.dailyGoal || 20) > 0 && (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className={`text-xs font-medium ${cx.muted}`}>
-                  Meta diaria
-                </span>
-                <span className={`text-xs font-bold ${
-                  answeredToday >= (profile?.dailyGoal || 20) ? 'text-green-500' : ''
-                }`} style={answeredToday < (profile?.dailyGoal || 20) ? { color: '#F59E0B' } : {}}>
-                  {Math.min(answeredToday, profile?.dailyGoal || 20)}/{profile?.dailyGoal || 20} preguntas
-                </span>
+        </div>
+
+        {/* PLAN ACTIVO */}
+        {activeTest ? (
+          <div className="animate-fade-in-up stagger-2">
+            <div
+              className={`rounded-2xl p-5 space-y-4 ${
+                dm
+                  ? 'bg-[#0F172A] border border-blue-500/30'
+                  : 'bg-white border border-blue-200 shadow-sm'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #2563EB22, #7C3AED22)' }}>
+                  {activeTest.cover_emoji || '📋'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-bold text-base truncate ${dm ? 'text-slate-100' : 'text-slate-800'}`}
+                    style={{ fontFamily: 'Sora, system-ui' }}>
+                    {activeTest.name}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${cx.muted}`}>
+                    {activeThemeCount} tema{activeThemeCount !== 1 ? 's' : ''} · {activeQuestionCount} pregunta{activeQuestionCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
-              <div className={`h-2 rounded-full overflow-hidden ${dm ? 'bg-[#1E293B]' : 'bg-slate-100'}`}>
-                <div className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${Math.min(100, Math.round((answeredToday / (profile?.dailyGoal || 20)) * 100))}%`,
-                    background: answeredToday >= (profile?.dailyGoal || 20)
-                      ? 'linear-gradient(90deg, #10B981, #34D399)'
-                      : 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-                  }}
-                />
-              </div>
-              {answeredToday >= (profile?.dailyGoal || 20) && (
-                <p className="text-xs text-green-500 font-semibold mt-1.5 text-center">✅ ¡Meta del día alcanzada!</p>
+
+              <button
+                onClick={() => onNavigate('exam')}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-all active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 4px 16px rgba(37,99,235,0.3)', fontFamily: 'Sora, system-ui' }}
+              >
+                Hacer test →
+              </button>
+
+              {tests.length > 1 && (
+                <button
+                  onClick={() => onNavigate('exams')}
+                  className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${
+                    dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Ver todos mis planes →
+                </button>
               )}
             </div>
-          )}
-        </div>
-
-        {/* STATS GRID */}
-        <div className="grid grid-cols-3 gap-3 animate-fade-in-up stagger-2">
-          {[
-            { label: 'Exámenes', value: stats.totalExams || 0, icon: '📝' },
-            { label: 'Media', value: `${stats.avgScore || 0}%`, icon: '🎯' },
-            { label: 'Preguntas', value: stats.totalQuestions || 0, icon: '❓' },
-          ].map((stat, i) => (
-            <div key={i}
-              className={`rounded-2xl p-3 text-center
-                ${cx.cardAlt}`}>
-              <div className="text-xl mb-1">{stat.icon}</div>
-              <div className="font-display font-bold text-lg" style={{ fontFamily: 'Sora, system-ui', color: '#2563EB' }}>
-                {stat.value}
-              </div>
-              <div className={`text-[10px] font-medium mt-0.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ACCIONES PRINCIPALES */}
-        <div className="space-y-3 animate-fade-in-up stagger-3">
-          {/* Botón principal */}
-          <button
-            onClick={() => onNavigate('exam')}
-            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-white font-semibold transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 4px 20px rgba(37,99,235,0.3)' }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📝</span>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ fontFamily: 'Sora, system-ui' }}>Crear Test</div>
-                <div className="text-xs opacity-75">Practica con preguntas tipo test</div>
-              </div>
-            </div>
-            <span className="text-xl opacity-60">→</span>
-          </button>
-
-          {/* Botones secundarios */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => onNavigate('heatmap')}
-              className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
-                ${dm ? 'bg-[#0F172A] border border-[#1E293B] hover:border-orange-500/30' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'}`}
-            >
-              <span className="text-2xl">🔥</span>
-              <div>
-                <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                  Mapa de Calor
-                </div>
-                <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Ver progreso</div>
-              </div>
-            </button>
-
+          </div>
+        ) : (
+          /* Sin planes todavía */
+          <div className={`rounded-2xl p-6 text-center animate-fade-in-up stagger-2 ${cx.cardAlt}`}>
+            <div className="text-4xl mb-3">📚</div>
+            <p className={`font-semibold text-sm ${dm ? 'text-slate-300' : 'text-slate-700'}`}>
+              Aún no tienes ningún plan
+            </p>
+            <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>
+              Únete al plan de tu academia o crea el tuyo propio.
+            </p>
             <button
               onClick={() => onNavigate('exams')}
-              className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
-                ${dm ? 'bg-[#0F172A] border border-[#1E293B] hover:border-blue-500/30' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'}`}
+              className="px-5 py-2.5 rounded-xl text-white text-sm font-semibold"
+              style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
             >
-              <span className="text-2xl">📚</span>
-              <div>
-                <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                  Mis Planes
-                </div>
-                <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Temario y contenido</div>
-              </div>
+              Explorar planes →
             </button>
-
-            {onQuickPractice && (
-              <button
-                onClick={onQuickPractice}
-                className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
-                  ${dm ? 'bg-[#0F172A] border border-[#1E293B] hover:border-yellow-500/30' : 'bg-white border border-slate-100 shadow-sm hover:shadow-md'}`}
-              >
-                <span className="text-2xl">⚡</span>
-                <div>
-                  <div className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                    Práctica Rápida
-                  </div>
-                  <div className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>10 preguntas aleatorias</div>
-                </div>
-              </button>
-            )}
-
-            {srsStats?.dueQuestions?.length > 0 && (
-              <button
-                onClick={() => onNavigate('review')}
-                className={`flex flex-col items-start gap-2 px-4 py-4 rounded-2xl transition-all active:scale-[0.97]
-                  ${dm ? 'bg-[#0F172A] border border-purple-500/30 hover:border-purple-500/50' : 'bg-white border border-purple-200 shadow-sm hover:shadow-md'}`}
-              >
-                <span className="text-2xl">🧠</span>
-                <div>
-                  <div className={`text-sm font-bold ${dm ? 'text-purple-300' : 'text-purple-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-                    Repasar ahora
-                  </div>
-                  <div className={`text-xs ${dm ? 'text-purple-400/70' : 'text-purple-500'}`}>
-                    {srsStats.dueQuestions.length} pendientes hoy
-                  </div>
-                </div>
-              </button>
-            )}
           </div>
-        </div>
+        )}
+
+        {/* REPASO SRS */}
+        {dueCount > 0 && (
+          <button
+            onClick={() => onNavigate('review')}
+            className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all active:scale-[0.98] animate-fade-in-up stagger-3 ${
+              dm ? 'bg-[#0F172A] border border-purple-500/30 hover:border-purple-500/50' : 'bg-white border border-purple-200 shadow-sm'
+            }`}
+          >
+            <span className="text-2xl">🧠</span>
+            <div className="flex-1 text-left">
+              <p className={`text-sm font-bold ${dm ? 'text-purple-300' : 'text-purple-700'}`}
+                style={{ fontFamily: 'Sora, system-ui' }}>
+                Repasar ahora
+              </p>
+              <p className={`text-xs ${dm ? 'text-purple-400/70' : 'text-purple-500'}`}>
+                {dueCount} pregunta{dueCount !== 1 ? 's' : ''} pendiente{dueCount !== 1 ? 's' : ''} hoy
+              </p>
+            </div>
+            <span className={`text-lg opacity-40 ${dm ? 'text-purple-300' : 'text-purple-600'}`}>→</span>
+          </button>
+        )}
 
       </div>
     </div>
   );
 }
-
 
 export default HomeScreen;

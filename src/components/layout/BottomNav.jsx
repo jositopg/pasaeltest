@@ -8,7 +8,7 @@ function BottomNav({ current, onNavigate }) {
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
     { id: 'exams', icon: Icons.Book, label: 'Planes' },
     { id: 'questions', icon: Icons.Questions, label: 'Preguntas' },
-    { id: 'stats', icon: Icons.Stats, label: 'Stats' }
+    { id: 'stats', icon: Icons.Stats, label: 'Resultados' }
   ];
 
   // 'themes' is a sub-screen of 'exams' — keep exams tab highlighted
