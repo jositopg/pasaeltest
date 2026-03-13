@@ -11,7 +11,7 @@ export const APP_NAME = 'PasaElTest';
 
 export const DEFAULT_PROFILE = {
   name: 'Usuario',
-  examName: 'Mi Examen',
+  examName: 'Mi Plan',
   penaltySystem: 'classic',
   darkMode: false,
   notifications: false

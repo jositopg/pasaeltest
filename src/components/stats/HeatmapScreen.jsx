@@ -110,7 +110,7 @@ function HeatmapScreen({ themes, onNavigate }) {
             <div className="text-center py-10">
               <p className="text-4xl mb-2">📊</p>
               <p className={`text-sm font-semibold ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Sin datos aún</p>
-              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>Completa exámenes para ver el mapa</p>
+              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>Completa tests para ver el mapa</p>
             </div>
           )}
         </div>

@@ -303,7 +303,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
         {showRestoreBanner && (
           <div className={`rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${dm ? 'bg-blue-500/10 border border-blue-500/30 text-blue-300' : 'bg-blue-50 border border-blue-200 text-blue-700'}`}>
             <span>💾</span>
-            <span className="font-medium flex-1">Examen recuperado — continuando donde lo dejaste</span>
+            <span className="font-medium flex-1">Test recuperado — continuando donde lo dejaste</span>
             <button onClick={() => setShowRestoreBanner(false)} className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${dm ? 'text-blue-300/60 hover:bg-blue-500/20 hover:text-blue-200' : 'text-blue-500/60 hover:bg-blue-100 hover:text-blue-700'}`}>×</button>
           </div>
         )}

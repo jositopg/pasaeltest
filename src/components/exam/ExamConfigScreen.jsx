@@ -51,13 +51,13 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
           <button onClick={() => onNavigate('home')} className={`p-2 rounded-xl ${dm ? 'bg-white/5 text-white' : 'bg-white text-slate-700 shadow-sm'}`}>
             <Icons.ChevronLeft />
           </button>
-          <h1 className={`font-bold text-2xl ${cx.heading}`}>Crear Test</h1>
+          <h1 className={`font-bold text-2xl ${cx.heading}`}>Nuevo test</h1>
         </div>
 
         {/* Selector de examen */}
         {tests.length > 1 && (
           <div className={cardCls}>
-            <label className={labelCls}>¿De qué examen quieres hacer el test?</label>
+            <label className={labelCls}>¿De qué plan quieres practicar?</label>
             <div className="space-y-2">
               {tests.map(test => (
                 <button
@@ -86,7 +86,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
         {tests.length === 1 && (
           <div className={`rounded-2xl px-4 py-3 flex items-center gap-2 ${dm ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200'}`}>
             <span>{tests[0]?.cover_emoji || '📋'}</span>
-            <span className={`text-sm font-semibold ${cx.heading}`}>{tests[0]?.name || 'Mi Examen'}</span>
+            <span className={`text-sm font-semibold ${cx.heading}`}>{tests[0]?.name || 'Mi Plan'}</span>
           </div>
         )}
 
@@ -137,7 +137,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
             </span>
           </div>
           <p className={`text-xs mb-3 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-            Porcentaje del examen con preguntas que has fallado antes
+            Porcentaje de preguntas falladas a incluir en el test
           </p>
           <input
             type="range"
@@ -184,7 +184,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className={`text-sm font-semibold ${cx.body}`}>Tiempo límite</p>
-              <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>El examen termina automáticamente</p>
+              <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>El test termina automáticamente</p>
             </div>
             <button
               onClick={() => setTimeLimitEnabled(v => !v)}

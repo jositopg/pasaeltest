@@ -240,7 +240,7 @@ function ExamsScreen({
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
                         className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
-                        title="Compartir este examen"
+                        title="Compartir este plan"
                       >🔗</button>
                     )}
                     {(test.cloned_from || tests.length > 1) && (

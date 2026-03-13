@@ -327,7 +327,7 @@ function ThemesScreen({
             <h1 className={`font-bold text-xl leading-tight ${cx.heading}`}>Temas</h1>
             {tests.length > 0 && (
               <p className={`text-xs truncate ${dm ? 'text-blue-400/80' : 'text-blue-600'}`}>
-                {tests.find(t => t.id === activeTestId)?.name || 'Mi Examen'}
+                {tests.find(t => t.id === activeTestId)?.name || 'Mi Plan'}
               </p>
             )}
           </div>
@@ -565,7 +565,7 @@ function ThemesScreen({
         {themes.length === 0 && (
           <div className={`text-center py-12 rounded-2xl ${cx.cardAlt}`}>
             <div className="text-4xl mb-3">📂</div>
-            <p className={`font-semibold text-sm ${cx.heading}`}>Este examen no tiene temas todavía</p>
+            <p className={`font-semibold text-sm ${cx.heading}`}>Este plan no tiene temas todavía</p>
             <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>Importa una lista de temas o añade uno a uno</p>
             <div className="flex justify-center gap-2">
               <button

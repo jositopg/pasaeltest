@@ -233,7 +233,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
 
           {isClonedTest ? (
             <div className={`rounded-xl p-3 text-sm ${dm ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
-              🔒 Este test es un plan oficial compartido. Solo puedes exportar e importar preguntas en tests que hayas creado tú.
+              🔒 Este es un plan compartido. Solo puedes exportar e importar preguntas en planes que hayas creado tú.
             </div>
           ) : (
             <div className="flex flex-col gap-3">

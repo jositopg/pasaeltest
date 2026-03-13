@@ -49,7 +49,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
             <Icons.ChevronLeft />
           </button>
           <h1 className={`font-bold text-xl ${dm ? 'text-slate-100' : 'text-slate-800'}`} style={{ fontFamily: 'Sora, system-ui' }}>
-            Estadísticas
+            Resultados
           </h1>
         </div>
       </div>
@@ -60,7 +60,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
         <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide">Nivel de opositor</p>
+              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide">Tu nivel</p>
               <p className="text-3xl font-black mt-0.5" style={{ fontFamily: 'Sora, system-ui' }}>Nivel {level}</p>
             </div>
             <span className="text-4xl">🎖️</span>
@@ -77,7 +77,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
           {[
             { label: 'Media', value: `${avg}%`, color: '#2563EB', icon: '🎯' },
             { label: 'Mejor', value: `${bestScore.toFixed(0)}%`, color: '#10B981', icon: '🏆' },
-            { label: 'Exámenes', value: totalExams, color: '#7C3AED', icon: '📝' },
+            { label: 'Tests', value: totalExams, color: '#7C3AED', icon: '📝' },
             { label: 'Preguntas', value: totalQuestions, color: '#F59E0B', icon: '❓' },
           ].map((s, i) => (
             <div key={i} className={`${cardClass} text-center`}>
@@ -97,7 +97,7 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
                 {hasStudiedToday ? '🔥 Activo' : '💤 Inactivo'}
               </p>
               <p className={`text-xs mt-1 ${cx.muted}`}>
-                {hasStudiedToday ? '¡Ya estudiaste hoy!' : 'Haz un examen para mantener la racha'}
+                {hasStudiedToday ? '¡Ya estudiaste hoy!' : 'Haz un test para mantener la racha'}
               </p>
             </div>
             <span className="text-4xl">{hasStudiedToday ? '🔥' : '⏰'}</span>
@@ -179,8 +179,8 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
           ) : (
             <div className="text-center py-10">
               <p className="text-4xl mb-2">📝</p>
-              <p className={`text-sm font-semibold ${cx.muted}`}>Sin exámenes aún</p>
-              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>¡Haz tu primer examen!</p>
+              <p className={`text-sm font-semibold ${cx.muted}`}>Sin tests aún</p>
+              <p className={`text-xs mt-1 ${dm ? 'text-slate-600' : 'text-slate-400'}`}>¡Haz tu primer test!</p>
             </div>
           )}
         </div>
