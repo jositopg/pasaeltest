@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { GRADIENT_BG } from '../../utils/constants';
 import { useTheme } from '../../context/ThemeContext';
@@ -33,6 +33,27 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
       avgScore: examsDay.length > 0 ? Math.round(examsDay.reduce((s, e) => s + (parseFloat(e.percentage) || 0), 0) / examsDay.length) : 0
     };
   }).reverse();
+
+  // ── Stats por tema ─────────────────────────────────────────
+  const [showAllThemes, setShowAllThemes] = useState(false);
+  const now = new Date();
+  const themeStats = (themes || [])
+    .filter(t => (t.questions?.length || 0) > 0)
+    .map(t => {
+      const qs = t.questions || [];
+      const total = qs.length;
+      const mastered = qs.filter(q => (q.stability || 0) > 30).length;
+      const due = qs.filter(q => q.next_review && new Date(q.next_review) <= now).length;
+      const attempted = qs.filter(q => (q.attempts || 0) > 0);
+      const avgAccuracy = attempted.length > 0
+        ? Math.round(attempted.reduce((s, q) => s + (1 - (q.errors_count || 0) / Math.max(q.attempts || 1, 1)), 0) / attempted.length * 100)
+        : null;
+      return { name: t.name, number: t.number, total, mastered, due, avgAccuracy, attempted: attempted.length };
+    })
+    .sort((a, b) => (a.avgAccuracy ?? 101) - (b.avgAccuracy ?? 101)); // worst accuracy first
+
+  const THEMES_PREVIEW = 5;
+  const visibleThemes = showAllThemes ? themeStats : themeStats.slice(0, THEMES_PREVIEW);
 
   const cardClass = `rounded-2xl p-5 ${cx.cardAlt}`;
   const maxBar = Math.max(...last7Days.map(d => d.count), 1);
@@ -123,6 +144,60 @@ function StatsScreen({ examHistory, onNavigate, themes }) {
             ))}
           </div>
         </div>
+
+        {/* STATS POR TEMA */}
+        {themeStats.length > 0 && (
+          <div className={cardClass}>
+            <p className={`text-sm font-bold mb-3 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
+              Por tema · {themeStats.length} con preguntas
+            </p>
+            <div className="space-y-3">
+              {visibleThemes.map(t => {
+                const masteredPct = t.total > 0 ? Math.round((t.mastered / t.total) * 100) : 0;
+                const accColor = t.avgAccuracy === null ? cx.muted
+                  : t.avgAccuracy >= 80 ? 'text-green-500'
+                  : t.avgAccuracy >= 60 ? 'text-yellow-500'
+                  : 'text-red-500';
+                return (
+                  <div key={t.number}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={`text-xs flex-1 truncate ${cx.body}`} title={t.name}>{t.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {t.due > 0 && (
+                          <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-semibold">
+                            {t.due} pendientes
+                          </span>
+                        )}
+                        {t.avgAccuracy !== null && (
+                          <span className={`text-xs font-bold tabular-nums ${accColor}`}>{t.avgAccuracy}%</span>
+                        )}
+                        <span className={`text-[10px] ${cx.muted}`}>{t.total} preg.</span>
+                      </div>
+                    </div>
+                    <div className={`w-full h-1.5 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${masteredPct}%`,
+                          background: masteredPct >= 80 ? '#10B981' : masteredPct >= 50 ? '#F59E0B' : '#3B82F6',
+                        }}
+                      />
+                    </div>
+                    <p className={`text-[10px] mt-0.5 ${cx.muted}`}>{t.mastered}/{t.total} dominadas · {masteredPct}%</p>
+                  </div>
+                );
+              })}
+            </div>
+            {themeStats.length > THEMES_PREVIEW && (
+              <button
+                onClick={() => setShowAllThemes(v => !v)}
+                className={`mt-3 w-full text-xs font-semibold py-2 rounded-xl transition-colors ${dm ? 'text-blue-400 hover:bg-blue-500/10' : 'text-blue-600 hover:bg-blue-50'}`}
+              >
+                {showAllThemes ? '▲ Mostrar menos' : `▼ Ver los ${themeStats.length - THEMES_PREVIEW} restantes`}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* LOGROS */}
         <div className={cardClass}>

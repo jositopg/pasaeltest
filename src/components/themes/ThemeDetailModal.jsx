@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -8,6 +8,115 @@ import ManualQuestionForm from './ManualQuestionForm';
 import QuestionList from './QuestionList';
 import ImportQuestionsPanel from './ImportQuestionsPanel';
 import useThemeModal from '../../hooks/useThemeModal';
+
+const DIFF_COLORS = {
+  facil: 'bg-green-500/20 text-green-400',
+  fácil: 'bg-green-500/20 text-green-400',
+  media: 'bg-yellow-500/20 text-yellow-400',
+  dificil: 'bg-red-500/20 text-red-400',
+  difícil: 'bg-red-500/20 text-red-400',
+};
+
+function QuestionPreviewOverlay({ questions, duplicates, onConfirm, onDiscard }) {
+  const [selected, setSelected] = useState(() => new Set(questions.map((_, i) => i)));
+
+  const toggle = (i) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    return next;
+  });
+
+  const allOn = selected.size === questions.length;
+  const toggleAll = () => setSelected(allOn ? new Set() : new Set(questions.map((_, i) => i)));
+
+  return (
+    <div className="absolute inset-0 z-10 bg-slate-900/95 backdrop-blur-sm rounded-3xl flex flex-col">
+      {/* Header */}
+      <div className="flex-shrink-0 p-4 sm:p-5 border-b border-white/10">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-white font-bold text-base sm:text-lg">
+              Revisa las preguntas generadas
+            </h3>
+            <p className="text-gray-400 text-xs mt-0.5">
+              {questions.length} preguntas · seleccionadas {selected.size}
+              {duplicates > 0 && ` · ${duplicates} duplicadas eliminadas`}
+            </p>
+          </div>
+          <button
+            onClick={toggleAll}
+            className="text-xs px-3 py-1.5 rounded-lg bg-white/10 text-gray-300 hover:bg-white/15 transition-colors"
+          >
+            {allOn ? 'Desmarcar todo' : 'Marcar todo'}
+          </button>
+        </div>
+      </div>
+
+      {/* Lista scrolleable */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2">
+        {questions.map((q, i) => {
+          const isSelected = selected.has(i);
+          const diffKey = (q.difficulty || '').toLowerCase();
+          const diffClass = DIFF_COLORS[diffKey] || 'bg-slate-700/50 text-slate-400';
+          return (
+            <button
+              key={i}
+              onClick={() => toggle(i)}
+              className={`w-full text-left p-3 rounded-xl border transition-all ${
+                isSelected
+                  ? 'bg-blue-500/15 border-blue-500/40'
+                  : 'bg-white/3 border-white/10 opacity-50'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-colors ${
+                  isSelected ? 'bg-blue-500 border-blue-500' : 'border-white/20'
+                }`}>
+                  {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <p className="text-gray-100 text-sm leading-snug">{q.text}</p>
+                  <div className="space-y-1">
+                    {(q.options || []).map((opt, oi) => (
+                      <p key={oi} className={`text-xs pl-2 border-l-2 ${oi === q.correct ? 'border-green-500 text-green-400' : 'border-white/10 text-gray-500'}`}>
+                        {opt}
+                      </p>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${diffClass}`}>
+                      {q.difficulty || 'media'}
+                    </span>
+                    {q.explanation && (
+                      <span className="text-[10px] text-blue-400/70">💡 Con explicación</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Acciones */}
+      <div className="flex-shrink-0 p-4 border-t border-white/10 flex gap-3">
+        <button
+          onClick={onDiscard}
+          className="flex-1 py-3 rounded-xl text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 transition-colors"
+        >
+          Descartar
+        </button>
+        <button
+          onClick={() => onConfirm(selected.size < questions.length ? selected : null)}
+          disabled={selected.size === 0}
+          className="flex-2 flex-grow-[2] py-3 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-40"
+        >
+          Guardar {selected.size} pregunta{selected.size !== 1 ? 's' : ''} →
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = false }) {
   const { darkMode } = useTheme();
@@ -20,6 +129,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
     newQuestion, setNewQuestion,
     showAutoGenerate, setShowAutoGenerate, isAutoGenerating,
     editingName, setEditingName,
+    pendingQuestions, pendingDuplicates, confirmPendingQuestions, discardPendingQuestions,
     deleteConfirm, setDeleteConfirm, deleteQuestionsConfirm,
     estimatedTotal, questionCount, coveragePercent,
     handleSaveName, handleNameKeyPress,
@@ -32,7 +142,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
-      <div className="bg-slate-800 border border-white/10 rounded-3xl w-full max-w-3xl h-[90vh] flex flex-col" style={{ maxHeight: '90vh' }}>
+      <div className="relative bg-slate-800 border border-white/10 rounded-3xl w-full max-w-3xl h-[90vh] flex flex-col" style={{ maxHeight: '90vh' }}>
 
         {/* HEADER FIJO */}
         <div className="flex-shrink-0 bg-slate-800 p-4 sm:p-6 border-b border-white/10">
@@ -191,6 +301,16 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
           </div>
         </div>
       </div>
+
+      {/* PREVIEW DE PREGUNTAS GENERADAS */}
+      {pendingQuestions && (
+        <QuestionPreviewOverlay
+          questions={pendingQuestions}
+          duplicates={pendingDuplicates}
+          onConfirm={confirmPendingQuestions}
+          onDiscard={discardPendingQuestions}
+        />
+      )}
 
       <ConfirmDialog
         show={deleteConfirm.show}

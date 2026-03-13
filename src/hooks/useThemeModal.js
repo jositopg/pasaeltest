@@ -24,6 +24,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   const [selectMode, setSelectMode] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', options: ['', '', ''], correct: 0, difficulty: 'media' });
 
+  // ─── Preview de preguntas generadas ──────────────────────
+  const [pendingQuestions, setPendingQuestions] = useState(null); // null | Question[]
+  const [pendingDuplicates, setPendingDuplicates] = useState(0);
+
   // ─── Estado auto-generación ───────────────────────────────
   const [showAutoGenerate, setShowAutoGenerate] = useState(false);
   const [isAutoGenerating, setIsAutoGenerating] = useState(false);
@@ -258,15 +262,11 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
       const existingTexts = (Array.isArray(theme.questions) ? theme.questions : []).map(q => q.text.toLowerCase().trim());
       const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, existingTexts);
       if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas eran duplicadas. Intenta de nuevo.');
-      setGenerationProgress('💾 Guardando...');
-      setGenerationPercent(95);
-      onUpdate({ ...theme, questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...newQuestions], lastGenerated: new Date().toISOString() });
-      const message = duplicatesFound > 0
-        ? `✅ ${newQuestions.length} preguntas nuevas (${duplicatesFound} duplicadas filtradas)`
-        : `✅ ¡${newQuestions.length} preguntas generadas!`;
-      setGenerationProgress(message);
+      setGenerationProgress(`✅ ${newQuestions.length} preguntas listas — revísalas antes de guardar`);
       setGenerationPercent(100);
-      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 2000);
+      setPendingQuestions(newQuestions);
+      setPendingDuplicates(duplicatesFound);
+      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 600);
     } catch (error) {
       console.error('Error generando preguntas:', error);
       setIsGeneratingQuestions(false);
@@ -277,6 +277,27 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
       else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta de nuevo.';
       if (showToast) showToast(`❌ ${errorMsg}`, 'error');
     }
+  };
+
+  // ─── Confirmar / descartar preguntas pendientes ──────────
+  const confirmPendingQuestions = (selectedIndices) => {
+    const toSave = selectedIndices !== null
+      ? pendingQuestions.filter((_, i) => selectedIndices.has(i))
+      : pendingQuestions;
+    onUpdate({
+      ...theme,
+      questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...toSave],
+      lastGenerated: new Date().toISOString(),
+    });
+    if (showToast) showToast(`✅ ${toSave.length} pregunta${toSave.length !== 1 ? 's' : ''} guardada${toSave.length !== 1 ? 's' : ''}`, 'success');
+    setPendingQuestions(null);
+    setPendingDuplicates(0);
+  };
+
+  const discardPendingQuestions = () => {
+    setPendingQuestions(null);
+    setPendingDuplicates(0);
+    if (showToast) showToast('Preguntas descartadas', 'info');
   };
 
   // ─── Búsqueda IA ─────────────────────────────────────────
@@ -468,6 +489,9 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     isGeneratingQuestions, showAddQuestion, setShowAddQuestion,
     selectedQuestions, setSelectedQuestions, selectMode, setSelectMode,
     newQuestion, setNewQuestion,
+    // Preview de preguntas generadas
+    pendingQuestions, pendingDuplicates,
+    confirmPendingQuestions, discardPendingQuestions,
     // Estado auto-generación
     showAutoGenerate, setShowAutoGenerate, isAutoGenerating,
     // Estado nombre
