@@ -36,6 +36,7 @@ import QuestionsScreen from './components/questions/QuestionsScreen';
 import AdminScreen from './components/admin/AdminScreen';
 import JoinPlanScreen from './components/plans/JoinPlanScreen';
 import ExamsScreen from './components/exams/ExamsScreen';
+import AcademyStudentsScreen from './components/academy/AcademyStudentsScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
@@ -117,6 +118,8 @@ export default function App() {
         role: auth.currentUser.role || auth.currentUser.user_metadata?.role,
       }
     : null;
+
+  const isAcademy = currentUserWithRole?.role === 'academy';
 
   const handleOnboardingComplete = (newProfile, updatedUser) => {
     const profile = auth.handleOnboardingComplete(newProfile, updatedUser);
@@ -305,7 +308,7 @@ export default function App() {
             isClonedTest={activeTestIsCloned}
           />
         )}
-        {screen === 'exam' && (
+        {screen === 'exam' && !isAcademy && (
           <ExamConfigScreen
             themes={userData.themes}
             onStartExam={startExam}
@@ -315,7 +318,7 @@ export default function App() {
             onSwitchTest={userData.switchTest}
           />
         )}
-        {screen === 'exam-active' && (
+        {screen === 'exam-active' && !isAcademy && (
           <ExamScreen
             config={examConfig}
             themes={userData.themes}
@@ -324,13 +327,19 @@ export default function App() {
             onUpdateThemes={userData.updateTheme}
           />
         )}
-        {screen === 'review' && (
+        {screen === 'review' && !isAcademy && (
           <ReviewScreen
             dueQuestions={reviewFailed || srsStats.dueQuestions}
             themes={userData.themes}
             onUpdateTheme={userData.updateTheme}
             onNavigate={(s) => { setReviewFailed(null); setScreen(s); }}
             showToast={showToast}
+          />
+        )}
+        {screen === 'alumnos' && (
+          <AcademyStudentsScreen
+            onNavigate={setScreen}
+            onSwitchTest={userData.switchTest}
           />
         )}
         {screen === 'stats' && (
@@ -340,7 +349,7 @@ export default function App() {
             themes={userData.themes}
           />
         )}
-        {screen === 'questions' && (
+        {screen === 'questions' && !isAcademy && (
           <QuestionsScreen
             themes={userData.themes}
             onUpdateTheme={userData.updateTheme}
@@ -361,7 +370,7 @@ export default function App() {
             onToggleDark={() => setDarkMode(!dm)}
             profile={userData.profile}
             onUpdateProfile={userData.setProfile}
-            user={auth.currentUser}
+            user={currentUserWithRole}
             onExportData={handleExportData}
             onImportData={handleImportData}
             isClonedTest={activeTestIsCloned}
@@ -371,7 +380,7 @@ export default function App() {
           <AdminScreen onNavigate={setScreen} />
         )}
         <GenerationBanner progress={genQueue.queueProgress} />
-        <BottomNav current={screen} onNavigate={setScreen} />
+        <BottomNav current={screen} onNavigate={setScreen} isAcademy={isAcademy} />
       </div>
     </ThemeProvider>
   );

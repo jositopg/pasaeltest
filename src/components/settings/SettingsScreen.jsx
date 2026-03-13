@@ -127,8 +127,8 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
 
         </div>
 
-        {/* OBJETIVOS */}
-        <div className={cardClass}>
+        {/* OBJETIVOS — solo para estudiantes */}
+        {user?.role !== 'academy' && <div className={cardClass}>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg">🎯</span>
             <h2 className={`font-bold text-base ${dm ? 'text-slate-200' : 'text-slate-700'}`}
@@ -163,7 +163,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
               >{n}</button>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* APARIENCIA */}
         <div className={cardClass}>

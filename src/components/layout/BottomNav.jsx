@@ -2,16 +2,26 @@ import React from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function BottomNav({ current, onNavigate }) {
+function BottomNav({ current, onNavigate, isAcademy }) {
   const { dm } = useTheme();
-  const items = [
+
+  const studentItems = [
     { id: 'home', icon: Icons.Home, label: 'Inicio' },
     { id: 'exams', icon: Icons.Book, label: 'Planes' },
     { id: 'questions', icon: Icons.Questions, label: 'Preguntas' },
-    { id: 'stats', icon: Icons.Stats, label: 'Resultados' }
+    { id: 'stats', icon: Icons.Stats, label: 'Resultados' },
   ];
 
-  // 'themes' is a sub-screen of 'exams' — keep exams tab highlighted
+  const academyItems = [
+    { id: 'home', icon: Icons.Home, label: 'Inicio' },
+    { id: 'exams', icon: Icons.Book, label: 'Planes' },
+    { id: 'alumnos', icon: Icons.Users, label: 'Alumnos' },
+    { id: 'settings', icon: Icons.Settings, label: 'Ajustes' },
+  ];
+
+  const items = isAcademy ? academyItems : studentItems;
+
+  // sub-screens that map to a parent tab
   const activeId = current === 'themes' ? 'exams' : current;
 
   return (
