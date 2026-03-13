@@ -6,6 +6,7 @@ function AuthScreen({ onLogin }) {
   const [formData, setFormData] = useState({ email: '', password: '', name: '', role: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingEmail, setPendingEmail] = useState(null); // email confirmation state
 
   const handleGuestMode = () => {
     onLogin({
@@ -79,6 +80,13 @@ function AuthScreen({ onLogin }) {
           return;
         }
 
+        // Si Supabase requiere confirmación de email, data.session es null
+        if (!data.session) {
+          setPendingEmail(formData.email);
+          setLoading(false);
+          return;
+        }
+
         onLogin({
           id: data.user.id,
           email: data.user.email,
@@ -98,6 +106,39 @@ function AuthScreen({ onLogin }) {
       setLoading(false);
     }
   };
+
+  // ── Pantalla de confirmación de email ──────────────────────────
+  if (pendingEmail) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-5"
+        style={{ background: 'radial-gradient(ellipse at top, #0F1F3D 0%, #080C14 60%)' }}>
+        <div className="w-full max-w-sm bg-[#0F172A] border border-[#1E293B] rounded-3xl p-8 shadow-2xl text-center space-y-5 animate-fade-in-up">
+          <div className="text-6xl">📬</div>
+          <div>
+            <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Sora, system-ui' }}>
+              Revisa tu email
+            </h2>
+            <p className="text-slate-400 text-sm mt-2 leading-relaxed">
+              Hemos enviado un enlace de confirmación a{' '}
+              <span className="text-blue-400 font-semibold">{pendingEmail}</span>
+            </p>
+            <p className="text-slate-500 text-xs mt-3">
+              Haz clic en el enlace del email para activar tu cuenta y entrar.
+            </p>
+          </div>
+          <div className="space-y-2 pt-2">
+            <p className="text-slate-600 text-xs">¿No has recibido nada? Revisa la carpeta de spam.</p>
+            <button
+              onClick={() => setPendingEmail(null)}
+              className="text-slate-500 text-sm hover:text-slate-300 transition-colors underline underline-offset-2"
+            >
+              Volver al inicio de sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-5"

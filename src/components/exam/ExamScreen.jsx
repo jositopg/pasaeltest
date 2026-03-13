@@ -116,7 +116,10 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
 
   const [showResults, setShowResults] = useState(false);
   const [timeExpired, setTimeExpired] = useState(false);
+  const [timeWarnShown, setTimeWarnShown] = useState(false);
+  const [showTimeWarnBanner, setShowTimeWarnBanner] = useState(false);
   const timerRef = useRef(null);
+  const warnTimerRef = useRef(null);
 
   // ─── Reportes de preguntas ──────────────────────────────────
   const [flags, setFlags] = useState({});
@@ -171,6 +174,17 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
 
     return () => clearInterval(timerRef.current);
   }, [showResults]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Aviso tiempo bajo (1 vez al cruzar 60s) ────────────────
+  useEffect(() => {
+    if (timeLeft === null || timeWarnShown || showResults) return;
+    if (timeLeft <= 60 && timeLeft > 0) {
+      setTimeWarnShown(true);
+      setShowTimeWarnBanner(true);
+      warnTimerRef.current = setTimeout(() => setShowTimeWarnBanner(false), 4000);
+    }
+    return () => clearTimeout(warnTimerRef.current);
+  }, [timeLeft, timeWarnShown, showResults]);
 
   const handleAnswer = (selectedIndex) => {
     const q = questions[current];
@@ -308,6 +322,15 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
           </div>
         )}
 
+        {/* Banner aviso tiempo bajo */}
+        {showTimeWarnBanner && (
+          <div className="rounded-xl px-4 py-3 flex items-center gap-3 bg-red-500 text-white animate-fade-in shadow-lg">
+            <span className="text-xl">⏱</span>
+            <span className="font-bold text-sm flex-1">¡Queda menos de 1 minuto!</span>
+            <button onClick={() => setShowTimeWarnBanner(false)} className="text-white/70 hover:text-white text-lg font-bold">×</button>
+          </div>
+        )}
+
         {/* Progress header */}
         <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 ${cx.card}`}>
           <div className="flex justify-between mb-2 gap-2">
@@ -316,7 +339,13 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
             </span>
             <div className="flex items-center gap-3">
               {timeLeft !== null && (
-                <span className={`text-xs sm:text-sm font-bold tabular-nums ${timerWarning ? 'text-red-500 animate-pulse' : dm ? 'text-gray-300' : 'text-slate-500'}`}>
+                <span className={`font-bold tabular-nums transition-all ${
+                  timeLeft <= 30
+                    ? 'text-red-500 animate-pulse text-base sm:text-lg'
+                    : timerWarning
+                    ? 'text-orange-500 text-sm sm:text-base'
+                    : `text-xs sm:text-sm ${dm ? 'text-gray-300' : 'text-slate-500'}`
+                }`}>
                   ⏱ {formatTime(timeLeft)}
                 </span>
               )}

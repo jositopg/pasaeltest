@@ -70,6 +70,15 @@ export default async function handler(req, res) {
     if (testError || !test) return res.status(404).json({ error: 'Test no encontrado' });
     if (test.user_id !== user.id) return res.status(403).json({ error: 'No eres el propietario de este test' });
 
+    // Verificar que el slug no esté ya en uso por otro plan
+    const { data: existing } = await supabase
+      .from('tests')
+      .select('id')
+      .eq('invite_slug', slug)
+      .neq('id', testId)
+      .maybeSingle();
+    if (existing) return res.status(409).json({ error: 'Este código ya está en uso. Elige otro.' });
+
     const { error: updateError } = await supabase
       .from('tests')
       .update({ is_official: true, invite_slug: slug, description: description || null, cover_emoji: cover_emoji || '📋' })
