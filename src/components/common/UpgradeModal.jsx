@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 const PLANS = [
   {
@@ -35,6 +36,8 @@ const PLANS = [
 ];
 
 export default function UpgradeModal({ onClose, reason = 'plan' }) {
+  const { dm } = useTheme();
+
   const reasonText = {
     plan: 'Para crear tus propios planes necesitas una suscripción.',
     academy: 'Para compartir planes con alumnos necesitas el plan Academia.',
@@ -42,15 +45,17 @@ export default function UpgradeModal({ onClose, reason = 'plan' }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-[#0F172A] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-fade-in-up">
+      <div className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-fade-in-up border ${
+        dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200'
+      }`}>
 
         {/* Header */}
         <div className="px-6 pt-6 pb-4 text-center">
           <div className="text-4xl mb-3">🚀</div>
-          <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Sora, system-ui' }}>
+          <h2 className={`text-xl font-bold ${dm ? 'text-white' : 'text-slate-800'}`} style={{ fontFamily: 'Sora, system-ui' }}>
             Desbloquea esta función
           </h2>
-          <p className="text-slate-400 text-sm mt-2">{reasonText}</p>
+          <p className={`text-sm mt-2 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{reasonText}</p>
         </div>
 
         {/* Plans */}
@@ -61,27 +66,27 @@ export default function UpgradeModal({ onClose, reason = 'plan' }) {
               className={`rounded-2xl p-4 border ${
                 plan.highlight
                   ? 'border-blue-500/50 bg-blue-500/10'
-                  : 'border-white/10 bg-white/5'
+                  : dm ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
               }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{plan.icon}</span>
                   <div>
-                    <p className={`font-bold text-sm ${plan.highlight ? 'text-blue-300' : 'text-white'}`}>
+                    <p className={`font-bold text-sm ${plan.highlight ? 'text-blue-400' : dm ? 'text-white' : 'text-slate-800'}`}>
                       {plan.name}
                     </p>
-                    <p className="text-slate-500 text-xs">{plan.description}</p>
+                    <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{plan.description}</p>
                   </div>
                 </div>
-                <span className={`text-sm font-bold shrink-0 ml-2 ${plan.highlight ? 'text-blue-400' : 'text-slate-300'}`}>
+                <span className={`text-sm font-bold shrink-0 ml-2 ${plan.highlight ? 'text-blue-400' : dm ? 'text-slate-300' : 'text-slate-700'}`}>
                   {plan.price}
                 </span>
               </div>
               <ul className="space-y-1 mb-3">
                 {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs text-slate-400">
-                    <span className="text-green-400">✓</span>
+                  <li key={i} className={`flex items-center gap-2 text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span className="text-green-500">✓</span>
                     {f}
                   </li>
                 ))}
@@ -91,7 +96,7 @@ export default function UpgradeModal({ onClose, reason = 'plan' }) {
                 className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] ${
                   plan.highlight
                     ? 'text-white'
-                    : 'bg-white/10 text-slate-200 hover:bg-white/15'
+                    : dm ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 }`}
                 style={plan.highlight ? { background: 'linear-gradient(135deg, #2563EB, #7C3AED)' } : {}}
               >
@@ -105,7 +110,7 @@ export default function UpgradeModal({ onClose, reason = 'plan' }) {
         <div className="px-6 py-4">
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-xl text-slate-500 text-sm hover:text-slate-300 transition-colors"
+            className={`w-full py-3 rounded-xl text-sm transition-colors ${dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}
           >
             Ahora no
           </button>

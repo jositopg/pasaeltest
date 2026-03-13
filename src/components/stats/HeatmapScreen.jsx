@@ -52,14 +52,14 @@ function HeatmapScreen({ themes, onNavigate }) {
           <p className={`text-sm font-bold mb-4 ${dm ? 'text-slate-200' : 'text-slate-700'}`} style={{ fontFamily: 'Sora, system-ui' }}>
             Vista general · {themes.length} temas
           </p>
-          <div className="grid grid-cols-9 gap-1.5">
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(2rem, 1fr))' }}>
             {themes.map(theme => {
               const stat = themeStats.find(s => s.number === theme.number);
               const hasData = stat && stat.attempts > 0;
               const colors = hasData ? getHeatColor(stat.errorRate) : null;
               return (
                 <div key={theme.number}
-                  className={`aspect-square rounded-lg flex items-center justify-center text-[9px] font-bold transition-all hover:scale-110 active:scale-95 cursor-default`}
+                  className="aspect-square rounded-lg flex items-center justify-center text-[10px] font-bold transition-all hover:scale-110 active:scale-95 cursor-default min-w-[2rem]"
                   style={hasData ? { background: colors.bg, color: colors.text } : { background: dm ? '#1E293B' : '#E2E8F0', color: dm ? '#475569' : '#94A3B8' }}
                   title={`Tema ${theme.number}: ${theme.name}${hasData ? ` - ${stat.errorRate}% error` : ''}`}>
                   {theme.number}

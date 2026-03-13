@@ -845,7 +845,7 @@ function ThemesScreen({
         {/* ─── Share Modal (admin) ─────────────────────────────── */}
         {shareModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-sm bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh]">
+            <div className={`w-full max-w-sm rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh] border ${dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
 
               {shareModal.loading && (
                 <div className="flex justify-center py-6">
@@ -855,10 +855,10 @@ function ThemesScreen({
 
               {shareModal.error && (
                 <>
-                  <h3 className="font-bold text-lg text-white">Error al acceder</h3>
+                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Error al acceder</h3>
                   <p className="text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2">{shareModal.error}</p>
-                  <p className="text-gray-500 text-xs">Si el error menciona columnas de base de datos, ejecuta las migraciones en el dashboard de Supabase.</p>
-                  <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">
+                  <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Si el error menciona columnas de base de datos, ejecuta las migraciones en el dashboard de Supabase.</p>
+                  <button onClick={() => setShareModal(null)} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                     Cerrar
                   </button>
                 </>
@@ -866,11 +866,11 @@ function ThemesScreen({
 
               {shareModal.published && (
                 <>
-                  <h3 className="font-bold text-lg text-white">Plan ya publicado ✅</h3>
-                  <p className="text-gray-400 text-sm">
-                    Este test está publicado con el slug <code className="text-green-400 bg-white/5 px-1.5 rounded">{shareModal.slug}</code>.
+                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Plan ya publicado ✅</h3>
+                  <p className={`text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+                    Slug: <code className={`text-green-500 text-xs px-1.5 rounded ${dm ? 'bg-white/5' : 'bg-slate-100'}`}>{shareModal.slug}</code>
                   </p>
-                  <div className="bg-white/5 rounded-xl px-3 py-2 text-xs text-gray-400 break-all">
+                  <div className={`rounded-xl px-3 py-2 text-xs break-all ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
                     {window.location.origin}/?join={shareModal.slug}
                   </div>
                   <button
@@ -879,7 +879,7 @@ function ThemesScreen({
                   >
                     🔗 Copiar enlace
                   </button>
-                  <button onClick={() => setShareModal(null)} className="w-full py-2 text-gray-500 text-sm">
+                  <button onClick={() => setShareModal(null)} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
                     Cerrar
                   </button>
                 </>
@@ -887,30 +887,30 @@ function ThemesScreen({
 
               {shareModal.form && (
                 <>
-                  <h3 className="font-bold text-lg text-white">Compartir como plan oficial</h3>
+                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Compartir como plan oficial</h3>
 
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Código del enlace (slug)</label>
+                    <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Código del enlace (slug)</label>
                     <input
                       type="text"
                       value={shareForm.slug}
                       onChange={e => setShareForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                       placeholder="guardia-civil-2025"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none"
+                      className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
                     />
                     {shareForm.slug && (
-                      <p className="text-xs text-gray-600 mt-1">{window.location.origin}/?join={shareForm.slug}</p>
+                      <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>{window.location.origin}/?join={shareForm.slug}</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Descripción (opcional)</label>
+                    <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Descripción (opcional)</label>
                     <textarea
                       value={shareForm.description}
                       onChange={e => setShareForm(f => ({ ...f, description: e.target.value }))}
                       placeholder="Descripción breve..."
                       rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none resize-none"
+                      className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none resize-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
                     />
                   </div>
 
@@ -919,7 +919,7 @@ function ThemesScreen({
                   <div className="flex gap-3">
                     <button
                       onClick={() => { setShareModal(null); setShareError(''); }}
-                      className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium"
+                      className={`flex-1 py-3 rounded-xl text-sm font-medium ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}
                     >
                       Cancelar
                     </button>
