@@ -43,13 +43,17 @@ export default function App() {
   const [examConfig, setExamConfig] = useState(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
-  // ─── Join plan via ?join=slug ───────────────────────────────
+  // ─── Join plan via ?join=slug OR manual code from HomeScreen ──
   const [joinSlug, setJoinSlug] = useState(() =>
     new URLSearchParams(window.location.search).get('join') || null
   );
   useEffect(() => {
     if (joinSlug) window.history.replaceState({}, '', '/');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleJoinWithCode = (slug) => {
+    setJoinSlug(slug);
+  };
 
   // ─── Dark mode ─────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => {
@@ -258,6 +262,7 @@ export default function App() {
             activeTestId={userData.activeTestId}
             themes={userData.themes}
             onSwitchTest={userData.switchTest}
+            onJoinWithCode={handleJoinWithCode}
           />
         )}
         {screen === 'exams' && (
