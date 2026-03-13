@@ -37,7 +37,7 @@ function ThemesScreen({
   const [generateReposConfirm, setGenerateReposConfirm] = useState(false);
   const [generateQuestionsConfirm, setGenerateQuestionsConfirm] = useState(false);
 
-  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
+  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'academy';
 
   // ─── Share modal (admin only) ──────────────────────────────
   const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form } | { error }

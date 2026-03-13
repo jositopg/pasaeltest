@@ -274,12 +274,14 @@ function ExamsScreen({
 
         {tests.length === 0 && (
           <div className={`text-center py-16 rounded-2xl ${cx.card}`}>
-            <div className="text-4xl mb-3">📚</div>
+            <div className="text-4xl mb-3">{isAcademy ? '🎓' : '📚'}</div>
             <p className={`font-semibold ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-              No tienes ningún plan todavía
+              {isAcademy ? 'Crea tu primer plan' : 'Aún no tienes ningún plan'}
             </p>
             <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>
-              Crea un plan propio o únete a uno con un enlace de invitación
+              {isAcademy
+                ? 'Añade temas, genera preguntas con IA y compártelo con tus alumnos'
+                : 'Crea un plan propio o únete al de tu academia con un enlace'}
             </p>
           </div>
         )}

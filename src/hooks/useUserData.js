@@ -108,9 +108,7 @@ const useUserData = (isAuthenticated, currentUser) => {
 
       // 2. Migración: temas sin test_id (usuarios pre-feature de tests)
       if (orphanResult.data && orphanResult.data.length > 0) {
-        const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
-          ? currentUser.oposicion
-          : 'Mi Test';
+        const defaultName = 'Mi Plan';
         const { data: defaultTest } = await dbHelpers.createTest(currentUser.id, defaultName);
         if (defaultTest) {
           await dbHelpers.migrateThemesToTest(currentUser.id, defaultTest.id);
@@ -134,9 +132,7 @@ const useUserData = (isAuthenticated, currentUser) => {
         }
       } else if (testsList.length === 0) {
         // Usuario nuevo sin tests — crear test por defecto
-        const defaultName = currentUser.oposicion && currentUser.oposicion !== 'Sin especificar'
-          ? currentUser.oposicion
-          : 'Mi Test';
+        const defaultName = 'Mi Plan';
         const { data: newTest } = await dbHelpers.createTest(currentUser.id, defaultName);
         if (newTest) {
           setTests([newTest]);

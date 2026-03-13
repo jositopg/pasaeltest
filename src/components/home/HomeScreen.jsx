@@ -3,15 +3,28 @@ import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
 // ─── Vista Academia ────────────────────────────────────────────────────────────
-function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onShowProfile, onSwitchTest, srsStats, cx, dm }) {
+function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTest, srsStats, cx, dm }) {
+  const [copiedId, setCopiedId] = useState(null);
   const totalQuestions = themes.reduce((a, t) => a + (t.questions?.length || 0), 0);
   const totalThemes = themes.filter(t => t.questions?.length > 0).length;
 
   const copyShareLink = (test) => {
-    if (!test.invite_slug) return;
     navigator.clipboard.writeText(`${window.location.origin}/?join=${test.invite_slug}`)
-      .then(() => {})
+      .then(() => {
+        setCopiedId(test.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      })
       .catch(() => {});
+  };
+
+  const handleShare = (test) => {
+    if (test.invite_slug) {
+      copyShareLink(test);
+    } else {
+      // Plan no publicado aún → ir a ExamsScreen donde está el modal de publicar
+      if (test.id !== activeTestId) onSwitchTest(test.id);
+      onNavigate('exams');
+    }
   };
 
   return (
@@ -49,8 +62,8 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
       <div className="space-y-3 animate-fade-in-up stagger-3">
         {tests.map(test => {
           const isActive = test.id === activeTestId;
-          const testThemes = isActive ? themes : [];
-          const qCount = isActive ? totalQuestions : '—';
+          const isCopied = copiedId === test.id;
+          const isPublished = !!test.invite_slug;
           return (
             <div key={test.id}
               className={`rounded-2xl p-4 ${
@@ -71,19 +84,25 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
                   {isActive && (
                     <p className={`text-xs mt-0.5 ${cx.muted}`}>
                       {totalThemes} tema{totalThemes !== 1 ? 's' : ''} · {totalQuestions} preg.
+                      {isPublished && <span className="ml-1.5 text-green-500">· Publicado</span>}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {test.invite_slug && (
-                    <button
-                      onClick={() => copyShareLink(test)}
-                      className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-400 hover:bg-green-50 hover:text-green-600'}`}
-                      title="Copiar enlace de invitación"
-                    >
-                      🔗
-                    </button>
-                  )}
+                  {/* Compartir: siempre visible para academia */}
+                  <button
+                    onClick={() => handleShare(test)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      isCopied
+                        ? 'bg-green-500/20 text-green-400'
+                        : isPublished
+                        ? dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-400 hover:bg-green-50 hover:text-green-600'
+                        : dm ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                    }`}
+                    title={isPublished ? 'Copiar enlace de invitación' : 'Publicar y compartir'}
+                  >
+                    {isCopied ? '✓ Copiado' : isPublished ? '🔗' : 'Compartir'}
+                  </button>
                   <button
                     onClick={() => { if (!isActive) onSwitchTest(test.id); onNavigate('themes'); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -100,7 +119,7 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
           );
         })}
 
-        {/* CTA nuevo plan / compartir */}
+        {/* CTA nuevo plan */}
         <button
           onClick={() => onNavigate('exams')}
           className={`w-full py-3.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] border-2 border-dashed ${
@@ -108,7 +127,7 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
           }`}
         >
           <Icons.Plus />
-          Nuevo plan o gestionar existentes
+          Nuevo plan
         </button>
       </div>
 
