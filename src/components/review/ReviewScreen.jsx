@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Icons from '../common/Icons';
 import { calculateNextReview, getDifficultyColor, formatNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
@@ -22,21 +22,89 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
   const [sessionComplete, setSessionComplete] = useState(false);
   const [failedInSession, setFailedInSession] = useState([]);
 
+  // Stats para el empty state "todo al día"
+  const allDoneStats = useMemo(() => {
+    if (sessionQuestions.length > 0) return null;
+    let total = 0, mastered = 0, learning = 0, newQ = 0;
+    let nextDate = null;
+    const now = new Date();
+    themes.forEach(t => (t.questions || []).forEach(q => {
+      total++;
+      if (!q.attempts || q.attempts === 0) { newQ++; return; }
+      if ((q.stability || 1) > 30) mastered++;
+      else learning++;
+      if (q.next_review) {
+        const d = new Date(q.next_review);
+        if (d > now && (!nextDate || d < nextDate)) nextDate = d;
+      }
+    }));
+    const nextLabel = nextDate ? formatNextReview(nextDate.toISOString()) : null;
+    return { total, mastered, learning, newQ, nextLabel };
+  }, [sessionQuestions.length, themes]);
+
   if (!sessionQuestions || sessionQuestions.length === 0) {
+    const s = allDoneStats || {};
+    const hasQuestions = (s.total || 0) > 0;
     return (
-      <div className={`min-h-full ${cx.screen} p-6 flex items-center justify-center`} style={{ paddingBottom: 'var(--pb-screen)' }}>
-        <div className={`rounded-2xl p-8 text-center max-w-md ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className={`text-xl font-bold mb-2 ${cx.heading}`}>¡Todo al día!</h2>
-          <p className={`mb-6 ${cx.muted}`}>
-            No tienes preguntas pendientes de repaso. Vuelve mañana o genera más preguntas.
-          </p>
-          <button
-            onClick={() => onNavigate('home')}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
-          >
-            Volver al inicio
-          </button>
+      <div className={`min-h-full ${cx.screen} flex items-center justify-center p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
+        <div className="w-full max-w-md space-y-4">
+
+          {/* Card principal */}
+          <div className={`rounded-2xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className={`text-xl font-bold mb-2 ${cx.heading}`}>¡Todo al día!</h2>
+            <p className={`text-sm ${cx.muted}`}>
+              {hasQuestions
+                ? 'No tienes preguntas pendientes ahora mismo.'
+                : 'Responde preguntas en los temas para activar el repaso inteligente.'}
+            </p>
+          </div>
+
+          {/* Stats row */}
+          {hasQuestions && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Total', value: s.total, color: dm ? 'text-blue-400' : 'text-blue-600' },
+                { label: 'Dominadas', value: s.mastered, color: dm ? 'text-green-400' : 'text-green-600' },
+                { label: 'Aprendiendo', value: s.learning, color: dm ? 'text-yellow-400' : 'text-yellow-600' },
+              ].map(stat => (
+                <div key={stat.label} className={`rounded-xl p-3 text-center ${dm ? 'bg-white/5 border border-white/8' : 'bg-white border border-slate-200 shadow-sm'}`}>
+                  <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className={`text-xs mt-0.5 ${cx.muted}`}>{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Próximo repaso */}
+          {s.nextLabel && (
+            <div className={`rounded-xl px-4 py-3 flex items-center gap-3 ${dm ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
+              <span className="text-xl">🕐</span>
+              <div>
+                <p className={`text-xs font-semibold ${dm ? 'text-blue-300' : 'text-blue-700'}`}>Próximo repaso</p>
+                <p className={`text-sm font-bold ${dm ? 'text-blue-200' : 'text-blue-800'}`}>{s.nextLabel}</p>
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className="flex flex-col gap-2">
+            {s.newQ > 0 && (
+              <button
+                onClick={() => onNavigate('themes')}
+                className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-gray-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                📖 Responder preguntas nuevas ({s.newQ})
+              </button>
+            )}
+            <button
+              onClick={() => onNavigate('home')}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-colors"
+            >
+              Volver al inicio
+            </button>
+          </div>
+
         </div>
       </div>
     );

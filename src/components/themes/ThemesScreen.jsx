@@ -563,22 +563,58 @@ function ThemesScreen({
           </div>
         </div>
 
-        {/* Empty state */}
-        {themes.length === 0 && (
-          <div className={`text-center py-12 rounded-2xl ${cx.cardAlt}`}>
-            <div className="text-4xl mb-3">📂</div>
-            <p className={`font-semibold text-sm ${cx.heading}`}>Este plan no tiene temas todavía</p>
-            <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>Importa una lista de temas o añade uno a uno</p>
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              >+ Añadir tema</button>
+        {/* Empty state — sin temas */}
+        {themes.length === 0 && !loading && (
+          <div className={`rounded-2xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            <div className="text-5xl mb-4">📚</div>
+            <h3 className={`text-lg font-bold mb-1 ${cx.heading}`}>Este plan está vacío</h3>
+            <p className={`text-sm mb-6 ${cx.muted}`}>
+              Añade los temas de tu temario para empezar a estudiar
+            </p>
+
+            {/* Pasos rápidos */}
+            <div className="space-y-2 text-left mb-6">
+              {[
+                { n: '1', label: 'Importa la lista de temas de tu temario', icon: '📋' },
+                { n: '2', label: 'Añade documentos o deja que la IA los genere', icon: '🤖' },
+                { n: '3', label: 'Genera preguntas y empieza a estudiar', icon: '✅' },
+              ].map(step => (
+                <div key={step.n} className={`flex items-center gap-3 rounded-xl px-4 py-3 ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <span className="text-xl">{step.icon}</span>
+                  <span className={`text-sm ${cx.body}`}>{step.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <button
                 onClick={() => setShowBulkImport(true)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-              >Importar lista</button>
+                className="flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-sm"
+              >
+                📋 Importar lista de temas
+              </button>
+              <button
+                onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
+                className={`flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                + Añadir tema solo
+              </button>
             </div>
+          </div>
+        )}
+
+        {/* Empty state — búsqueda sin resultados */}
+        {themes.length > 0 && filteredThemes.length === 0 && !loading && (
+          <div className={`text-center py-10 rounded-2xl ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            <div className="text-4xl mb-3">🔍</div>
+            <p className={`font-semibold text-sm ${cx.heading}`}>Sin resultados para "{searchTerm}"</p>
+            <p className={`text-xs mt-1 mb-4 ${cx.muted}`}>Prueba con otro nombre de tema</p>
+            <button
+              onClick={() => setSearchTerm('')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-gray-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Limpiar búsqueda
+            </button>
           </div>
         )}
 

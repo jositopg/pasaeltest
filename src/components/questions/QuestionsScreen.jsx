@@ -198,18 +198,38 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeT
           </div>
         </div>
 
-        {/* Lista de preguntas */}
-        {filtered.length === 0 ? (
-          <div className={`text-center py-16 rounded-2xl ${cx.card}`}>
-            <div className="text-4xl mb-3">📭</div>
-            <p className={`font-semibold ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-              {allQuestions.length === 0 ? 'Aún no hay preguntas generadas' : 'No hay resultados'}
+        {/* Lista de preguntas — empty states */}
+        {filtered.length === 0 && allQuestions.length === 0 ? (
+          <div className={`rounded-2xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            <div className="text-5xl mb-4">🧠</div>
+            <h3 className={`text-lg font-bold mb-1 ${dm ? 'text-white' : 'text-slate-800'}`}>
+              Aún no hay preguntas
+            </h3>
+            <p className={`text-sm mb-6 ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+              Ve a un tema, añade documentos y genera preguntas con IA para empezar a estudiar
             </p>
-            {allQuestions.length === 0 && (
-              <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>
-                Ve a Temas, añade documentos y genera preguntas con IA
-              </p>
-            )}
+            <button
+              onClick={() => onNavigate('themes')}
+              className="px-6 py-3 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-sm"
+            >
+              Ir a Temas →
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className={`text-center py-10 rounded-2xl ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
+            <div className="text-4xl mb-3">🔍</div>
+            <p className={`font-semibold text-sm ${dm ? 'text-gray-300' : 'text-slate-700'}`}>
+              Sin resultados
+            </p>
+            <p className={`text-xs mt-1 mb-4 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
+              Prueba con otros filtros o limpia la búsqueda
+            </p>
+            <button
+              onClick={() => { setSearchTerm(''); setFilterTheme('all'); setFilterDifficulty('all'); }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/10 text-gray-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Limpiar filtros
+            </button>
           </div>
         ) : (
           <div className="space-y-2">
