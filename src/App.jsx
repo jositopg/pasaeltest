@@ -16,7 +16,7 @@ import { supabase } from './supabaseClient';
 
 // Common components
 import ToastContainer from './components/common/ToastContainer';
-import { AuthLoadingScreen, DataLoadingScreen } from './components/common/LoadingScreens';
+import { AuthLoadingScreen } from './components/common/LoadingScreens';
 import GenerationBanner from './components/common/GenerationBanner';
 import { ScreenErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -221,10 +221,6 @@ export default function App() {
     );
   }
 
-  if (userData.loading) {
-    return <DataLoadingScreen darkMode={dm} />;
-  }
-
   // ─── Join plan gate ─────────────────────────────────────────
   if (joinSlug && auth.isAuthenticated && !auth.authLoading && !userData.loading) {
     return (
@@ -308,6 +304,7 @@ export default function App() {
             genQueue={genQueue}
             currentUser={auth.currentUser}
             isClonedTest={activeTestIsCloned}
+            loading={userData.loading}
           />
         )}
         {screen === 'exam' && !isAcademy && (
@@ -358,6 +355,7 @@ export default function App() {
             onNavigate={setScreen}
             showToast={showToast}
             activeTestName={activeTest?.name}
+            loading={userData.loading}
           />
         )}
         {screen === 'heatmap' && (

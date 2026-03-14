@@ -3,6 +3,7 @@ import Icons from '../common/Icons';
 import ThemeDetailModal from './ThemeDetailModal';
 import TestSwitcherModal from './TestSwitcherModal';
 import BulkImportModal from './BulkImportModal';
+import { ThemesScreenSkeleton } from '../common/Skeleton';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
@@ -16,6 +17,7 @@ function ThemesScreen({
   genQueue = {},
   currentUser,
   isClonedTest = false,
+  loading = false,
 }) {
   const { dm, cx } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
@@ -581,6 +583,9 @@ function ThemesScreen({
         )}
 
         {/* Theme list */}
+        {loading ? (
+          <ThemesScreenSkeleton />
+        ) : (
         <div className="space-y-2">
           {filteredThemes.map(theme => {
             const questionCount = theme.questions?.length || 0;
@@ -775,6 +780,7 @@ function ThemesScreen({
             );
           })}
         </div>
+        )} {/* end loading ? skeleton : list */}
 
         {selectedTheme && (
           <ThemeDetailModal

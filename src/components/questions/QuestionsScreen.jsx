@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import { QuestionsScreenSkeleton, FilterBarSkeleton } from '../common/Skeleton';
 
-function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeTestName }) {
+function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeTestName, loading = false }) {
   const { dm, cx } = useTheme();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,6 +148,13 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeT
       <div className="px-4 pt-3" style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-4">
 
+        {loading ? (
+          <>
+            <FilterBarSkeleton />
+            <QuestionsScreenSkeleton />
+          </>
+        ) : (<>
+
         {/* Buscador */}
         <div className={`rounded-2xl p-4 space-y-3 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white shadow-sm border border-slate-200'}`}>
           <div className="relative">
@@ -267,6 +275,7 @@ function QuestionsScreen({ themes, onUpdateTheme, onNavigate, showToast, activeT
             })}
           </div>
         )}
+        </>) /* end loading ternary */}
         </div>
       </div>
     </div>
