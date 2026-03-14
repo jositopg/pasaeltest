@@ -18,6 +18,7 @@ import { supabase } from './supabaseClient';
 import ToastContainer from './components/common/ToastContainer';
 import { AuthLoadingScreen, DataLoadingScreen } from './components/common/LoadingScreens';
 import GenerationBanner from './components/common/GenerationBanner';
+import { ScreenErrorBoundary } from './components/common/ErrorBoundary';
 
 // Screen components
 import AuthScreen from './components/auth/AuthScreen';
@@ -261,6 +262,7 @@ export default function App() {
           />
         )}
 
+        <ScreenErrorBoundary screen={screen} onNavigate={setScreen}>
         {screen === 'home' && (
           <HomeScreen
             onNavigate={setScreen}
@@ -379,6 +381,7 @@ export default function App() {
         {screen === 'admin' && (
           <AdminScreen onNavigate={setScreen} />
         )}
+        </ScreenErrorBoundary>
         <GenerationBanner progress={genQueue.queueProgress} />
         <BottomNav current={screen} onNavigate={setScreen} isAcademy={isAcademy} />
       </div>
