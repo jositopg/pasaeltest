@@ -138,6 +138,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
     generateQuestionsFromDocuments,
     handleAISearch, handleFileUpload, handleAddDocument,
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
+    handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,
   } = useThemeModal({ theme, onUpdate, showToast });
 
@@ -330,6 +331,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
                   }}
                   onDeleteSelected={handleDeleteSelected}
                   onDeleteAll={handleDeleteAll}
+                  onEditQuestion={handleEditQuestion}
                 />
               )}
             </div>}

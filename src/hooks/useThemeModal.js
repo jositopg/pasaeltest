@@ -427,6 +427,17 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     setDeleteQuestionsConfirm({ show: false, type: null, count: 0 });
   };
 
+  // ─── Preguntas — edición ──────────────────────────────────
+  const handleEditQuestion = (updatedQuestion) => {
+    onUpdate({
+      ...theme,
+      questions: theme.questions.map(q =>
+        q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q
+      ),
+    });
+    if (showToast) showToast('Pregunta actualizada', 'success');
+  };
+
   // ─── Preguntas — manual ───────────────────────────────────
   const handleManualQuestionAdd = () => {
     if (!newQuestion.text.trim() || newQuestion.options.some(opt => !opt.trim())) { alert('Completa todos los campos'); return; }
@@ -506,6 +517,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     generateQuestionsFromDocuments,
     handleAISearch, handleFileUpload, handleAddDocument,
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
+    handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,
   };
 }
