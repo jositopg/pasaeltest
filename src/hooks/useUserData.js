@@ -273,6 +273,9 @@ const useUserData = (isAuthenticated, currentUser) => {
   };
 
   const updateTheme = async (theme) => {
+    // Guardar estado previo para rollback si falla la operación en Supabase
+    const previousTheme = themes.find(t => t.number === theme.number);
+
     // Actualización optimista INMEDIATA: otros componentes ven el cambio sin esperar a Supabase
     setThemes(prev => prev.map(t => t.number === theme.number ? theme : t));
 
@@ -396,7 +399,10 @@ const useUserData = (isAuthenticated, currentUser) => {
       ));
     } catch (error) {
       console.error('Error in updateTheme:', error);
-      setThemes(prev => prev.map(t => t.number === theme.number ? theme : t));
+      // Rollback: restaurar estado anterior si la operación falló completamente
+      if (previousTheme) {
+        setThemes(prev => prev.map(t => t.number === theme.number ? previousTheme : t));
+      }
     }
   };
 
