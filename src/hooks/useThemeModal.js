@@ -8,9 +8,6 @@ import { authHelpers } from '../supabaseClient';
 import useDocumentManager from './useDocumentManager';
 
 export default function useThemeModal({ theme, onUpdate, showToast }) {
-  // ─── Documentos (delegado a useDocumentManager) ──────────
-  const docManager = useDocumentManager({ theme, onUpdate, showToast });
-
   // ─── Estado preguntas ────────────────────────────────────
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
@@ -21,8 +18,44 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   const [generationPercent, setGenerationPercent] = useState(0);
 
   // ─── Preview de preguntas generadas ──────────────────────
+  // Declarado antes de useDocumentManager para que handleRawQuestionsReady
+  // pueda cerrar sobre sus setters sin problema de orden.
   const [pendingQuestions, setPendingQuestions] = useState(null);
   const [pendingDuplicates, setPendingDuplicates] = useState(0);
+
+  // ─── Callback: preguntas generadas junto con el material ─
+  const handleRawQuestionsReady = (rawPreguntas) => {
+    if (!Array.isArray(rawPreguntas) || rawPreguntas.length === 0) return;
+    const existingTexts = (Array.isArray(theme.questions) ? theme.questions : []).map(q => q.text.toLowerCase().trim());
+    const rawQuestions = rawPreguntas.map((q, i) => ({
+      id: `${theme.number}-ai-${Date.now()}-${i}`,
+      text: q.pregunta || q.text || 'Pregunta sin texto',
+      options: q.opciones || q.options || ['A', 'B', 'C'],
+      correct: q.correcta ?? q.correct ?? 0,
+      source: 'IA',
+      difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
+      explanation: q.explicacion || q.explanation || '',
+      needsReview: true,
+      createdAt: new Date().toISOString(),
+    }));
+    const newQuestions = rawQuestions.filter(newQ => {
+      const newText = newQ.text.toLowerCase().trim();
+      if (existingTexts.some(et => et === newText)) return false;
+      const words1 = newText.split(/\s+/);
+      return !existingTexts.some(et => {
+        const words2 = et.split(/\s+/);
+        const common = words1.filter(w => words2.includes(w));
+        return common.length / Math.max(words1.length, words2.length) > 0.8;
+      });
+    });
+    if (newQuestions.length > 0) {
+      setPendingQuestions(newQuestions);
+      setPendingDuplicates(rawQuestions.length - newQuestions.length);
+    }
+  };
+
+  // ─── Documentos (delegado a useDocumentManager) ──────────
+  const docManager = useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady: handleRawQuestionsReady });
 
   // ─── Estado nombre ────────────────────────────────────────
   const [editingName, setEditingName] = useState(theme.name);

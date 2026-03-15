@@ -1,9 +1,33 @@
 import { useState, useRef } from 'react';
-import { OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../utils/optimizedPrompts';
+import { OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_SEARCH_AND_QUESTIONS_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { extractPDFText } from '../utils/questionImporter';
 import { authHelpers } from '../supabaseClient';
 
-export default function useDocumentManager({ theme, onUpdate, showToast }) {
+/**
+ * Extrae material y array de preguntas de una respuesta con marcadores.
+ * Formato esperado:
+ *   MATERIAL_START ... MATERIAL_END
+ *   QUESTIONS_START [...] QUESTIONS_END
+ */
+function parseCombinedResponse(text) {
+  const materialMatch = text.match(/MATERIAL_START\s*([\s\S]*?)\s*MATERIAL_END/);
+  const questionsMatch = text.match(/QUESTIONS_START\s*([\s\S]*?)\s*QUESTIONS_END/);
+
+  const material = materialMatch?.[1]?.trim() || null;
+  let preguntas = null;
+
+  if (questionsMatch?.[1]) {
+    const raw = questionsMatch[1].trim().replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      try { preguntas = JSON.parse(arrMatch[0]); } catch { /* skip, questions won't be set */ }
+    }
+  }
+
+  return { material, preguntas };
+}
+
+export default function useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady }) {
   const isDefaultName = theme.name === `Tema ${theme.number}`;
 
   const [showAddDoc, setShowAddDoc] = useState(!theme.documents?.length && !isDefaultName);
@@ -20,30 +44,51 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
   const handleAutoGenerateRepository = async () => {
     setIsAutoGenerating(true);
     setShowAutoGenerate(false);
-    if (showToast) showToast(`Generando repositorio para "${theme.name}"...`, 'info');
+    if (showToast) showToast(`Generando material y preguntas para "${theme.name}"...`, 'info');
     try {
       setIsSearching(true);
       const token = await authHelpers.getAccessToken();
+      const useCombined = !!onQuestionsReady;
+      const prompt = useCombined
+        ? COMBINED_AUTO_AND_QUESTIONS_PROMPT(theme.name)
+        : OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name);
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo', useCache: false }),
+        body: JSON.stringify({ prompt, maxTokens: useCombined ? 12000 : 8000, callType: 'repo', useCache: false }),
       });
       if (!response.ok) throw new Error('Error en la búsqueda');
       const data = await response.json();
       if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let searchContent = '';
-      for (const block of data.content) { if (block.type === 'text') searchContent += block.text; }
-      if (searchContent.trim().length < 100) throw new Error('La IA no devolvió contenido suficiente');
+      let responseText = '';
+      for (const block of data.content) { if (block.type === 'text') responseText += block.text; }
+
+      let processedContent = responseText;
+      let rawPreguntas = null;
+
+      if (useCombined) {
+        const parsed = parseCombinedResponse(responseText);
+        if (parsed.material) processedContent = parsed.material;
+        rawPreguntas = parsed.preguntas;
+      }
+
+      if (processedContent.trim().length < 100) throw new Error('La IA no devolvió contenido suficiente');
+
       const newDoc = {
         type: 'ai-search', content: theme.name,
         fileName: `Repositorio: ${theme.name}`,
         addedAt: new Date().toISOString(),
-        searchResults: { query: theme.name, content: searchContent, processedContent: searchContent },
-        processedContent: searchContent,
+        searchResults: { query: theme.name, content: processedContent, processedContent },
+        processedContent,
       };
       onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      if (showToast) showToast(`✅ Repositorio generado para "${theme.name}"`, 'success');
+
+      if (rawPreguntas?.length && onQuestionsReady) {
+        onQuestionsReady(rawPreguntas);
+        if (showToast) showToast(`✅ Material generado · ${rawPreguntas.length} preguntas listas para revisar`, 'success');
+      } else {
+        if (showToast) showToast(`✅ Repositorio generado para "${theme.name}"`, 'success');
+      }
     } catch (error) {
       console.error('Error generando repositorio:', error);
       if (showToast) showToast('Error al generar repositorio automático', 'error');
@@ -56,28 +101,49 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
   const handleAISearch = async () => {
     if (!docContent.trim()) { if (showToast) showToast('Describe qué información buscar', 'warning'); return; }
     setIsSearching(true);
-    setProgress('🔍 Buscando y procesando con IA...');
+    const useCombined = !!onQuestionsReady;
+    setProgress(useCombined ? '🤖 Buscando y generando preguntas...' : '🔍 Buscando y procesando con IA...');
     setPercent(10);
     try {
       const token = await authHelpers.getAccessToken();
+      const prompt = useCombined
+        ? COMBINED_SEARCH_AND_QUESTIONS_PROMPT(docContent, theme.name)
+        : OPTIMIZED_SEARCH_PROMPT(docContent, theme.name);
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: OPTIMIZED_SEARCH_PROMPT(docContent, theme.name), maxTokens: 8000, callType: 'search' }),
+        body: JSON.stringify({ prompt, maxTokens: useCombined ? 12000 : 8000, callType: 'search' }),
       });
       setProgress('📝 Procesando respuesta...');
       setPercent(70);
       if (!response.ok) throw new Error(`Error API: ${response.status}`);
       const data = await response.json();
       if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let processedContent = '';
-      for (const block of data.content) { if (block.type === 'text') processedContent += block.text; }
+      let responseText = '';
+      for (const block of data.content) { if (block.type === 'text') responseText += block.text; }
+
+      let processedContent = responseText;
+      let rawPreguntas = null;
+
+      if (useCombined) {
+        const parsed = parseCombinedResponse(responseText);
+        if (parsed.material) processedContent = parsed.material;
+        rawPreguntas = parsed.preguntas;
+      }
+
       if (!processedContent.trim() || processedContent.length < 500) throw new Error('No se encontró suficiente información');
-      setProgress('💾 Guardando...');
-      setPercent(90);
+
+      setProgress('💾 Guardando material...');
+      setPercent(85);
       const newDoc = { type: 'ai-search', content: docContent, processedContent, quality: 'optimized', wordCount: processedContent.split(' ').length, addedAt: new Date().toISOString() };
       onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      setProgress('✅ ¡Completado!');
+
+      if (rawPreguntas?.length && onQuestionsReady) {
+        setProgress(`✅ Material guardado · ${rawPreguntas.length} preguntas listas para revisar`);
+        onQuestionsReady(rawPreguntas);
+      } else {
+        setProgress('✅ ¡Completado!');
+      }
       setPercent(100);
       setTimeout(() => { setDocContent(''); setShowAddDoc(false); setIsSearching(false); setProgress(''); setPercent(0); }, 1500);
     } catch (error) {

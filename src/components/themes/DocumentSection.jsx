@@ -83,7 +83,7 @@ export default function DocumentSection({
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
             <div className="flex-1">
-              <p className="text-blue-300 font-semibold text-sm">Generando material de estudio...</p>
+              <p className="text-blue-300 font-semibold text-sm">Generando material y preguntas...</p>
               <p className="text-blue-200 text-xs mt-1">Buscando información oficial sobre "{theme.name}"</p>
             </div>
           </div>

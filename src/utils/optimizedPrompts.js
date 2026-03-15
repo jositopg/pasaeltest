@@ -114,6 +114,64 @@ Conexiones con otras materias del temario, órganos que intervienen, relaciones 
 Desarrolla cada sección con información real, precisa y verificable. El objetivo es que un opositor pueda estudiar solo con este texto.`;
 
 /**
+ * PROMPTS COMBINADOS — material + preguntas en una sola llamada
+ * Ahorra 1 llamada a Gemini en los flujos AI Search y Auto-generar.
+ *
+ * Formato de respuesta:
+ *   MATERIAL_START
+ *   ...texto...
+ *   MATERIAL_END
+ *   QUESTIONS_START
+ *   [{"pregunta":...}]
+ *   QUESTIONS_END
+ *
+ * Este formato evita problemas de escape en JSON anidado.
+ */
+
+export const COMBINED_SEARCH_AND_QUESTIONS_PROMPT = (query, themeName, numQuestions = 25) => `Sobre "${query}" en el contexto de "${themeName}":
+
+PARTE 1 — Material de estudio extenso (mínimo 800 palabras):
+- Conceptos clave y definiciones
+- Artículos de ley, fechas y datos exactos relevantes
+- Procedimientos y plazos
+- Datos y cifras concretas
+
+PARTE 2 — ${numQuestions} preguntas tipo test basadas en ese material:
+- Datos exactos del contenido (artículos, fechas, números)
+- Opciones plausibles, no absurdas
+- 30% fácil, 50% media, 20% difícil
+- Explicación breve por pregunta
+
+Responde con este formato EXACTO (sin texto antes ni después):
+MATERIAL_START
+[material de estudio aquí]
+MATERIAL_END
+QUESTIONS_START
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"frase breve"}]
+QUESTIONS_END`;
+
+export const COMBINED_AUTO_AND_QUESTIONS_PROMPT = (themeName, numQuestions = 25) => `Eres experto en preparación de exámenes en España. Para el tema "${themeName}":
+
+PARTE 1 — Repositorio de estudio COMPLETO (mínimo 1500 palabras). Desarrolla con al menos 200 palabras cada sección:
+## 1. CONCEPTOS FUNDAMENTALES — definiciones, principios, contexto histórico
+## 2. MARCO NORMATIVO — leyes, reglamentos, fechas, contenido principal
+## 3. PROCEDIMIENTOS Y TRÁMITES — pasos, plazos exactos, órganos competentes
+## 4. DATOS Y CIFRAS CLAVE — porcentajes, cuantías, plazos en días
+## 5. CASOS ESPECIALES Y EXCEPCIONES — supuestos especiales, jurisprudencia relevante
+
+PARTE 2 — ${numQuestions} preguntas tipo test basadas en ese material:
+- Datos exactos del contenido
+- 30% fácil, 50% media, 20% difícil
+
+Responde con este formato EXACTO (sin texto antes ni después):
+MATERIAL_START
+[repositorio completo aquí]
+MATERIAL_END
+QUESTIONS_START
+[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"frase breve"}]
+QUESTIONS_END`;
+
+/**
  * COMPARACIÓN DE AHORRO
  */
 
