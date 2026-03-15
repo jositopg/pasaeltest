@@ -324,6 +324,7 @@ export default function App() {
             onFinish={finishExam}
             onNavigate={setScreen}
             onUpdateThemes={userData.updateTheme}
+            examHistory={userData.examHistory}
           />
         )}
         {screen === 'review' && !isAcademy && (

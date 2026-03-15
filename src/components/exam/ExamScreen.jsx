@@ -2,6 +2,51 @@ import React, { useState, useEffect, useRef } from 'react';
 import { calculateNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
 
+// ─── Donut chart SVG (sin librerías externas) ─────────────────────────────
+// Truco: r=15.915 → circumference≈100 → dasharray values = percentages directamente
+function DonutChart({ correct, incorrect, unanswered, total, dm }) {
+  if (total === 0) return null;
+  const R = 15.915;
+  const SW = 4.5;
+  const correctPct   = (correct   / total) * 100;
+  const incorrectPct = (incorrect / total) * 100;
+  const unansweredPct = (unanswered / total) * 100;
+  const pct = Math.round(correctPct);
+
+  const segments = [
+    { pct: correctPct,    acc: 0,                              color: '#22c55e' },
+    { pct: incorrectPct,  acc: correctPct,                     color: '#ef4444' },
+    { pct: unansweredPct, acc: correctPct + incorrectPct,      color: dm ? '#374151' : '#cbd5e1' },
+  ].filter(s => s.pct > 0.5);
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 130, height: 130 }}>
+      <svg viewBox="0 0 42 42" width={130} height={130} style={{ transform: 'rotate(-90deg)' }}>
+        {/* Track */}
+        <circle cx="21" cy="21" r={R} fill="none"
+          stroke={dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}
+          strokeWidth={SW} />
+        {/* Segments */}
+        {segments.map((s, i) => (
+          <circle key={i} cx="21" cy="21" r={R} fill="none"
+            stroke={s.color} strokeWidth={SW}
+            strokeDasharray={`${s.pct} ${100 - s.pct}`}
+            strokeDashoffset={25 - s.acc}
+            strokeLinecap="butt"
+          />
+        ))}
+      </svg>
+      {/* Center label */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-2xl font-bold tabular-nums ${
+          pct >= 70 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
+        }`}>{pct}%</span>
+        <span className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>{correct}/{total}</span>
+      </div>
+    </div>
+  );
+}
+
 const EXAM_STATE_KEY = 'exam_paused_state';
 
 function getPenaltyValue(incorrect, system) {
@@ -72,7 +117,7 @@ function loadSavedState(configKey) {
   }
 }
 
-function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
+function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, examHistory = [] }) {
   const { dm, cx } = useTheme();
 
   const configKey = hashConfig(config);
@@ -282,69 +327,129 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
   if (showResults) {
     const score = calculateScore();
     const pct = parseFloat(score.percentage);
-    const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '💪' : '📚';
+
+    // Mensaje motivacional
+    const motivation =
+      pct >= 90 ? '¡Excelente dominio del temario!' :
+      pct >= 80 ? '¡Muy bien! Sigue así.' :
+      pct >= 70 ? 'Buen resultado, con un poco más lo tienes.' :
+      pct >= 60 ? 'Vas por buen camino, repasa los fallos.' :
+      '¡Ánimo! Cada repaso cuenta.';
+
+    // Comparativa con examen anterior (mismo conjunto de temas)
+    const prevExam = examHistory
+      .filter(e => {
+        const pt = [...(e.config?.selectedThemes || [])].sort().join(',');
+        const ct = [...(config.selectedThemes || [])].sort().join(',');
+        return pt === ct && e.score?.percentage !== undefined;
+      })
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const prevPct = prevExam ? parseFloat(prevExam.score.percentage) : null;
+    const diff = prevPct !== null ? Math.round(pct - prevPct) : null;
+
+    // Temas ordenados de peor a mejor
     const themeEntries = Object.entries(score.byTheme).sort((a, b) => {
-      const ra = a[1].correct / (a[1].correct + a[1].incorrect || 1);
-      const rb = b[1].correct / (b[1].correct + b[1].incorrect || 1);
-      return ra - rb; // worst first
+      const ra = a[1].correct / Math.max(a[1].correct + a[1].incorrect, 1);
+      const rb = b[1].correct / Math.max(b[1].correct + b[1].incorrect, 1);
+      return ra - rb;
     });
-    const diffLabels = { facil: { label: 'Fácil', color: 'text-green-500' }, media: { label: 'Media', color: 'text-yellow-500' }, dificil: { label: 'Difícil', color: 'text-red-500' } };
+
+    const diffLabels = {
+      facil:  { label: 'Fácil',   barColor: 'bg-green-500', textColor: 'text-green-500' },
+      media:  { label: 'Media',   barColor: 'bg-yellow-500', textColor: 'text-yellow-500' },
+      dificil:{ label: 'Difícil', barColor: 'bg-red-500',   textColor: 'text-red-500' },
+    };
 
     return (
       <div className={`min-h-screen ${cx.screen} p-4 sm:p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
         <div className="max-w-2xl mx-auto space-y-4">
 
-          {/* Hero */}
-          <div className={`rounded-3xl p-6 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
-            {score.timeExpired && (
-              <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-500 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                ⏱ Tiempo agotado
-              </div>
-            )}
-            <div className="text-4xl mb-2">{emoji}</div>
-            <h2 className={`text-xl font-bold mb-3 ${cx.heading}`}>¡Test completado!</h2>
-            <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              {score.percentage}%
+          {/* ── HERO CARD ──────────────────────────────────────────── */}
+          <div className={`rounded-3xl p-5 sm:p-6 ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+
+            {/* Badges de estado */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {score.timeExpired && (
+                <span className="inline-flex items-center gap-1 bg-red-500/15 text-red-500 text-xs font-semibold px-2.5 py-1 rounded-full">
+                  ⏱ Tiempo agotado
+                </span>
+              )}
+              {diff !== null && (
+                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
+                  diff > 0 ? 'bg-green-500/15 text-green-500' :
+                  diff < 0 ? 'bg-red-500/15 text-red-500' :
+                  dm ? 'bg-white/10 text-gray-400' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {diff > 0 ? `↑ +${diff}%` : diff < 0 ? `↓ ${diff}%` : '→ igual'} vs anterior
+                </span>
+              )}
             </div>
-            <p className={`text-xs mt-2 ${cx.muted}`}>{score.finalScore} / {questions.length} puntos</p>
+
+            {/* Donut + texto (dos columnas) */}
+            <div className="flex items-center gap-5 sm:gap-6">
+              <DonutChart
+                correct={score.correct}
+                incorrect={score.incorrect}
+                unanswered={score.unanswered}
+                total={questions.length}
+                dm={dm}
+              />
+              <div className="flex-1 min-w-0">
+                <h2 className={`text-xl sm:text-2xl font-bold mb-1 ${cx.heading}`}>¡Test completado!</h2>
+                <p className={`text-sm mb-3 ${cx.muted}`}>{motivation}</p>
+                <div className={`text-4xl sm:text-5xl font-bold tabular-nums ${
+                  pct >= 70 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {score.finalScore}<span className={`text-lg font-semibold ml-1 ${cx.muted}`}>/ {questions.length}</span>
+                </div>
+                <p className={`text-xs mt-1 ${cx.muted}`}>{score.percentage}% de aciertos</p>
+              </div>
+            </div>
           </div>
 
-          {/* Resumen numérico */}
-          <div className={`rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 ${cx.card}`}>
+          {/* ── STATS GRID ─────────────────────────────────────────── */}
+          <div className={`rounded-2xl p-4 grid gap-3 ${
+            config.penaltySystem !== 'none' ? 'grid-cols-4' : 'grid-cols-3'
+          } ${cx.card}`}>
             {[
-              { label: 'Correctas', value: score.correct, color: 'text-green-500' },
-              { label: 'Incorrectas', value: score.incorrect, color: 'text-red-500' },
-              { label: 'Sin resp.', value: score.unanswered, color: cx.muted },
-              ...(config.penaltySystem !== 'none' ? [{ label: 'Penalización', value: `-${score.penalty}`, color: 'text-orange-500' }] : []),
-            ].map(({ label, value, color }) => (
-              <div key={label} className={`text-center rounded-xl py-3 ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <div className={`text-2xl font-bold ${color}`}>{value}</div>
+              { label: 'Correctas',   value: score.correct,   color: 'text-green-500',  bg: dm ? 'bg-green-500/10'  : 'bg-green-50'  },
+              { label: 'Incorrectas', value: score.incorrect,  color: 'text-red-500',    bg: dm ? 'bg-red-500/10'    : 'bg-red-50'    },
+              { label: 'Sin resp.',   value: score.unanswered, color: cx.muted,           bg: dm ? 'bg-white/5'       : 'bg-slate-50'  },
+              ...(config.penaltySystem !== 'none'
+                ? [{ label: 'Penaliz.', value: `-${score.penalty}`, color: 'text-orange-500', bg: dm ? 'bg-orange-500/10' : 'bg-orange-50' }]
+                : []),
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className={`text-center rounded-xl py-3 ${bg}`}>
+                <div className={`text-xl sm:text-2xl font-bold ${color}`}>{value}</div>
                 <div className={`text-xs mt-0.5 ${cx.muted}`}>{label}</div>
               </div>
             ))}
           </div>
 
-          {/* Breakdown por tema (solo si hay varios temas) */}
+          {/* ── BREAKDOWN POR TEMA ─────────────────────────────────── */}
           {themeEntries.length > 1 && (
             <div className={`rounded-2xl p-4 space-y-3 ${cx.card}`}>
-              <p className={`text-xs font-bold uppercase tracking-wide ${cx.muted}`}>Resultados por tema</p>
+              <p className={`text-xs font-bold uppercase tracking-widest ${cx.muted}`}>Por tema</p>
               {themeEntries.map(([tn, stats]) => {
-                const total = stats.correct + stats.incorrect;
-                const pctTheme = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
-                const theme = themes.find(t => t.number === parseInt(tn));
+                const tot = stats.correct + stats.incorrect;
+                const tp  = tot > 0 ? Math.round((stats.correct / tot) * 100) : 0;
+                const thm = themes.find(t => t.number === parseInt(tn));
+                const barColor = tp >= 70 ? 'bg-green-500' : tp >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                const textColor = tp >= 70 ? 'text-green-500' : tp >= 50 ? 'text-yellow-500' : 'text-red-500';
                 return (
-                  <div key={tn} className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className={`text-xs ${cx.body}`}>{theme?.name || `Tema ${tn}`}</span>
-                      <span className={`text-xs font-bold ${pctTheme >= 70 ? 'text-green-500' : pctTheme >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>
-                        {pctTheme}% ({stats.correct}/{total})
+                  <div key={tn}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={`text-sm truncate max-w-[65%] ${cx.body}`}>
+                        <span className={`font-semibold ${dm ? 'text-gray-400' : 'text-slate-400'} mr-1`}>T{tn}</span>
+                        {thm?.name || `Tema ${tn}`}
+                      </span>
+                      <span className={`text-sm font-bold tabular-nums ${textColor}`}>
+                        {tp}% <span className={`text-xs font-normal ${cx.muted}`}>({stats.correct}/{tot})</span>
                       </span>
                     </div>
-                    <div className={`w-full h-1.5 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
-                      <div
-                        className={`h-full rounded-full ${pctTheme >= 70 ? 'bg-green-500' : pctTheme >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={{ width: `${pctTheme}%` }}
-                      />
+                    <div className={`w-full h-2.5 rounded-full ${dm ? 'bg-white/8' : 'bg-slate-100'}`}>
+                      <div className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                        style={{ width: `${tp}%` }} />
                     </div>
                   </div>
                 );
@@ -352,44 +457,62 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes }) {
             </div>
           )}
 
-          {/* Distribución por dificultad */}
+          {/* ── POR DIFICULTAD ─────────────────────────────────────── */}
           {(() => {
-            const diffRows = Object.entries(diffLabels)
-              .map(([key, meta]) => ({ ...meta, key, c: score.byDifficulty[key].c, i: score.byDifficulty[key].i }))
+            const rows = Object.entries(diffLabels)
+              .map(([k, m]) => ({ ...m, k, c: score.byDifficulty[k].c, i: score.byDifficulty[k].i }))
               .filter(r => r.c + r.i > 0);
-            if (diffRows.length === 0) return null;
+            if (!rows.length) return null;
             return (
-              <div className={`rounded-2xl p-4 space-y-2 ${cx.card}`}>
-                <p className={`text-xs font-bold uppercase tracking-wide ${cx.muted}`}>Por dificultad</p>
-                {diffRows.map(({ key, label, color, c, i }) => (
-                  <div key={key} className="flex items-center gap-3">
-                    <span className={`text-xs w-14 font-semibold ${color}`}>{label}</span>
-                    <div className={`flex-1 h-1.5 rounded-full ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round((c / (c + i)) * 100)}%` }} />
+              <div className={`rounded-2xl p-4 space-y-3 ${cx.card}`}>
+                <p className={`text-xs font-bold uppercase tracking-widest ${cx.muted}`}>Por dificultad</p>
+                {rows.map(({ k, label, barColor, textColor, c, i }) => {
+                  const tp = Math.round((c / (c + i)) * 100);
+                  return (
+                    <div key={k}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-sm font-semibold ${textColor}`}>{label}</span>
+                        <span className={`text-sm tabular-nums ${cx.muted}`}>{c} / {c + i}</span>
+                      </div>
+                      <div className={`w-full h-2.5 rounded-full ${dm ? 'bg-white/8' : 'bg-slate-100'}`}>
+                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${tp}%` }} />
+                      </div>
                     </div>
-                    <span className={`text-xs tabular-nums w-14 text-right ${cx.muted}`}>{c} / {c + i}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
 
-          {/* Acciones */}
+          {/* ── ACCIONES ───────────────────────────────────────────── */}
           {score.failedQs.length > 0 && (
             <button
               onClick={() => handleFinish(score, score.failedQs)}
-              className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-md ${
-                dm
-                  ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
-                  : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+              className={`w-full py-4 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                dm ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
+                   : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
               }`}
             >
-              🔁 Repasar {score.failedQs.length} fallos
+              🔁 Repasar {score.failedQs.length} fallo{score.failedQs.length !== 1 ? 's' : ''}
             </button>
           )}
-          <button onClick={() => handleFinish(score, null)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md">
-            Volver al inicio
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { handleFinish(score, null); setTimeout(() => onNavigate('exam'), 50); }}
+              className={`py-4 rounded-2xl font-bold transition-all ${
+                dm ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Nuevo test
+            </button>
+            <button
+              onClick={() => handleFinish(score, null)}
+              className="py-4 rounded-2xl font-bold bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-md"
+            >
+              Inicio
+            </button>
+          </div>
+
         </div>
       </div>
     );
