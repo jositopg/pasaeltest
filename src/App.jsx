@@ -334,6 +334,7 @@ export default function App() {
             onUpdateTheme={userData.updateTheme}
             onNavigate={(s) => { setReviewFailed(null); setScreen(s); }}
             showToast={showToast}
+            mode={reviewFailed ? 'exam-fails' : 'srs'}
           />
         )}
         {screen === 'alumnos' && (

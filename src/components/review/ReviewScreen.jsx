@@ -5,11 +5,14 @@ import { useTheme } from '../../context/ThemeContext';
 
 const SESSION_LIMIT = 20;
 
-function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast }) {
+function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToast, mode = 'srs' }) {
   const { dm, cx } = useTheme();
+  const isExamFails = mode === 'exam-fails';
 
   const totalDue = dueQuestions.length;
-  const cappedQuestions = dueQuestions.slice(0, SESSION_LIMIT);
+  // En modo exam-fails repasar TODAS las preguntas falladas, sin cap
+  const effectiveLimit = isExamFails ? totalDue : SESSION_LIMIT;
+  const cappedQuestions = dueQuestions.slice(0, effectiveLimit);
 
   // sessionQuestions puede cambiar si el usuario hace "Repetir falladas"
   const [sessionQuestions, setSessionQuestions] = useState(() =>
@@ -127,66 +130,108 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
     return (
       <div className={`min-h-full ${cx.screen} p-6`} style={{ paddingBottom: 'var(--pb-screen)' }}>
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl mx-auto space-y-4">
+
+          {/* Hero */}
           <div className={`rounded-3xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
-            <div className="text-5xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}</div>
-            <h2 className={`text-2xl font-bold mb-2 ${cx.heading}`}>Repaso completado</h2>
-            <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent my-4">
+            <div className="text-5xl mb-3">{pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}</div>
+            <h2 className={`text-2xl font-bold mb-1 ${cx.heading}`}>
+              {isExamFails ? 'Fallos repasados' : 'Repaso completado'}
+            </h2>
+            {isExamFails && (
+              <p className={`text-sm mb-3 ${cx.muted}`}>
+                {sessionStats.correct > 0
+                  ? `Ya dominas ${sessionStats.correct} de las ${sessionStats.total} que fallaste`
+                  : 'Sigue repasando para afianzarlas'}
+              </p>
+            )}
+            <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent my-3">
               {pct}%
             </div>
           </div>
 
-          <div className={`rounded-2xl p-6 space-y-3 ${cx.card}`}>
-            <div className="flex justify-between">
-              <span className={cx.body}>Correctas</span>
-              <span className="text-green-500 font-bold">{sessionStats.correct}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className={cx.body}>Incorrectas</span>
-              <span className="text-red-500 font-bold">{sessionStats.incorrect}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className={cx.body}>Total repasadas</span>
-              <span className={`font-bold ${cx.heading}`}>{sessionStats.total}</span>
-            </div>
+          {/* Stats */}
+          <div className={`rounded-2xl p-5 space-y-3 ${cx.card}`}>
+            {[
+              { label: 'Correctas',      value: sessionStats.correct,   color: 'text-green-500' },
+              { label: 'Incorrectas',    value: sessionStats.incorrect,  color: 'text-red-500'   },
+              { label: 'Total repasadas',value: sessionStats.total,      color: cx.heading       },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex justify-between">
+                <span className={cx.body}>{label}</span>
+                <span className={`font-bold ${color}`}>{value}</span>
+              </div>
+            ))}
           </div>
 
-          <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
-            <p className={`text-sm ${dm ? 'text-blue-300' : 'text-blue-700'}`}>
-              El algoritmo ha ajustado las fechas de repaso. Las preguntas que fallaste volverán pronto.
-            </p>
-          </div>
-
-          {totalDue > SESSION_LIMIT && failedInSession.length === 0 && (
-            <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'}`}>
-              <p className={`text-sm font-semibold ${dm ? 'text-yellow-300' : 'text-yellow-700'}`}>
-                {totalDue - SESSION_LIMIT} preguntas más pendientes
-              </p>
-              <p className={`text-xs mt-1 ${dm ? 'text-yellow-400/70' : 'text-yellow-600'}`}>
-                Vuelve más tarde para continuar o inicia otra sesión
-              </p>
-            </div>
+          {/* Info contextual */}
+          {isExamFails ? (
+            sessionStats.correct > 0 && (
+              <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-green-500/10 border border-green-500/20' : 'bg-green-50 border border-green-200'}`}>
+                <p className={`text-sm ${dm ? 'text-green-300' : 'text-green-700'}`}>
+                  ✅ El SRS ha registrado tu progreso — estas preguntas volverán en el momento adecuado
+                </p>
+              </div>
+            )
+          ) : (
+            <>
+              <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
+                <p className={`text-sm ${dm ? 'text-blue-300' : 'text-blue-700'}`}>
+                  El algoritmo ha ajustado las fechas de repaso. Las preguntas que fallaste volverán pronto.
+                </p>
+              </div>
+              {totalDue > SESSION_LIMIT && failedInSession.length === 0 && (
+                <div className={`rounded-2xl p-4 text-center ${dm ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-yellow-50 border border-yellow-200'}`}>
+                  <p className={`text-sm font-semibold ${dm ? 'text-yellow-300' : 'text-yellow-700'}`}>
+                    {totalDue - SESSION_LIMIT} preguntas más pendientes
+                  </p>
+                  <p className={`text-xs mt-1 ${dm ? 'text-yellow-400/70' : 'text-yellow-600'}`}>
+                    Vuelve más tarde para continuar o inicia otra sesión
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
+          {/* Retry failed */}
           {failedInSession.length > 0 && (
             <button
               onClick={handleRetryFailed}
               className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-md ${
-                dm
-                  ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
-                  : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+                dm ? 'bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30'
+                   : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
               }`}
             >
-              🔁 Repetir falladas ({failedInSession.length})
+              🔁 Repetir {failedInSession.length} fallo{failedInSession.length !== 1 ? 's' : ''}
             </button>
           )}
 
-          <button
-            onClick={() => onNavigate('home')}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md"
-          >
-            Volver al inicio
-          </button>
+          {/* CTAs principales */}
+          {isExamFails ? (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => onNavigate('exam')}
+                className={`py-4 rounded-2xl font-bold transition-all ${
+                  dm ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Nuevo test
+              </button>
+              <button
+                onClick={() => onNavigate('home')}
+                className="py-4 rounded-2xl font-bold bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-md"
+              >
+                Inicio
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onNavigate('home')}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-md"
+            >
+              Volver al inicio
+            </button>
+          )}
         </div>
       </div>
     );
@@ -260,10 +305,15 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
             <Icons.ChevronLeft />
           </button>
           <div className="flex-1">
-            <h1 className={`font-bold text-lg ${cx.heading}`}>Repaso Inteligente</h1>
+            <h1 className={`font-bold text-lg ${cx.heading}`}>
+              {isExamFails ? '🔁 Repasando Fallos' : 'Repaso Inteligente'}
+            </h1>
             <p className={`text-xs ${cx.muted}`}>
-              {current + 1} / {sessionQuestions.length} · Tema {q.themeNumber}
-              {totalDue > SESSION_LIMIT && ` · ${totalDue} pendientes total`}
+              {current + 1} / {sessionQuestions.length}
+              {isExamFails
+                ? ' · Del último examen'
+                : ` · Tema ${q.themeNumber}${totalDue > SESSION_LIMIT ? ` · ${totalDue} pendientes total` : ''}`
+              }
             </p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${diffColor.bg} ${diffColor.text}`}>
@@ -359,27 +409,29 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               </div>
             )}
 
-            {/* SRS feedback */}
-            <div className={`pt-3 border-t ${cx.divider}`}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
-                  📊 Dificultad: {(calculateNextReview(q, wasCorrect).srs_difficulty || 5).toFixed(1)}/10
-                </span>
-                <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}>
-                  🔄 Próximo repaso: {formatNextReview(calculateNextReview(q, wasCorrect).next_review)}
-                </span>
-                {!wasCorrect && (
-                  <span className={`text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400`}>
-                    ⚡ Volverá pronto
+            {/* SRS feedback — solo en modo SRS normal */}
+            {!isExamFails && (
+              <div className={`pt-3 border-t ${cx.divider}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-500'}`}>
+                    📊 Dificultad: {(calculateNextReview(q, wasCorrect).srs_difficulty || 5).toFixed(1)}/10
                   </span>
-                )}
-                {wasCorrect && (calculateNextReview(q, wasCorrect).stability || 1) > 30 && (
-                  <span className={`text-xs px-2 py-1 rounded-lg bg-green-500/10 text-green-400`}>
-                    🏆 Dominada
+                  <span className={`text-xs px-2 py-1 rounded-lg ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}>
+                    🔄 Próximo repaso: {formatNextReview(calculateNextReview(q, wasCorrect).next_review)}
                   </span>
-                )}
+                  {!wasCorrect && (
+                    <span className="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400">
+                      ⚡ Volverá pronto
+                    </span>
+                  )}
+                  {wasCorrect && (calculateNextReview(q, wasCorrect).stability || 1) > 30 && (
+                    <span className="text-xs px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
+                      🏆 Dominada
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
