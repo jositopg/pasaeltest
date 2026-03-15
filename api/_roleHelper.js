@@ -2,7 +2,7 @@
  * Shared role verification for API endpoints
  * Roles: 'user' < 'org_admin' < 'super_admin'
  */
-const ROLE_LEVEL = { user: 0, org_admin: 1, super_admin: 2 };
+const ROLE_LEVEL = { user: 0, academy: 1, org_admin: 1, super_admin: 2 };
 
 export async function verifyRole(req, supabase, minRole = 'org_admin') {
   const token = req.headers.authorization?.split(' ')[1];
@@ -20,7 +20,7 @@ export async function verifyRole(req, supabase, minRole = 'org_admin') {
   const role = profile?.role || 'user';
   const orgId = profile?.organization_id || null;
 
-  if ((ROLE_LEVEL[role] || 0) < (ROLE_LEVEL[minRole] || 1)) {
+  if ((ROLE_LEVEL[role] ?? 0) < (ROLE_LEVEL[minRole] ?? 1)) {
     return { user, role, orgId, error: 'Forbidden' };
   }
 
