@@ -14,23 +14,28 @@ import HeatmapScreen from '../stats/HeatmapScreen';
 import SettingsScreen from '../settings/SettingsScreen';
 import AdminScreen from '../admin/AdminScreen';
 
+// Helper to wrap each screen in its own ScreenErrorBoundary
+function Screen({ name, onNavigate, children }) {
+  return (
+    <ScreenErrorBoundary screen={name} onNavigate={onNavigate}>
+      {children}
+    </ScreenErrorBoundary>
+  );
+}
+
 export default function AppScreens({
   screen,
   setScreen,
   isAcademy,
-  // auth
   currentUserWithRole,
-  // userData
   userData,
   activeTest,
   activeTestIsCloned,
-  // exam lifecycle
   examConfig,
   reviewFailed,
   setReviewFailed,
   startExam,
   finishExam,
-  // misc
   genQueue,
   showToast,
   handleExportData,
@@ -42,143 +47,165 @@ export default function AppScreens({
   srsStats,
 }) {
   return (
-    <ScreenErrorBoundary screen={screen} onNavigate={setScreen}>
-
+    <>
       {screen === 'home' && (
-        <HomeScreen
-          onNavigate={setScreen}
-          profile={userData.profile}
-          user={currentUserWithRole}
-          onShowProfile={onShowProfile}
-          srsStats={srsStats}
-          tests={userData.tests}
-          activeTestId={userData.activeTestId}
-          themes={userData.themes}
-          onSwitchTest={userData.switchTest}
-          onJoinWithCode={handleJoinWithCode}
-        />
+        <Screen name="home" onNavigate={setScreen}>
+          <HomeScreen
+            onNavigate={setScreen}
+            profile={userData.profile}
+            user={currentUserWithRole}
+            onShowProfile={onShowProfile}
+            srsStats={srsStats}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            themes={userData.themes}
+            onSwitchTest={userData.switchTest}
+            onJoinWithCode={handleJoinWithCode}
+          />
+        </Screen>
       )}
 
       {screen === 'exams' && (
-        <ExamsScreen
-          tests={userData.tests}
-          activeTestId={userData.activeTestId}
-          themes={userData.themes}
-          onSwitchTest={userData.switchTest}
-          onCreateTest={userData.createTest}
-          onRenameTest={userData.renameTest}
-          onUpdateTestEmoji={userData.updateTestEmoji}
-          onDeleteTest={userData.deleteTest}
-          onNavigate={setScreen}
-          currentUser={currentUserWithRole}
-          showToast={showToast}
-        />
+        <Screen name="exams" onNavigate={setScreen}>
+          <ExamsScreen
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            themes={userData.themes}
+            onSwitchTest={userData.switchTest}
+            onCreateTest={userData.createTest}
+            onRenameTest={userData.renameTest}
+            onUpdateTestEmoji={userData.updateTestEmoji}
+            onDeleteTest={userData.deleteTest}
+            onNavigate={setScreen}
+            currentUser={currentUserWithRole}
+            showToast={showToast}
+          />
+        </Screen>
       )}
 
       {screen === 'themes' && (
-        <ThemesScreen
-          themes={userData.themes}
-          tests={userData.tests}
-          activeTestId={userData.activeTestId}
-          onUpdateTheme={userData.updateTheme}
-          onAddTheme={userData.addTheme}
-          onAddThemesBatch={userData.addThemesBatch}
-          onCreateTest={userData.createTest}
-          onSwitchTest={userData.switchTest}
-          onRenameTest={userData.renameTest}
-          onDeleteTest={userData.deleteTest}
-          onNavigate={setScreen}
-          showToast={showToast}
-          genQueue={genQueue}
-          currentUser={currentUserWithRole}
-          isClonedTest={activeTestIsCloned}
-          loading={userData.loading}
-        />
+        <Screen name="themes" onNavigate={setScreen}>
+          <ThemesScreen
+            themes={userData.themes}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            onUpdateTheme={userData.updateTheme}
+            onAddTheme={userData.addTheme}
+            onAddThemesBatch={userData.addThemesBatch}
+            onCreateTest={userData.createTest}
+            onSwitchTest={userData.switchTest}
+            onRenameTest={userData.renameTest}
+            onDeleteTest={userData.deleteTest}
+            onNavigate={setScreen}
+            showToast={showToast}
+            genQueue={genQueue}
+            currentUser={currentUserWithRole}
+            isClonedTest={activeTestIsCloned}
+            loading={userData.loading}
+          />
+        </Screen>
       )}
 
       {screen === 'exam' && !isAcademy && (
-        <ExamConfigScreen
-          themes={userData.themes}
-          onStartExam={startExam}
-          onNavigate={setScreen}
-          tests={userData.tests}
-          activeTestId={userData.activeTestId}
-          onSwitchTest={userData.switchTest}
-        />
+        <Screen name="exam" onNavigate={setScreen}>
+          <ExamConfigScreen
+            themes={userData.themes}
+            onStartExam={startExam}
+            onNavigate={setScreen}
+            tests={userData.tests}
+            activeTestId={userData.activeTestId}
+            onSwitchTest={userData.switchTest}
+          />
+        </Screen>
       )}
 
       {screen === 'exam-active' && !isAcademy && (
-        <ExamScreen
-          config={examConfig}
-          themes={userData.themes}
-          onFinish={finishExam}
-          onNavigate={setScreen}
-          onUpdateThemes={userData.updateTheme}
-          examHistory={userData.examHistory}
-        />
+        <Screen name="exam-active" onNavigate={setScreen}>
+          <ExamScreen
+            config={examConfig}
+            themes={userData.themes}
+            onFinish={finishExam}
+            onNavigate={setScreen}
+            onUpdateThemes={userData.updateTheme}
+            examHistory={userData.examHistory}
+          />
+        </Screen>
       )}
 
       {screen === 'review' && !isAcademy && (
-        <ReviewScreen
-          dueQuestions={reviewFailed || srsStats.dueQuestions}
-          themes={userData.themes}
-          onUpdateTheme={userData.updateTheme}
-          onNavigate={(s) => { setReviewFailed(null); setScreen(s); }}
-          showToast={showToast}
-          mode={reviewFailed ? 'exam-fails' : 'srs'}
-        />
+        <Screen name="review" onNavigate={setScreen}>
+          <ReviewScreen
+            dueQuestions={reviewFailed || srsStats.dueQuestions}
+            themes={userData.themes}
+            onUpdateTheme={userData.updateTheme}
+            onNavigate={(s) => { setReviewFailed(null); setScreen(s); }}
+            showToast={showToast}
+            mode={reviewFailed ? 'exam-fails' : 'srs'}
+          />
+        </Screen>
       )}
 
       {screen === 'alumnos' && (
-        <AcademyStudentsScreen
-          onNavigate={setScreen}
-          onSwitchTest={userData.switchTest}
-        />
+        <Screen name="alumnos" onNavigate={setScreen}>
+          <AcademyStudentsScreen
+            onNavigate={setScreen}
+            onSwitchTest={userData.switchTest}
+          />
+        </Screen>
       )}
 
       {screen === 'stats' && (
-        <StatsScreen
-          examHistory={userData.examHistory}
-          onNavigate={setScreen}
-          themes={userData.themes}
-        />
+        <Screen name="stats" onNavigate={setScreen}>
+          <StatsScreen
+            examHistory={userData.examHistory}
+            onNavigate={setScreen}
+            themes={userData.themes}
+          />
+        </Screen>
       )}
 
       {screen === 'questions' && !isAcademy && (
-        <QuestionsScreen
-          themes={userData.themes}
-          onUpdateTheme={userData.updateTheme}
-          onNavigate={setScreen}
-          showToast={showToast}
-          activeTestName={activeTest?.name}
-          loading={userData.loading}
-        />
+        <Screen name="questions" onNavigate={setScreen}>
+          <QuestionsScreen
+            themes={userData.themes}
+            onUpdateTheme={userData.updateTheme}
+            onNavigate={setScreen}
+            showToast={showToast}
+            activeTestName={activeTest?.name}
+            loading={userData.loading}
+          />
+        </Screen>
       )}
 
       {screen === 'heatmap' && (
-        <HeatmapScreen
-          themes={userData.themes}
-          onNavigate={setScreen}
-        />
+        <Screen name="heatmap" onNavigate={setScreen}>
+          <HeatmapScreen
+            themes={userData.themes}
+            onNavigate={setScreen}
+          />
+        </Screen>
       )}
 
       {screen === 'settings' && (
-        <SettingsScreen
-          onNavigate={setScreen}
-          onToggleDark={() => setDarkMode(!darkMode)}
-          profile={userData.profile}
-          onUpdateProfile={userData.setProfile}
-          user={currentUserWithRole}
-          onExportData={handleExportData}
-          onImportData={handleImportData}
-          isClonedTest={activeTestIsCloned}
-        />
+        <Screen name="settings" onNavigate={setScreen}>
+          <SettingsScreen
+            onNavigate={setScreen}
+            onToggleDark={() => setDarkMode(!darkMode)}
+            profile={userData.profile}
+            onUpdateProfile={userData.setProfile}
+            user={currentUserWithRole}
+            onExportData={handleExportData}
+            onImportData={handleImportData}
+            isClonedTest={activeTestIsCloned}
+          />
+        </Screen>
       )}
 
       {screen === 'admin' && (
-        <AdminScreen onNavigate={setScreen} />
+        <Screen name="admin" onNavigate={setScreen}>
+          <AdminScreen onNavigate={setScreen} />
+        </Screen>
       )}
-
-    </ScreenErrorBoundary>
+    </>
   );
 }
