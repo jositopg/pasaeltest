@@ -60,23 +60,12 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
 
   // ─── Estado nombre ────────────────────────────────────────
   const [editingName, setEditingName] = useState(theme.name);
-  const [nameJustSaved, setNameJustSaved] = useState(false);
 
   // ─── Estado confirmaciones ────────────────────────────────
   const [deleteQuestionsConfirm, setDeleteQuestionsConfirm] = useState({ show: false, type: null, count: 0 });
 
   // ─── Efectos ─────────────────────────────────────────────
   useEffect(() => { setEditingName(theme.name); }, [theme.name]);
-
-  useEffect(() => {
-    if (nameJustSaved &&
-        (!theme.documents || theme.documents.length === 0) &&
-        theme.name && theme.name.trim() !== '' &&
-        theme.name !== `Tema ${theme.number}`) {
-      docManager.setShowAutoGenerate(true);
-      setNameJustSaved(false);
-    }
-  }, [nameJustSaved, theme.documents, theme.name, theme.number]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Cobertura (sin API) ──────────────────────────────────
   const estimatedTotal = (() => {
@@ -101,7 +90,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     const trimmedName = editingName.trim();
     if (trimmedName && trimmedName !== theme.name) {
       onUpdate({ ...theme, name: trimmedName });
-      setTimeout(() => setNameJustSaved(true), 150);
     }
   };
 

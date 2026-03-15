@@ -14,16 +14,11 @@ export default function DocumentSection({
   isGeneratingQuestions,
   generationProgress,
   generationPercent,
-  showAutoGenerate,
-  isAutoGenerating,
   onToggleAddDoc,
   onDocTypeChange,
   onDocContentChange,
   onAddDoc,
   onFileUpload,
-  onAISearch,
-  onAutoGenerate,
-  onDismissAutoGenerate,
   onDeleteDoc,
   onGenerateFromDoc,
   fileInputRef,
@@ -46,58 +41,13 @@ export default function DocumentSection({
         </button>
       </div>
 
-      {/* Banner auto-generación */}
-      {showAutoGenerate && !isAutoGenerating && theme.documents?.length === 0 && (
-        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/40 rounded-xl p-4 mb-4 animate-pulse">
-          <div className="flex items-start gap-3">
-            <span className="text-3xl">🤖</span>
-            <div className="flex-1">
-              <p className="text-green-300 font-bold text-sm mb-1">✨ Generación Automática Disponible</p>
-              <p className="text-green-200 text-xs mb-3">
-                Detectamos que este tema se llama <strong>"{theme.name}"</strong>.
-                ¿Quieres que busquemos y generemos material de estudio automático con contenido oficial?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={onAutoGenerate}
-                  disabled={isAutoGenerating}
-                  className="bg-green-500 text-white font-bold text-xs px-4 py-2 rounded-lg hover:bg-green-400 transition-colors flex items-center gap-2"
-                >
-                  <span>🚀</span> Generar Material Automático
-                </button>
-                <button
-                  onClick={onDismissAutoGenerate}
-                  className="bg-white/10 text-gray-300 text-xs px-3 py-2 rounded-lg hover:bg-white/20 transition-colors"
-                >
-                  Ahora no
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading auto-generación */}
-      {isAutoGenerating && (
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            <div className="flex-1">
-              <p className="text-blue-300 font-semibold text-sm">Generando material y preguntas...</p>
-              <p className="text-blue-200 text-xs mt-1">Buscando información oficial sobre "{theme.name}"</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Panel añadir documento */}
       {showAddDoc && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3">
           <select value={docType} onChange={(e) => onDocTypeChange(e.target.value)} className="w-full bg-slate-800 text-white rounded-lg px-3 py-2 border border-white/10">
-            <option value="ai-search" className="bg-slate-800 text-white">🤖 Buscar con IA (Recomendado)</option>
+            <option value="pdf" className="bg-slate-800 text-white">📄 Subir Archivo (PDF/TXT)</option>
             <option value="text" className="bg-slate-800 text-white">📝 Pegar Texto Directamente</option>
             <option value="url" className="bg-slate-800 text-white">🔗 Enlace Web</option>
-            <option value="pdf" className="bg-slate-800 text-white">📄 Subir Archivo (PDF/TXT)</option>
           </select>
 
           {(isSearching || isGeneratingQuestions) && generationProgress && (
@@ -118,7 +68,7 @@ export default function DocumentSection({
             </div>
           )}
 
-          {docType === 'pdf' ? (
+          {docType === 'pdf' || !docType ? (
             <div className="border-2 border-dashed border-white/20 rounded-lg p-4 text-center">
               <input
                 type="file"
@@ -132,28 +82,6 @@ export default function DocumentSection({
                 <div className="text-4xl mb-2">📁</div>
                 <p className="text-gray-300 text-sm">Toca para subir archivo</p>
               </label>
-            </div>
-          ) : docType === 'ai-search' ? (
-            <div className="space-y-3">
-              <textarea
-                placeholder="Ej: Busca la Ley 39/2015 del Procedimiento Administrativo Común completa"
-                value={docContent}
-                onChange={(e) => onDocContentChange(e.target.value)}
-                className="w-full bg-white/5 text-white rounded-lg px-3 py-3 border border-white/10 min-h-24 resize-none"
-                rows={3}
-              />
-              <button
-                onClick={onAISearch}
-                disabled={isSearching || !docContent.trim()}
-                className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 hover:from-purple-600 hover:to-blue-600 transition-all"
-              >
-                {isSearching ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Buscando...
-                  </>
-                ) : '🔍 Buscar REAL con IA'}
-              </button>
             </div>
           ) : docType === 'text' ? (
             <div className="space-y-3">
@@ -268,7 +196,7 @@ export default function DocumentSection({
           <div className="text-center py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
             <div className="text-4xl mb-3">📚</div>
             <p className="text-gray-400 font-medium">Sin documentos todavía</p>
-            <p className="text-gray-600 text-sm mt-1">Añade un documento o busca contenido con IA</p>
+            <p className="text-gray-600 text-sm mt-1">Sube un PDF, pega texto o añade un enlace web</p>
           </div>
         )}
       </div>

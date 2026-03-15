@@ -128,15 +128,13 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
     isGeneratingQuestions, showAddQuestion, setShowAddQuestion,
     selectedQuestions, setSelectedQuestions, selectMode, setSelectMode,
     newQuestion, setNewQuestion,
-    showAutoGenerate, setShowAutoGenerate, isAutoGenerating,
     editingName, setEditingName,
     pendingQuestions, pendingDuplicates, confirmPendingQuestions, discardPendingQuestions,
     deleteConfirm, setDeleteConfirm, deleteQuestionsConfirm,
     estimatedTotal, questionCount, coveragePercent,
     handleSaveName, handleNameKeyPress,
-    handleAutoGenerateRepository,
     generateQuestionsFromDocuments,
-    handleAISearch, handleFileUpload, handleAddDocument,
+    handleFileUpload, handleAddDocument,
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
     handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,
@@ -245,16 +243,11 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
                 isGeneratingQuestions={isGeneratingQuestions}
                 generationProgress={generationProgress}
                 generationPercent={generationPercent}
-                showAutoGenerate={showAutoGenerate}
-                isAutoGenerating={isAutoGenerating}
                 onToggleAddDoc={() => setShowAddDoc(!showAddDoc)}
                 onDocTypeChange={setDocType}
                 onDocContentChange={setDocContent}
                 onAddDoc={handleAddDocument}
                 onFileUpload={handleFileUpload}
-                onAISearch={handleAISearch}
-                onAutoGenerate={handleAutoGenerateRepository}
-                onDismissAutoGenerate={() => setShowAutoGenerate(false)}
                 onDeleteDoc={(idx, doc) => {
                   const docName = doc.fileName || (doc.type === 'ai-search' ? 'Búsqueda IA' : doc.type === 'url' ? 'Documento web' : 'Documento');
                   setDeleteConfirm({ show: true, docIndex: idx, docName });
