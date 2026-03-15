@@ -32,6 +32,12 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-font-smoothing: antialiased;
+  background-color: #F0F4FF; /* light mode default — matches cx.screen */
+}
+
+/* Dark mode — toggle via <html class="dark"> */
+html.dark body {
+  background-color: #080C14; /* matches cx.screen dark */
 }
 
 #root { width: 100%; min-height: 100dvh; min-height: 100vh; }
