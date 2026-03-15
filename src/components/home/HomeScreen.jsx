@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import GlobalSearch from './GlobalSearch';
 
 // ─── Vista Academia ────────────────────────────────────────────────────────────
 function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTest, srsStats, cx, dm }) {
@@ -316,6 +317,7 @@ function HomeScreen({
 }) {
   const { dm, cx } = useTheme();
   const isAcademy = user?.role === 'academy';
+  const [showSearch, setShowSearch] = useState(false);
 
   return (
     <div className={`min-h-full ${cx.screen} transition-colors duration-300`}
@@ -330,6 +332,16 @@ function HomeScreen({
             </span>
           </h1>
           <div className="flex items-center gap-2">
+            {themes.length > 0 && (
+              <button
+                onClick={() => setShowSearch(true)}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all
+                  ${dm ? 'bg-[#1E293B] text-slate-300 hover:text-white' : 'bg-white text-slate-500 hover:text-slate-800 shadow-sm'}`}
+                title="Buscar"
+              >
+                <Icons.Search />
+              </button>
+            )}
             <button
               onClick={() => onNavigate('settings')}
               className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all
@@ -388,6 +400,14 @@ function HomeScreen({
         )}
 
       </div>
+
+      {showSearch && (
+        <GlobalSearch
+          themes={themes}
+          onClose={() => setShowSearch(false)}
+          onNavigate={(screen) => { setShowSearch(false); onNavigate(screen); }}
+        />
+      )}
     </div>
   );
 }
