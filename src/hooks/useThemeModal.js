@@ -202,7 +202,18 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   const generateQuestionsFromDocuments = async (docsToUse = null) => {
     const docs = Array.isArray(docsToUse) ? docsToUse : (Array.isArray(theme.documents) ? theme.documents : []);
     if (docs.length === 0) {
-      if (showToast) showToast('Primero añade documentos a este tema para generar preguntas', 'warning');
+      // Sin material: usar flujo combinado (auto-genera material + preguntas en 1 llamada)
+      if (!theme.name || theme.name === `Tema ${theme.number}`) {
+        if (showToast) showToast('Ponle nombre al tema primero para generar preguntas con IA', 'warning');
+        return;
+      }
+      setIsGeneratingQuestions(true);
+      setGenerationProgress('🤖 Generando material y preguntas con IA...');
+      setGenerationPercent(20);
+      await docManager.handleAutoGenerateRepository();
+      setIsGeneratingQuestions(false);
+      setGenerationProgress('');
+      setGenerationPercent(0);
       return;
     }
     setIsGeneratingQuestions(true);

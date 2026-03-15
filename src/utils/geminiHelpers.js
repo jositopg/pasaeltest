@@ -75,6 +75,28 @@ export function mapRawQuestions(parsed, themeNumber) {
 }
 
 /**
+ * Extrae material y array de preguntas de una respuesta con marcadores.
+ * Formato esperado:
+ *   MATERIAL_START ... MATERIAL_END
+ *   QUESTIONS_START [...] QUESTIONS_END
+ * Devuelve { material: string|null, preguntas: array|null }
+ */
+export function parseCombinedResponse(text) {
+  const materialMatch = text.match(/MATERIAL_START\s*([\s\S]*?)\s*MATERIAL_END/);
+  const questionsMatch = text.match(/QUESTIONS_START\s*([\s\S]*?)\s*QUESTIONS_END/);
+  const material = materialMatch?.[1]?.trim() || null;
+  let preguntas = null;
+  if (questionsMatch?.[1]) {
+    const raw = questionsMatch[1].trim().replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      try { preguntas = JSON.parse(arrMatch[0]); } catch { /* fallback: no questions extracted */ }
+    }
+  }
+  return { material, preguntas };
+}
+
+/**
  * Filtra preguntas duplicadas respecto a un array de textos existentes.
  * Usa comparación exacta + similitud de palabras (>80%).
  */

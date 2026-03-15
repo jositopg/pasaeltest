@@ -1,31 +1,8 @@
 import { useState, useRef } from 'react';
 import { OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_SEARCH_AND_QUESTIONS_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
+import { parseCombinedResponse } from '../utils/geminiHelpers';
 import { extractPDFText } from '../utils/questionImporter';
 import { authHelpers } from '../supabaseClient';
-
-/**
- * Extrae material y array de preguntas de una respuesta con marcadores.
- * Formato esperado:
- *   MATERIAL_START ... MATERIAL_END
- *   QUESTIONS_START [...] QUESTIONS_END
- */
-function parseCombinedResponse(text) {
-  const materialMatch = text.match(/MATERIAL_START\s*([\s\S]*?)\s*MATERIAL_END/);
-  const questionsMatch = text.match(/QUESTIONS_START\s*([\s\S]*?)\s*QUESTIONS_END/);
-
-  const material = materialMatch?.[1]?.trim() || null;
-  let preguntas = null;
-
-  if (questionsMatch?.[1]) {
-    const raw = questionsMatch[1].trim().replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    const arrMatch = raw.match(/\[[\s\S]*\]/);
-    if (arrMatch) {
-      try { preguntas = JSON.parse(arrMatch[0]); } catch { /* skip, questions won't be set */ }
-    }
-  }
-
-  return { material, preguntas };
-}
 
 export default function useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady }) {
   const isDefaultName = theme.name === `Tema ${theme.number}`;

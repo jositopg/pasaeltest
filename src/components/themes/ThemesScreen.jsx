@@ -5,10 +5,9 @@ import TestSwitcherModal from './TestSwitcherModal';
 import BulkImportModal from './BulkImportModal';
 import { ThemesScreenSkeleton } from '../common/Skeleton';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { OPTIMIZED_AUTO_GENERATE_PROMPT } from '../../utils/optimizedPrompts';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
-import { supabase, authHelpers } from '../../supabaseClient';
+import { supabase } from '../../supabaseClient';
 
 function ThemesScreen({
   themes, tests = [], activeTestId,
@@ -35,9 +34,8 @@ function ThemesScreen({
   const [repoCleanMode, setRepoCleanMode] = useState(false);
   const [repoCleanSelected, setRepoCleanSelected] = useState(new Set());
   const [repoCleanConfirm, setRepoCleanConfirm] = useState(false);
-  // Confirmaciones bulk generation
-  const [generateReposConfirm, setGenerateReposConfirm] = useState(false);
-  const [generateQuestionsConfirm, setGenerateQuestionsConfirm] = useState(false);
+  // Confirmación bulk generation
+  const [generateConfirm, setGenerateConfirm] = useState(false);
 
   const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'academy';
 
@@ -113,18 +111,14 @@ function ThemesScreen({
   }
 
   const {
-    generatingRepos = {},
     generatingQuestions = {},
     generatingAll = false,
-    generatingAllQuestions = false,
     queueProgress = null,
-    createRepoInline,
-    generateQuestionsInline,
+    generateThemeInline,
     handleGenerateAll,
-    handleGenerateAllQuestions,
   } = genQueue;
 
-  const anyBulkRunning = generatingAll || generatingAllQuestions;
+  const anyBulkRunning = generatingAll;
 
   // Estimación de preguntas necesarias por tema (algorítmico, sin API)
   const themeEstimates = useMemo(() => {
@@ -213,54 +207,15 @@ function ThemesScreen({
   };
 
   const createRepoForTheme = async (themeNumber) => {
-    const themeEntry = importedThemesPanel?.find(t => t.number === themeNumber);
-    if (!themeEntry) return;
-
+    const themeObj = themes.find(t => t.number === themeNumber);
+    if (!themeObj) return;
     setImportedThemesPanel(prev =>
       prev.map(t => t.number === themeNumber ? { ...t, status: 'loading' } : t)
     );
-
-    try {
-      const token = await authHelpers.getAccessToken();
-      const response = await fetch("/api/generate-gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(themeEntry.name), maxTokens: 8000, callType: 'repo', useCache: false })
-      });
-
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-      const data = await response.json();
-      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida');
-      let content = '';
-      for (const block of data.content) {
-        if (block.type === 'text') content += block.text;
-      }
-      if (content.trim().length < 100) throw new Error('Contenido insuficiente');
-
-      const newDoc = {
-        type: 'ai-search',
-        content: themeEntry.name,
-        fileName: `Material: ${themeEntry.name}`,
-        addedAt: new Date().toISOString(),
-        searchResults: { query: themeEntry.name, content, processedContent: content },
-        processedContent: content
-      };
-
-      const latestTheme = themes.find(t => t.number === themeNumber);
-      if (latestTheme) {
-        onUpdateTheme({ ...latestTheme, documents: [...(latestTheme.documents || []), newDoc] });
-      }
-
-      setImportedThemesPanel(prev =>
-        prev.map(t => t.number === themeNumber ? { ...t, status: 'done' } : t)
-      );
-    } catch (e) {
-      console.error(`Error repo para "${themeEntry.name}":`, e);
-      setImportedThemesPanel(prev =>
-        prev.map(t => t.number === themeNumber ? { ...t, status: 'error' } : t)
-      );
-    }
+    const err = await genQueue.generateCombinedInline?.(themeObj);
+    setImportedThemesPanel(prev =>
+      prev.map(t => t.number === themeNumber ? { ...t, status: err ? 'error' : 'done' } : t)
+    );
   };
 
   const handleSaveName = (theme, newName) => {
@@ -412,19 +367,7 @@ function ThemesScreen({
         ) : (
           <div className="flex gap-2">
             <button
-              onClick={() => setGenerateReposConfirm(true)}
-              disabled={anyBulkRunning}
-              className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                anyBulkRunning
-                  ? 'opacity-50 cursor-not-allowed ' + (dm ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-50 text-purple-400')
-                  : dm ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100'
-              }`}
-            >
-              {generatingAll ? <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" /> : '⚡'}
-              <span>Repos IA</span>
-            </button>
-            <button
-              onClick={() => setGenerateQuestionsConfirm(true)}
+              onClick={() => setGenerateConfirm(true)}
               disabled={anyBulkRunning}
               className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
                 anyBulkRunning
@@ -432,16 +375,16 @@ function ThemesScreen({
                   : dm ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/30' : 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
               }`}
             >
-              {generatingAllQuestions ? <div className="w-4 h-4 border-2 border-green-300 border-t-transparent rounded-full animate-spin" /> : '📝'}
-              Preguntas
+              {generatingAll ? <div className="w-4 h-4 border-2 border-green-300 border-t-transparent rounded-full animate-spin" /> : '⚡'}
+              <span>Generar preguntas</span>
             </button>
             <button
               onClick={() => setRepoCleanMode(true)}
-              className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+              className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
                 dm ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
               }`}
             >
-              🗑 Limpiar
+              🗑
             </button>
           </div>
         )}
@@ -491,14 +434,12 @@ function ThemesScreen({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {queueProgress.currentName ? (
-                  <div className={`w-4 h-4 rounded-full border-2 border-t-transparent animate-spin shrink-0 ${
-                    queueProgress.type === 'repos' ? 'border-purple-400' : 'border-green-400'
-                  }`} />
+                  <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin shrink-0 border-green-400" />
                 ) : (
                   <span className="text-green-400 text-sm">✓</span>
                 )}
                 <span className={`font-semibold text-sm ${cx.heading}`}>
-                  {queueProgress.type === 'repos' ? '⚡ Material' : '📝 Preguntas'}:&nbsp;
+                  ⚡ Generando preguntas:&nbsp;
                   <span className={dm ? 'text-slate-300' : 'text-slate-600'}>{queueProgress.done}/{queueProgress.total}</span>
                 </span>
               </div>
@@ -513,8 +454,7 @@ function ThemesScreen({
             <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  queueProgress.done >= queueProgress.total ? 'bg-green-500' :
-                  queueProgress.type === 'repos' ? 'bg-purple-500' : 'bg-green-500'
+                  queueProgress.done >= queueProgress.total ? 'bg-green-500' : 'bg-green-500'
                 }`}
                 style={{ width: `${Math.round((queueProgress.done / queueProgress.total) * 100)}%` }}
               />
@@ -576,8 +516,8 @@ function ThemesScreen({
             <div className="space-y-2 text-left mb-6">
               {[
                 { n: '1', label: 'Importa la lista de temas de tu temario', icon: '📋' },
-                { n: '2', label: 'Añade documentos o deja que la IA los genere', icon: '🤖' },
-                { n: '3', label: 'Genera preguntas y empieza a estudiar', icon: '✅' },
+                { n: '2', label: 'Pulsa ⚡ para generar preguntas con IA directamente', icon: '🤖' },
+                { n: '3', label: 'Repasa las preguntas y empieza a estudiar', icon: '✅' },
               ].map(step => (
                 <div key={step.n} className={`flex items-center gap-3 rounded-xl px-4 py-3 ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
                   <span className="text-xl">{step.icon}</span>
@@ -706,31 +646,12 @@ function ThemesScreen({
                   </div>
 
                   <div className="flex items-start gap-1 shrink-0">
-                    {/* Botón ⚡ generar material rápido — visible si tiene nombre y sin docs */}
-                    {!selectionMode && !isEditing && !isDefaultName && !hasDocuments && (
+                    {/* Botón ⚡ generar preguntas — visible para cualquier tema con nombre */}
+                    {!selectionMode && !isEditing && !isDefaultName && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); createRepoInline(theme); }}
-                        disabled={generatingRepos[theme.number] === 'loading'}
-                        title="Generar material IA con el nombre del tema"
-                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
-                          generatingRepos[theme.number] === 'loading'
-                            ? 'text-purple-400 cursor-wait'
-                            : generatingRepos[theme.number] === 'done'
-                              ? 'text-green-400'
-                              : dm ? 'text-slate-400 hover:bg-purple-500/15 hover:text-purple-300' : 'text-slate-500 hover:bg-purple-50 hover:text-purple-600'
-                        }`}
-                      >
-                        {generatingRepos[theme.number] === 'loading'
-                          ? <span className="inline-block w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                          : generatingRepos[theme.number] === 'done' ? '✓' : '⚡'}
-                      </button>
-                    )}
-                    {/* Botón 📝 generar preguntas rápido — visible si tiene docs */}
-                    {!selectionMode && !isEditing && hasDocuments && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); generateQuestionsInline(theme); }}
+                        onClick={(e) => { e.stopPropagation(); generateThemeInline(theme); }}
                         disabled={generatingQuestions[theme.number] === 'loading'}
-                        title="Generar preguntas con IA para este tema"
+                        title="Generar preguntas con IA"
                         className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
                           generatingQuestions[theme.number] === 'loading'
                             ? 'text-green-400 cursor-wait'
@@ -741,7 +662,7 @@ function ThemesScreen({
                       >
                         {generatingQuestions[theme.number] === 'loading'
                           ? <span className="inline-block w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
-                          : generatingQuestions[theme.number] === 'done' ? '✓' : '📝'}
+                          : generatingQuestions[theme.number] === 'done' ? '✓' : '⚡'}
                       </button>
                     )}
                     {!selectionMode && !isEditing && (
@@ -868,20 +789,12 @@ function ThemesScreen({
           onCancel={() => setRepoCleanConfirm(false)}
         />
         <ConfirmDialog
-          show={generateReposConfirm}
-          title="¿Generar material para todos los temas?"
-          message={`Se generará material IA para cada tema con nombre personalizado que aún no tenga contenido. Este proceso puede tardar varios minutos.`}
-          confirmLabel="Sí, generar"
-          onConfirm={() => { setGenerateReposConfirm(false); handleGenerateAll(); }}
-          onCancel={() => setGenerateReposConfirm(false)}
-        />
-        <ConfirmDialog
-          show={generateQuestionsConfirm}
+          show={generateConfirm}
           title="¿Generar preguntas para todos los temas?"
-          message={`Se generarán preguntas tipo test para cada tema que tenga material de estudio. Este proceso puede tardar varios minutos.`}
+          message="Se generarán preguntas con IA para cada tema con nombre personalizado. Si el tema no tiene material, se creará automáticamente. Este proceso puede tardar varios minutos."
           confirmLabel="Sí, generar"
-          onConfirm={() => { setGenerateQuestionsConfirm(false); handleGenerateAllQuestions(); }}
-          onCancel={() => setGenerateQuestionsConfirm(false)}
+          onConfirm={() => { setGenerateConfirm(false); handleGenerateAll(); }}
+          onCancel={() => setGenerateConfirm(false)}
         />
 
         {/* ─── Share Modal (admin) ─────────────────────────────── */}

@@ -21,9 +21,9 @@ export default function QuestionGeneratorPanel({
       <div className="flex gap-2 flex-wrap items-center">
         <button
           onClick={onGenerate}
-          disabled={isGenerating || !hasDocuments}
+          disabled={isGenerating}
           className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
-          title={estimatedTotal ? `Genera 40 preguntas (objetivo: ${estimatedTotal} para cobertura completa)` : 'Genera 40 preguntas con IA'}
+          title={estimatedTotal ? `Genera 40 preguntas (objetivo: ${estimatedTotal} para cobertura completa)` : 'Genera preguntas con IA'}
         >
           {isGenerating ? (
             <>
@@ -51,8 +51,8 @@ export default function QuestionGeneratorPanel({
         )}
       </div>
 
-      {!hasDocuments && (
-        <p className="text-xs text-gray-500 mt-2">Añade documentos al tema para activar la generación con IA.</p>
+      {!hasDocuments && !isGenerating && (
+        <p className="text-xs text-gray-500 mt-2">La IA generará el material y las preguntas en un solo paso.</p>
       )}
 
       {isGenerating && (

@@ -17,15 +17,16 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
     setBulkText('');
   };
 
-  // Panel post-import: crear repositorios IA
+  // Panel post-import: generar preguntas por tema
   if (importedThemesPanel) {
+    const doneCount = importedThemesPanel.filter(t => t.status === 'done').length;
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-slate-800 border border-white/10 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
           <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
             <div>
               <h3 className="text-white font-bold">Temas importados</h3>
-              <p className="text-gray-400 text-xs mt-0.5">Genera material IA para cada tema que quieras</p>
+              <p className="text-gray-400 text-xs mt-0.5">Genera preguntas con IA para cada tema</p>
             </div>
             <button onClick={onDismissPanel} className="bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors text-white">
               <Icons.X />
@@ -40,13 +41,13 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
                 {t.status === 'idle' && (
                   <button
                     onClick={() => onCreateRepo(t.number)}
-                    className="shrink-0 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    className="shrink-0 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    🤖 Crear
+                    ⚡ Generar
                   </button>
                 )}
                 {t.status === 'loading' && (
-                  <div className="shrink-0 w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="shrink-0 w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
                 )}
                 {t.status === 'done' && (
                   <span className="shrink-0 text-green-400 text-xs font-semibold">✓ Listo</span>
@@ -65,7 +66,7 @@ export default function BulkImportModal({ show, onClose, onImport, importedTheme
 
           <div className="p-4 border-t border-white/10 shrink-0">
             <p className="text-gray-500 text-xs text-center">
-              {importedThemesPanel.filter(t => t.status === 'done').length}/{importedThemesPanel.length} materiales generados
+              {doneCount}/{importedThemesPanel.length} temas procesados
             </p>
           </div>
         </div>

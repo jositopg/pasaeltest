@@ -120,7 +120,7 @@ function QuestionPreviewOverlay({ questions, duplicates, onConfirm, onDiscard })
 
 function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = false }) {
   const { darkMode } = useTheme();
-  const [activeTab, setActiveTab] = useState(readOnly ? 'questions' : 'docs');
+  const [activeTab, setActiveTab] = useState('questions');
 
   const {
     showAddDoc, setShowAddDoc, docType, setDocType, docContent, setDocContent,
@@ -201,8 +201,8 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
         {!readOnly && (
           <div className="flex-shrink-0 flex bg-slate-800 border-b border-white/10 px-4 sm:px-6">
             {[
-              { id: 'docs',      label: 'Documentos', count: theme.documents?.length || 0 },
               { id: 'questions', label: 'Preguntas',  count: questionCount },
+              { id: 'docs',      label: 'Material',   count: theme.documents?.length || 0 },
             ].map(tab => (
               <button
                 key={tab.id}
