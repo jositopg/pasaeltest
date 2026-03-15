@@ -182,6 +182,16 @@ export const dbHelpers = {
     return { data, error }
   },
 
+  async updateTestEmoji(testId, cover_emoji) {
+    const { data, error } = await supabase
+      .from('tests')
+      .update({ cover_emoji, updated_at: new Date().toISOString() })
+      .eq('id', testId)
+      .select()
+      .single()
+    return { data, error }
+  },
+
   async deleteTest(testId) {
     const { error } = await supabase
       .from('tests')

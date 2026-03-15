@@ -236,6 +236,16 @@ const useUserData = (isAuthenticated, currentUser) => {
     }
   };
 
+  const updateTestEmoji = async (testId, cover_emoji) => {
+    try {
+      const { error } = await dbHelpers.updateTestEmoji(testId, cover_emoji);
+      if (error) { console.error('Error updating test emoji:', error); return; }
+      setTests(prev => prev.map(t => t.id === testId ? { ...t, cover_emoji } : t));
+    } catch (error) {
+      console.error('Error updating test emoji:', error);
+    }
+  };
+
   const deleteTest = async (testId) => {
     const test = tests.find(t => t.id === testId);
     // Clones siempre se pueden borrar; tests propios requieren al menos 2
@@ -444,6 +454,7 @@ const useUserData = (isAuthenticated, currentUser) => {
     addThemesBatch,
     switchTest,
     renameTest,
+    updateTestEmoji,
     deleteTest,
   };
 };

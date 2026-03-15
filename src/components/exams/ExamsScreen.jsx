@@ -4,6 +4,33 @@ import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../supabaseClient';
 import UpgradeModal from '../common/UpgradeModal';
 
+const EMOJI_OPTIONS = [
+  '📋','📚','📖','📝','🎓','🏫','⚖️','🚔','🏥','✈️',
+  '🔬','💉','🌍','🇪🇸','📐','🧮','💻','🎯','🏆','⭐',
+  '🔑','📊','🌱','🎖️',
+];
+
+function EmojiPicker({ current, onSelect, onClose }) {
+  const { dm } = useTheme();
+  return (
+    <div className={`absolute z-20 top-full left-0 mt-1 p-2 rounded-2xl border shadow-xl grid grid-cols-6 gap-1 w-48 ${
+      dm ? 'bg-slate-800 border-white/15' : 'bg-white border-slate-200'
+    }`}>
+      {EMOJI_OPTIONS.map(e => (
+        <button
+          key={e}
+          onClick={() => { onSelect(e); onClose(); }}
+          className={`w-7 h-7 rounded-lg text-base flex items-center justify-center transition-colors ${
+            e === current ? 'bg-blue-500/30' : dm ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+          }`}
+        >
+          {e}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ExamsScreen({
   tests = [],
   activeTestId,
@@ -11,6 +38,7 @@ function ExamsScreen({
   onSwitchTest,
   onCreateTest,
   onRenameTest,
+  onUpdateTestEmoji,
   onDeleteTest,
   onNavigate,
   currentUser,
@@ -48,6 +76,7 @@ function ExamsScreen({
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [emojiPickerForId, setEmojiPickerForId] = useState(null);
 
   // Share modal
   const [shareModal, setShareModal] = useState(null); // null | { loading } | { form, testId } | { published, slug } | { error }
@@ -216,10 +245,23 @@ function ExamsScreen({
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${
-                  isActive ? 'bg-blue-500 text-white' : dm ? 'bg-white/10 text-gray-300' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {test.cover_emoji || '📋'}
+                <div className="relative shrink-0">
+                  <button
+                    onClick={e => { e.stopPropagation(); setEmojiPickerForId(emojiPickerForId === test.id ? null : test.id); }}
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all ${
+                      isActive ? 'bg-blue-500 text-white' : dm ? 'bg-white/10 text-gray-300 hover:bg-white/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Cambiar emoji"
+                  >
+                    {test.cover_emoji || '📋'}
+                  </button>
+                  {emojiPickerForId === test.id && onUpdateTestEmoji && (
+                    <EmojiPicker
+                      current={test.cover_emoji || '📋'}
+                      onSelect={(emoji) => onUpdateTestEmoji(test.id, emoji)}
+                      onClose={() => setEmojiPickerForId(null)}
+                    />
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -314,6 +356,11 @@ function ExamsScreen({
       </div>
 
       {/* Share Modal */}
+      {/* Backdrop para cerrar emoji picker */}
+      {emojiPickerForId && (
+        <div className="fixed inset-0 z-10" onClick={() => setEmojiPickerForId(null)} />
+      )}
+
       {shareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-sm rounded-3xl p-6 space-y-4 border ${dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>

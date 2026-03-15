@@ -281,6 +281,7 @@ export default function App() {
             onSwitchTest={userData.switchTest}
             onCreateTest={userData.createTest}
             onRenameTest={userData.renameTest}
+            onUpdateTestEmoji={userData.updateTestEmoji}
             onDeleteTest={userData.deleteTest}
             onNavigate={setScreen}
             currentUser={auth.currentUser}
