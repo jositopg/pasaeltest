@@ -1,21 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_SEARCH_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../utils/optimizedPrompts';
-import { parseExcelQuestions, parsePDFQuestions, downloadExcelTemplate, generatePDFTemplate, extractPDFText } from '../utils/questionImporter';
+import { useState, useEffect } from 'react';
+import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT } from '../utils/optimizedPrompts';
+import { parseExcelQuestions, parsePDFQuestions } from '../utils/questionImporter';
 import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
 import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/constants';
 import { jsonrepair } from 'jsonrepair';
 import { authHelpers } from '../supabaseClient';
+import useDocumentManager from './useDocumentManager';
 
 export default function useThemeModal({ theme, onUpdate, showToast }) {
-  // ─── Estado documentos ────────────────────────────────────
-  const isDefaultName = theme.name === `Tema ${theme.number}`;
-  const [showAddDoc, setShowAddDoc] = useState(!theme.documents?.length && !isDefaultName);
-  const [docType, setDocType] = useState('ai-search');
-  const [docContent, setDocContent] = useState(isDefaultName ? '' : theme.name);
-  const [isSearching, setIsSearching] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState('');
-  const [generationPercent, setGenerationPercent] = useState(0);
-  const fileInputRef = useRef(null);
+  // ─── Documentos (delegado a useDocumentManager) ──────────
+  const docManager = useDocumentManager({ theme, onUpdate, showToast });
 
   // ─── Estado preguntas ────────────────────────────────────
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
@@ -23,21 +17,18 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', options: ['', '', ''], correct: 0, difficulty: 'media' });
+  const [generationProgress, setGenerationProgress] = useState('');
+  const [generationPercent, setGenerationPercent] = useState(0);
 
   // ─── Preview de preguntas generadas ──────────────────────
-  const [pendingQuestions, setPendingQuestions] = useState(null); // null | Question[]
+  const [pendingQuestions, setPendingQuestions] = useState(null);
   const [pendingDuplicates, setPendingDuplicates] = useState(0);
-
-  // ─── Estado auto-generación ───────────────────────────────
-  const [showAutoGenerate, setShowAutoGenerate] = useState(false);
-  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
 
   // ─── Estado nombre ────────────────────────────────────────
   const [editingName, setEditingName] = useState(theme.name);
   const [nameJustSaved, setNameJustSaved] = useState(false);
 
   // ─── Estado confirmaciones ────────────────────────────────
-  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, docIndex: null, docName: '' });
   const [deleteQuestionsConfirm, setDeleteQuestionsConfirm] = useState({ show: false, type: null, count: 0 });
 
   // ─── Efectos ─────────────────────────────────────────────
@@ -48,10 +39,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
         (!theme.documents || theme.documents.length === 0) &&
         theme.name && theme.name.trim() !== '' &&
         theme.name !== `Tema ${theme.number}`) {
-      setShowAutoGenerate(true);
+      docManager.setShowAutoGenerate(true);
       setNameJustSaved(false);
     }
-  }, [nameJustSaved, theme.documents, theme.name, theme.number]);
+  }, [nameJustSaved, theme.documents, theme.name, theme.number]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Cobertura (sin API) ──────────────────────────────────
   const estimatedTotal = (() => {
@@ -82,43 +73,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
 
   const handleNameKeyPress = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); handleSaveName(); }
-  };
-
-  // ─── Auto-generación repositorio ─────────────────────────
-  const handleAutoGenerateRepository = async () => {
-    setIsAutoGenerating(true);
-    setShowAutoGenerate(false);
-    if (showToast) showToast(`Generando repositorio para "${theme.name}"...`, 'info');
-    try {
-      setIsSearching(true);
-      const token = await authHelpers.getAccessToken();
-      const response = await fetch("/api/generate-gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo', useCache: false })
-      });
-      if (!response.ok) throw new Error('Error en la búsqueda');
-      const data = await response.json();
-      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let searchContent = '';
-      for (const block of data.content) { if (block.type === 'text') searchContent += block.text; }
-      if (searchContent.trim().length < 100) throw new Error('La IA no devolvió contenido suficiente');
-      const newDoc = {
-        type: 'ai-search', content: theme.name,
-        fileName: `Repositorio: ${theme.name}`,
-        addedAt: new Date().toISOString(),
-        searchResults: { query: theme.name, content: searchContent, processedContent: searchContent },
-        processedContent: searchContent
-      };
-      onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      if (showToast) showToast(`✅ Repositorio generado para "${theme.name}"`, 'success');
-    } catch (error) {
-      console.error('Error generando repositorio:', error);
-      if (showToast) showToast('Error al generar repositorio automático', 'error');
-    } finally {
-      setIsSearching(false);
-      setIsAutoGenerating(false);
-    }
   };
 
   // ─── Construcción de contenido ───────────────────────────
@@ -164,7 +118,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     const response = await fetch('/api/generate-gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' })
+      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' }),
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -196,7 +150,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
       difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
       explanation: q.explicacion || q.explanation || '',
       needsReview: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     }));
     const newQuestions = rawQuestions.filter(newQ => {
       const newText = newQ.text.toLowerCase().trim();
@@ -231,7 +185,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
           const repoResp = await fetch('/api/generate-gemini', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-            body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' })
+            body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' }),
           });
           if (repoResp.ok) {
             const repoData = await repoResp.json();
@@ -244,7 +198,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
                   fileName: `Repositorio: ${theme.name}`,
                   processedContent: repoText,
                   searchResults: { query: theme.name, content: repoText, processedContent: repoText },
-                  addedAt: new Date().toISOString()
+                  addedAt: new Date().toISOString(),
                 };
                 onUpdate({ ...theme, documents: [fixedDoc, ...(Array.isArray(docs) ? docs : []).filter(d => d.processedContent?.trim().length > 100)] });
                 documentContents = repoText;
@@ -298,112 +252,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     setPendingQuestions(null);
     setPendingDuplicates(0);
     if (showToast) showToast('Preguntas descartadas', 'info');
-  };
-
-  // ─── Búsqueda IA ─────────────────────────────────────────
-  const handleAISearch = async () => {
-    if (!docContent.trim()) { if (showToast) showToast('Describe qué información buscar', 'warning'); return; }
-    setIsSearching(true);
-    setGenerationProgress('🔍 Buscando y procesando con IA...');
-    setGenerationPercent(10);
-    try {
-      const token = await authHelpers.getAccessToken();
-      const response = await fetch("/api/generate-gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: OPTIMIZED_SEARCH_PROMPT(docContent, theme.name), maxTokens: 8000, callType: 'search' })
-      });
-      setGenerationProgress('📝 Procesando respuesta...');
-      setGenerationPercent(70);
-      if (!response.ok) throw new Error(`Error API: ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let processedContent = '';
-      for (const block of data.content) { if (block.type === 'text') processedContent += block.text; }
-      if (!processedContent.trim() || processedContent.length < 500) throw new Error('No se encontró suficiente información');
-      setGenerationProgress('💾 Guardando...');
-      setGenerationPercent(90);
-      const newDoc = { type: 'ai-search', content: docContent, processedContent, quality: 'optimized', wordCount: processedContent.split(' ').length, addedAt: new Date().toISOString() };
-      onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      setGenerationProgress('✅ ¡Completado!');
-      setGenerationPercent(100);
-      setTimeout(() => { setDocContent(''); setShowAddDoc(false); setIsSearching(false); setGenerationProgress(''); setGenerationPercent(0); }, 1500);
-    } catch (error) {
-      console.error('Error en búsqueda IA:', error);
-      setIsSearching(false); setGenerationProgress(''); setGenerationPercent(0);
-      let errorMsg = error.message;
-      if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
-      alert(`❌ Error: ${errorMsg}`);
-    }
-  };
-
-  // ─── Archivo ─────────────────────────────────────────────
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    setIsSearching(true);
-    setGenerationProgress('📄 Leyendo archivo...');
-    event.target.value = '';
-    try {
-      let textContent = '';
-      if (file.name.toLowerCase().endsWith('.pdf')) {
-        setGenerationProgress('📄 Extrayendo texto del PDF...');
-        textContent = await extractPDFText(file);
-      } else {
-        textContent = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result || '');
-          reader.onerror = () => reject(new Error('Error al leer el archivo'));
-          reader.readAsText(file);
-        });
-      }
-      const trimmed = textContent.substring(0, 50000);
-      if (trimmed.trim().length < 100) throw new Error('El archivo tiene muy poco contenido de texto');
-      setGenerationProgress('💾 Guardando documento...');
-      const newDoc = { type: 'pdf', fileName: file.name, content: trimmed.substring(0, 35000), processedContent: trimmed.substring(0, 35000), addedAt: new Date().toISOString() };
-      onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      setGenerationProgress('✅ ¡Archivo guardado!');
-      setTimeout(() => { setIsSearching(false); setGenerationProgress(''); setShowAddDoc(false); }, 1500);
-    } catch (error) {
-      setIsSearching(false); setGenerationProgress('');
-      alert(`Error: ${error.message}\n\nSugerencia: Usa "Buscar con IA" para mejores resultados.`);
-    }
-  };
-
-  // ─── Añadir documento (URL/texto) ─────────────────────────
-  const handleAddDocument = async () => {
-    if (docType === 'pdf') return;
-    if (docType === 'ai-search') { handleAISearch(); return; }
-    if (!docContent.trim()) { alert('Introduce una URL o contenido'); return; }
-    if (docType === 'url') {
-      try { new URL(docContent); } catch (e) { alert('❌ URL inválida. Debe empezar con http:// o https://'); return; }
-      setIsSearching(true);
-      setGenerationProgress('🌐 Obteniendo contenido de la web...');
-      setGenerationPercent(20);
-      try {
-        const token = await authHelpers.getAccessToken();
-        const response = await fetch('/api/scrape-url', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) }, body: JSON.stringify({ url: docContent }) });
-        setGenerationPercent(60);
-        if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `Error HTTP ${response.status}`); }
-        const data = await response.json();
-        const processedContent = data.content;
-        if (!processedContent || processedContent.length < 100) throw new Error('La página no tiene suficiente contenido de texto. Prueba a pegar el contenido manualmente.');
-        setGenerationProgress('💾 Guardando documento...');
-        setGenerationPercent(90);
-        const newDoc = { type: 'url', content: docContent, fileName: docContent, processedContent, addedAt: new Date().toISOString() };
-        onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-        setGenerationProgress('✅ ¡URL guardada!');
-        setGenerationPercent(100);
-        setTimeout(() => { setDocContent(''); setShowAddDoc(false); setIsSearching(false); setGenerationProgress(''); setGenerationPercent(0); }, 1500);
-      } catch (error) {
-        setIsSearching(false); setGenerationProgress(''); setGenerationPercent(0);
-        alert(`❌ No se pudo procesar la URL\n\n${error.message}\n\n💡 Alternativas:\n• Usa "Buscar con IA"\n• Copia y pega el texto en "Pegar Texto Directamente"`);
-      }
-    } else {
-      const newDoc = { type: 'text', content: docContent, processedContent: docContent, addedAt: new Date().toISOString() };
-      onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
-      setDocContent(''); setShowAddDoc(false);
-    }
   };
 
   // ─── Preguntas — borrado ──────────────────────────────────
@@ -493,31 +341,37 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   };
 
   return {
-    // Estado docs
-    showAddDoc, setShowAddDoc, docType, setDocType, docContent, setDocContent,
-    isSearching, generationProgress, generationPercent, fileInputRef,
-    // Estado preguntas
-    isGeneratingQuestions, showAddQuestion, setShowAddQuestion,
-    selectedQuestions, setSelectedQuestions, selectMode, setSelectMode,
+    // ── Documentos (desde useDocumentManager) ───────────────
+    ...docManager,
+    // Alias para compatibilidad con DocumentSection (espera generationProgress/Percent)
+    generationProgress: docManager.docProgress,
+    generationPercent: docManager.docPercent,
+
+    // ── Preguntas ────────────────────────────────────────────
+    isGeneratingQuestions,
+    showAddQuestion, setShowAddQuestion,
+    selectedQuestions, setSelectedQuestions,
+    selectMode, setSelectMode,
     newQuestion, setNewQuestion,
-    // Preview de preguntas generadas
+    // Progress de generación de preguntas (separado del de docs)
+    qGenerationProgress: generationProgress,
+    qGenerationPercent: generationPercent,
+    // Preview
     pendingQuestions, pendingDuplicates,
     confirmPendingQuestions, discardPendingQuestions,
-    // Estado auto-generación
-    showAutoGenerate, setShowAutoGenerate, isAutoGenerating,
-    // Estado nombre
-    editingName, setEditingName, nameJustSaved,
-    // Estado confirmaciones
-    deleteConfirm, setDeleteConfirm, deleteQuestionsConfirm,
-    // Datos calculados
-    estimatedTotal, questionCount, coveragePercent,
+    // Confirmaciones
+    deleteQuestionsConfirm,
     // Handlers
-    handleSaveName, handleNameKeyPress,
-    handleAutoGenerateRepository,
     generateQuestionsFromDocuments,
-    handleAISearch, handleFileUpload, handleAddDocument,
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
     handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,
+
+    // ── Nombre ───────────────────────────────────────────────
+    editingName, setEditingName,
+    handleSaveName, handleNameKeyPress,
+
+    // ── Calculados ───────────────────────────────────────────
+    estimatedTotal, questionCount, coveragePercent,
   };
 }

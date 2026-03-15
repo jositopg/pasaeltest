@@ -140,6 +140,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
     handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,
+    qGenerationProgress, qGenerationPercent,
   } = useThemeModal({ theme, onUpdate, showToast });
 
   return (
@@ -293,8 +294,8 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
                 <>
                   <QuestionGeneratorPanel
                     isGenerating={isGeneratingQuestions}
-                    progress={generationProgress}
-                    percent={generationPercent}
+                    progress={qGenerationProgress}
+                    percent={qGenerationPercent}
                     hasDocuments={!!theme.documents?.length}
                     estimatedTotal={estimatedTotal}
                     currentCount={questionCount}
