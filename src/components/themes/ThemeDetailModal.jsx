@@ -120,6 +120,7 @@ function QuestionPreviewOverlay({ questions, duplicates, onConfirm, onDiscard })
 
 function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = false }) {
   const { darkMode } = useTheme();
+  const [activeTab, setActiveTab] = useState(readOnly ? 'questions' : 'docs');
 
   const {
     showAddDoc, setShowAddDoc, docType, setDocType, docContent, setDocContent,
@@ -194,11 +195,45 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
           </div>
         </div>
 
+        {/* TAB BAR — sticky, no scrollea */}
+        {!readOnly && (
+          <div className="flex-shrink-0 flex bg-slate-800 border-b border-white/10 px-4 sm:px-6">
+            {[
+              { id: 'docs',      label: 'Documentos', count: theme.documents?.length || 0 },
+              { id: 'questions', label: 'Preguntas',  count: questionCount },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors
+                  border-b-2 -mb-px
+                  ${activeTab === tab.id
+                    ? 'text-white border-blue-500'
+                    : 'text-gray-400 border-transparent hover:text-gray-200 hover:border-white/20'
+                  }
+                `}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold tabular-nums ${
+                    activeTab === tab.id
+                      ? 'bg-blue-500/30 text-blue-300'
+                      : 'bg-white/10 text-gray-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* CONTENIDO SCROLLEABLE */}
         <div className="flex-1 overflow-y-auto" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: 'calc(90vh - 140px)' }}>
           <div className="p-4 sm:p-6 space-y-6">
 
-            {!readOnly && (
+            {!readOnly && activeTab === 'docs' && (
               <DocumentSection
                 theme={theme}
                 showAddDoc={showAddDoc}
@@ -228,7 +263,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
             )}
 
             {/* BANCO DE PREGUNTAS */}
-            <div>
+            {(readOnly || activeTab === 'questions') && <div>
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="text-white font-semibold">
@@ -297,7 +332,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
                   onDeleteAll={handleDeleteAll}
                 />
               )}
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -307,7 +342,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
         <QuestionPreviewOverlay
           questions={pendingQuestions}
           duplicates={pendingDuplicates}
-          onConfirm={confirmPendingQuestions}
+          onConfirm={(selected) => { confirmPendingQuestions(selected); setActiveTab('questions'); }}
           onDiscard={discardPendingQuestions}
         />
       )}
