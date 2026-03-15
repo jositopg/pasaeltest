@@ -111,9 +111,13 @@ export default function QuestionList({
       <div className="mb-3 space-y-2">
         <button
           onClick={() => { onToggleSelectMode(); setEditingId(null); }}
-          className="w-full min-h-[44px] bg-orange-500 text-white px-3 py-2 rounded-xl text-xs font-semibold"
+          className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+            selectMode
+              ? 'bg-slate-600 text-white hover:bg-slate-500'
+              : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30 border border-slate-500/30'
+          }`}
         >
-          {selectMode ? 'Cancelar' : '☑ Seleccionar'}
+          {selectMode ? 'Cancelar selección' : '☑ Seleccionar'}
         </button>
 
         {selectMode && (
@@ -141,7 +145,7 @@ export default function QuestionList({
               onClick={onDeleteAll}
               className="min-h-[44px] bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-semibold"
             >
-              Todo
+              Borrar todo
             </button>
           </div>
         )}

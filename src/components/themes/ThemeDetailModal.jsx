@@ -184,7 +184,7 @@ function ThemeDetailModal({ theme, onClose, onUpdate, showToast, readOnly = fals
                       </button>
                     )}
                   </div>
-                  <p className="text-gray-500 text-xs mt-1">💡 Escribe un nombre y presiona Enter o click fuera para guardar</p>
+                  <p className="text-gray-500 text-xs mt-1">💡 Escribe un nombre y pulsa Enter o toca fuera para guardar</p>
                 </>
               )}
               {readOnly && (

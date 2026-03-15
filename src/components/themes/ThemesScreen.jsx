@@ -336,9 +336,9 @@ function ThemesScreen({
           {!selectionMode && !repoCleanMode && (
             <button
               onClick={() => setSelectionMode(true)}
-              className={`p-2 rounded-xl text-sm font-semibold transition-colors ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
-              title="Seleccionar temas para renombrar en masa"
-            >☑</button>
+              className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
+              title="Seleccionar temas en masa"
+            >☑ <span className="hidden sm:inline text-xs">Selección</span></button>
           )}
           <button
             onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
@@ -373,7 +373,7 @@ function ThemesScreen({
                 onClick={() => setBulkResetConfirm({ show: true })}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
               >
-                Reset nombres ({selectedNumbers.size})
+                Restablecer ({selectedNumbers.size})
               </button>
             )}
             <button
@@ -384,7 +384,7 @@ function ThemesScreen({
         ) : repoCleanMode ? (
           <div className="flex gap-2 flex-wrap">
             <span className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'text-red-300' : 'text-red-600'}`}>
-              🗑 Selecciona los repos a borrar
+              🗑 Selecciona repositorios a eliminar
             </span>
             <button
               onClick={() => {
@@ -421,7 +421,7 @@ function ThemesScreen({
               }`}
             >
               {generatingAll ? <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" /> : '⚡'}
-              Repos
+              <span>Repos IA</span>
             </button>
             <button
               onClick={() => setGenerateQuestionsConfirm(true)}
@@ -548,7 +548,7 @@ function ThemesScreen({
           <div className="relative">
             <input
               type="text"
-              placeholder="Buscar..."
+              placeholder="Buscar tema..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full rounded-xl px-4 py-3 pl-12 ${
@@ -567,9 +567,9 @@ function ThemesScreen({
         {themes.length === 0 && !loading && (
           <div className={`rounded-2xl p-8 text-center ${dm ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-sm'}`}>
             <div className="text-5xl mb-4">📚</div>
-            <h3 className={`text-lg font-bold mb-1 ${cx.heading}`}>Este plan está vacío</h3>
+            <h3 className={`text-lg font-bold mb-1 ${cx.heading}`}>Empieza añadiendo tus temas</h3>
             <p className={`text-sm mb-6 ${cx.muted}`}>
-              Añade los temas de tu temario para empezar a estudiar
+              Importa o crea los temas de tu temario para comenzar
             </p>
 
             {/* Pasos rápidos */}

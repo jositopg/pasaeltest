@@ -128,16 +128,16 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
           </div>
         </div>
 
-        {/* Preguntas falladas */}
+        {/* Refuerzo de fallos */}
         <div className={cardCls}>
           <div className="flex items-center justify-between mb-1">
-            <label className={`text-sm font-semibold ${cx.body}`}>Preguntas falladas</label>
+            <label className={`text-sm font-semibold ${cx.body}`}>Refuerzo de fallos anteriores</label>
             <span className={`text-sm font-bold ${failedRatio > 0 ? 'text-orange-500' : dm ? 'text-gray-400' : 'text-slate-400'}`}>
               {failedRatio}%
             </span>
           </div>
           <p className={`text-xs mb-3 ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-            Porcentaje de preguntas falladas a incluir en el test
+            Qué porcentaje del test serán preguntas que ya fallaste
           </p>
           <input
             type="range"
@@ -149,7 +149,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
             className="w-full accent-orange-500"
           />
           <div className="flex justify-between text-xs mt-1">
-            <span className={dm ? 'text-gray-500' : 'text-slate-400'}>Aleatorio</span>
+            <span className={dm ? 'text-gray-500' : 'text-slate-400'}>Sin incluir</span>
             <span className={dm ? 'text-gray-500' : 'text-slate-400'}>Solo falladas</span>
           </div>
           {failedRatio > 0 && selectedThemes.length > 0 && (
@@ -270,8 +270,8 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
             <span className="mt-0.5">👆</span>
             <span>
               {selectedThemes.length === 0
-                ? 'Selecciona al menos un tema de la lista de abajo para comenzar.'
-                : 'Los temas seleccionados no tienen preguntas. Ve a Temas → IA para generarlas.'}
+                ? 'Selecciona al menos un tema para comenzar.'
+                : 'Los temas seleccionados no tienen preguntas. Ve a Temas y genera preguntas con IA.'}
             </span>
           </div>
         )}

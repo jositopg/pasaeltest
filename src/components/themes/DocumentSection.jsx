@@ -130,7 +130,7 @@ export default function DocumentSection({
               />
               <label htmlFor="fileUpload" className="cursor-pointer">
                 <div className="text-4xl mb-2">📁</div>
-                <p className="text-gray-300 text-sm">Click para subir archivo</p>
+                <p className="text-gray-300 text-sm">Toca para subir archivo</p>
               </label>
             </div>
           ) : docType === 'ai-search' ? (
@@ -267,8 +267,8 @@ export default function DocumentSection({
         ) : (
           <div className="text-center py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
             <div className="text-4xl mb-3">📚</div>
-            <p className="text-gray-400 font-medium">Aún no hay material de estudio</p>
-            <p className="text-gray-600 text-sm mt-1">Añade contenido o usa búsqueda IA para empezar</p>
+            <p className="text-gray-400 font-medium">Sin documentos todavía</p>
+            <p className="text-gray-600 text-sm mt-1">Añade un documento o busca contenido con IA</p>
           </div>
         )}
       </div>
