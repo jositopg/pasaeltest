@@ -1,5 +1,6 @@
 import React from 'react';
 import Icons from '../common/Icons';
+import { QUESTIONS_PER_BATCH } from '../../utils/constants';
 
 /**
  * Panel de generación de preguntas con IA: botón, progreso, cobertura estimada.
@@ -23,14 +24,14 @@ export default function QuestionGeneratorPanel({
           onClick={onGenerate}
           disabled={isGenerating}
           className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
-          title={estimatedTotal ? `Genera 40 preguntas (objetivo: ${estimatedTotal} para cobertura completa)` : 'Genera preguntas con IA'}
+          title={estimatedTotal ? `Genera ${QUESTIONS_PER_BATCH} preguntas (objetivo: ${estimatedTotal} para cobertura completa)` : `Genera ${QUESTIONS_PER_BATCH} preguntas con IA`}
         >
           {isGenerating ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               {percent}%
             </>
-          ) : '⚡ Generar 40 preguntas'}
+          ) : `⚡ Generar ${QUESTIONS_PER_BATCH} preguntas`}
         </button>
 
         <button
