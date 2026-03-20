@@ -294,13 +294,17 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
 
     const penalty = getPenaltyValue(incorrect, config.penaltySystem);
     const final = Math.max(0, correct - penalty);
+    const total = questions.length;
     return {
       correct,
       incorrect,
-      unanswered: questions.length - correct - incorrect,
+      unanswered: total - correct - incorrect,
       penalty,
       finalScore: final,
-      percentage: ((final / questions.length) * 100).toFixed(1),
+      // % de acierto bruto (sin penalización) — para el donut y comparativa
+      percentage: total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0',
+      // Nota 0-10 con penalización
+      grade: total > 0 ? Math.max(0, parseFloat(((final / total) * 10).toFixed(2))) : 0,
       timeExpired,
       failedQs,
       byTheme,
@@ -397,12 +401,37 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
               <div className="flex-1 min-w-0">
                 <h2 className={`text-xl sm:text-2xl font-bold mb-1 ${cx.heading}`}>¡Test completado!</h2>
                 <p className={`text-sm mb-3 ${cx.muted}`}>{motivation}</p>
-                <div className={`text-4xl sm:text-5xl font-bold tabular-nums ${
-                  pct >= 70 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
-                }`}>
-                  {score.finalScore}<span className={`text-lg font-semibold ml-1 ${cx.muted}`}>/ {questions.length}</span>
+                {/* Acierto bruto */}
+                <div className="flex items-baseline gap-1.5 mb-0.5">
+                  <span className={`text-3xl sm:text-4xl font-bold tabular-nums ${
+                    pct >= 70 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
+                  }`}>{score.correct}</span>
+                  <span className={`text-base font-semibold ${cx.muted}`}>/ {questions.length} correctas</span>
                 </div>
-                <p className={`text-xs mt-1 ${cx.muted}`}>{score.percentage}% de aciertos</p>
+                <p className={`text-xs ${cx.muted}`}>{score.percentage}% de acierto</p>
+              </div>
+            </div>
+
+            {/* Nota del examen (0-10) */}
+            <div className={`mt-4 pt-4 border-t flex items-center justify-between gap-4 ${dm ? 'border-white/10' : 'border-slate-100'}`}>
+              <div>
+                <p className={`text-xs font-semibold uppercase tracking-widest mb-0.5 ${cx.muted}`}>Nota del examen</p>
+                <p className={`text-xs ${cx.muted}`}>
+                  {config.penaltySystem === 'none'
+                    ? 'Sin penalización'
+                    : config.penaltySystem === 'each4' ? 'Penaliz.: 4 malas = −1'
+                    : config.penaltySystem === 'each2' ? 'Penaliz.: 2 malas = −1'
+                    : config.penaltySystem === 'each1' ? 'Penaliz.: 1 mala = −1'
+                    : 'Penaliz.: 3 malas = −1'}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className={`text-4xl sm:text-5xl font-black tabular-nums ${
+                  score.grade >= 7 ? 'text-green-400' : score.grade >= 5 ? 'text-yellow-400' : 'text-red-400'
+                }`} style={{ fontFamily: 'Sora, system-ui' }}>
+                  {score.grade % 1 === 0 ? score.grade.toFixed(0) : score.grade.toFixed(1)}
+                </span>
+                <span className={`text-lg font-semibold ml-1 ${cx.muted}`}>/ 10</span>
               </div>
             </div>
           </div>
@@ -696,14 +725,18 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
           >
             Anterior
           </button>
-          {isAnswered && (
-            <button
-              onClick={handleNext}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl font-medium transition-colors shadow-md"
-            >
-              {current === questions.length - 1 ? 'Ver Resultados' : 'Siguiente'}
-            </button>
-          )}
+          <button
+            onClick={handleNext}
+            className={`flex-1 py-4 rounded-xl font-medium transition-colors ${
+              isAnswered
+                ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md'
+                : dm ? 'bg-white/8 text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}
+          >
+            {isAnswered
+              ? (current === questions.length - 1 ? 'Ver Resultados' : 'Siguiente')
+              : (current === questions.length - 1 ? 'Finalizar' : 'Saltar')}
+          </button>
         </div>
       </div>
     </div>
