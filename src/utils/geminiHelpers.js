@@ -100,6 +100,35 @@ export function parseCombinedResponse(text) {
 }
 
 /**
+ * Concatena el contenido de los documentos con cabeceras de sección para prompts de IA.
+ * Versión enriquecida (con headers de sección) para uso en ThemeDetailModal.
+ * Complementa a buildContent (versión simple usada en useGenerationQueue).
+ * Devuelve string con el contenido concatenado.
+ */
+export function buildDocumentContents(docs) {
+  if (!Array.isArray(docs) || docs.length === 0) return '';
+  let documentContents = '';
+  let charCount = 0;
+  for (const doc of docs) {
+    if (charCount >= MAX_CHARS) break;
+    let docText = '';
+    if (doc.processedContent) {
+      docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || (doc.content || '').substring(0, 100)}\n\n${doc.processedContent}\n`;
+    } else if (doc.searchResults?.processedContent) {
+      docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
+    } else if (doc.searchResults?.content) {
+      docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
+    } else if (doc.type !== 'url' && doc.content) {
+      docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
+    }
+    const remaining = MAX_CHARS - charCount;
+    documentContents += docText.substring(0, remaining);
+    charCount += Math.min(docText.length, remaining);
+  }
+  return documentContents;
+}
+
+/**
  * Filtra preguntas duplicadas respecto a un array de textos existentes.
  * Usa comparación exacta + similitud de palabras (>80%).
  */

@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { parseExcelQuestions, parsePDFQuestions } from '../utils/questionImporter';
 import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
-import { MAX_CHARS, QUESTIONS_PER_BATCH, normalizeDifficulty } from '../utils/constants';
-import { parseCombinedResponse } from '../utils/geminiHelpers';
-import { jsonrepair } from 'jsonrepair';
+import { QUESTIONS_PER_BATCH } from '../utils/constants';
+import { parseCombinedResponse, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, buildDocumentContents } from '../utils/geminiHelpers';
 import { authHelpers } from '../supabaseClient';
 import useDocumentManager from './useDocumentManager';
 
@@ -30,27 +29,8 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     const t = baseTheme || theme;
     if (!Array.isArray(rawPreguntas) || rawPreguntas.length === 0) return 0;
     const existingTexts = (Array.isArray(t.questions) ? t.questions : []).map(q => q.text.toLowerCase().trim());
-    const rawQuestions = rawPreguntas.map((q, i) => ({
-      id: `${t.number}-ai-${Date.now()}-${i}`,
-      text: q.pregunta || q.text || 'Pregunta sin texto',
-      options: q.opciones || q.options || ['A', 'B', 'C'],
-      correct: q.correcta ?? q.correct ?? 0,
-      source: 'IA',
-      difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
-      explanation: q.explicacion || q.explanation || '',
-      needsReview: false,
-      createdAt: new Date().toISOString(),
-    }));
-    const newQuestions = rawQuestions.filter(newQ => {
-      const newText = newQ.text.toLowerCase().trim();
-      if (existingTexts.some(et => et === newText)) return false;
-      const words1 = newText.split(/\s+/);
-      return !existingTexts.some(et => {
-        const words2 = et.split(/\s+/);
-        const common = words1.filter(w => words2.includes(w));
-        return common.length / Math.max(words1.length, words2.length) > 0.8;
-      });
-    });
+    const rawQuestions = mapRawQuestions(rawPreguntas, t.number);
+    const newQuestions = deduplicateQuestions(rawQuestions, existingTexts);
     if (newQuestions.length > 0) {
       onUpdate({ ...t, questions: [...(Array.isArray(t.questions) ? t.questions : []), ...newQuestions] });
       if (showToast) showToast(`✅ ${newQuestions.length} pregunta${newQuestions.length !== 1 ? 's' : ''} guardada${newQuestions.length !== 1 ? 's' : ''}`, 'success');
@@ -100,30 +80,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     if (e.key === 'Enter') { e.preventDefault(); handleSaveName(); }
   };
 
-  // ─── Construcción de contenido ───────────────────────────
-  const buildDocumentContents = (docs) => {
-    if (!Array.isArray(docs) || docs.length === 0) return '';
-    let documentContents = '';
-    let charCount = 0;
-    for (const doc of docs) {
-      if (charCount >= MAX_CHARS) break;
-      let docText = '';
-      if (doc.processedContent) {
-        docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || (doc.content || '').substring(0, 100)}\n\n${doc.processedContent}\n`;
-      } else if (doc.searchResults?.processedContent) {
-        docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
-      } else if (doc.searchResults?.content) {
-        docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
-      } else if (doc.type !== 'url' && doc.content) {
-        docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
-      }
-      const remaining = MAX_CHARS - charCount;
-      documentContents += docText.substring(0, remaining);
-      charCount += docText.length;
-    }
-    return documentContents;
-  };
-
   // ─── Llamada a la API de generación ──────────────────────
   const callGenerationAPI = async (documentContents, existingTexts, coverageInstruction = null) => {
     const existingQuestionsStr = existingTexts.join('\n');
@@ -154,39 +110,10 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     let textContent = '';
     for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
     if (!textContent) throw new Error('La IA no devolvió contenido');
-    let cleaned = textContent.trim()
-      .replace(/```json\s*/g, '').replace(/```\s*/g, '')
-      .replace(/^[^[]*/, '').replace(/[^\]]*$/, '');
-    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No se pudo extraer JSON. La IA respondió con texto no estructurado.');
-    let parsed;
-    try { parsed = JSON.parse(jsonMatch[0]); }
-    catch (e1) {
-      try { parsed = JSON.parse(jsonrepair(jsonMatch[0])); }
-      catch (e) { throw new Error('JSON inválido: ' + e1.message); }
-    }
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('La IA no generó preguntas válidas');
-    const rawQuestions = parsed.map((q, i) => ({
-      id: `${theme.number}-ai-${Date.now()}-${i}`,
-      text: q.pregunta || q.text || 'Pregunta sin texto',
-      options: q.opciones || q.options || ['A', 'B', 'C'],
-      correct: q.correcta ?? q.correct ?? 0,
-      source: 'IA',
-      difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
-      explanation: q.explicacion || q.explanation || '',
-      needsReview: false,
-      createdAt: new Date().toISOString(),
-    }));
-    const newQuestions = rawQuestions.filter(newQ => {
-      const newText = newQ.text.toLowerCase().trim();
-      if (existingTexts.some(et => et === newText)) return false;
-      const words1 = newText.split(/\s+/);
-      return !existingTexts.some(et => {
-        const words2 = et.split(/\s+/);
-        const common = words1.filter(w => words2.includes(w));
-        return common.length / Math.max(words1.length, words2.length) > 0.8;
-      });
-    });
+    const parsed = parseQuestionsResponse(textContent);
+    if (!parsed.length) throw new Error('No se pudo extraer JSON o la IA no generó preguntas válidas');
+    const rawQuestions = mapRawQuestions(parsed, theme.number);
+    const newQuestions = deduplicateQuestions(rawQuestions, existingTexts);
     return { newQuestions, duplicatesFound: rawQuestions.length - newQuestions.length };
   };
 

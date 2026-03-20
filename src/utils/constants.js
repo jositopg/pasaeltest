@@ -23,6 +23,7 @@ export const PENALTY_SYSTEMS = {
   none: { label: 'Sin penalización', factor: 0 },
 };
 
+// Para mostrar en la UI (con tildes). Para guardar en DB usar normalizeDifficulty() (sin tildes).
 export const DIFFICULTY_LEVELS = ['fácil', 'media', 'difícil'];
 
 export const DOC_TYPES = [
