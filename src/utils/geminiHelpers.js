@@ -69,7 +69,7 @@ export function mapRawQuestions(parsed, themeNumber) {
     source: 'IA',
     difficulty: normalizeDifficulty(q.dificultad || q.difficulty),
     explanation: q.explicacion || q.explanation || '',
-    needsReview: true,
+    needsReview: false,
     createdAt: new Date().toISOString(),
   }));
 }
