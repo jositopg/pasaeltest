@@ -233,48 +233,101 @@ function StudentHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
         </p>
       </div>
 
-      {/* PLAN ACTIVO */}
-      {activeTest && (
-        <div className={`rounded-2xl p-5 space-y-4 animate-fade-in-up stagger-2 ${
-          dm ? 'bg-[#0F172A] border border-blue-500/30' : 'bg-white border border-blue-200 shadow-sm'
-        }`}>
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-              style={{ background: 'linear-gradient(135deg, #2563EB22, #7C3AED22)' }}>
-              {activeTest.cover_emoji || '📋'}
+      {/* HERO — HACER TEST */}
+      {activeTest && activeQuestionCount > 0 && (
+        <button
+          onClick={() => onNavigate('exam')}
+          className="w-full rounded-3xl overflow-hidden animate-fade-in-up stagger-2 transition-all active:scale-[0.98] text-left"
+          style={{
+            background: 'linear-gradient(145deg, #1d4ed8 0%, #6d28d9 60%, #4f46e5 100%)',
+            boxShadow: '0 10px 36px rgba(37,99,235,0.45)',
+          }}
+        >
+          {/* Top section */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-start justify-between mb-5">
+              <span className="text-5xl">{activeTest.cover_emoji || '📋'}</span>
+              <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="text-white text-[11px] font-bold tracking-wide">HACER TEST</span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className={`font-bold text-base truncate ${dm ? 'text-slate-100' : 'text-slate-800'}`}
-                style={{ fontFamily: 'Sora, system-ui' }}>
-                {activeTest.name}
-              </p>
-              <p className={`text-xs mt-0.5 ${cx.muted}`}>
-                {activeThemeCount} tema{activeThemeCount !== 1 ? 's' : ''} · {activeQuestionCount} pregunta{activeQuestionCount !== 1 ? 's' : ''}
-              </p>
+            <p className="text-white font-bold text-xl leading-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+              {activeTest.name}
+            </p>
+            {/* Stats strip */}
+            <div className="flex items-center gap-5 mt-4">
+              <div>
+                <p className="text-white font-black text-2xl leading-none" style={{ fontFamily: 'Sora, system-ui' }}>{activeQuestionCount}</p>
+                <p className="text-white/60 text-[11px] mt-0.5">preguntas</p>
+              </div>
+              <div className="w-px h-7 bg-white/20" />
+              <div>
+                <p className="text-white font-black text-2xl leading-none" style={{ fontFamily: 'Sora, system-ui' }}>{activeThemeCount}</p>
+                <p className="text-white/60 text-[11px] mt-0.5">temas</p>
+              </div>
             </div>
           </div>
+          {/* CTA bottom bar */}
+          <div className="mx-4 mb-4 bg-white rounded-2xl py-3.5 flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="url(#grad)" viewBox="0 0 24 24">
+              <defs>
+                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#2563EB"/>
+                  <stop offset="100%" stopColor="#7C3AED"/>
+                </linearGradient>
+              </defs>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="font-black text-sm" style={{
+              background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontFamily: 'Sora, system-ui',
+            }}>
+              Empezar ahora →
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* Plan activo sin preguntas */}
+      {activeTest && activeQuestionCount === 0 && (
+        <div className={`rounded-2xl p-5 text-center animate-fade-in-up stagger-2 ${
+          dm ? 'bg-[#0F172A] border border-white/10' : 'bg-white border border-slate-200 shadow-sm'
+        }`}>
+          <div className="text-4xl mb-3">{activeTest.cover_emoji || '📋'}</div>
+          <p className={`font-bold text-base mb-1 ${dm ? 'text-slate-200' : 'text-slate-700'}`}
+            style={{ fontFamily: 'Sora, system-ui' }}>
+            {activeTest.name}
+          </p>
+          <p className={`text-sm mb-4 ${cx.muted}`}>Este plan aún no tiene preguntas.</p>
           <button
-            onClick={() => onNavigate('exam')}
-            className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 4px 16px rgba(37,99,235,0.3)', fontFamily: 'Sora, system-ui' }}
+            onClick={() => onNavigate('themes')}
+            className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm transition-all active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
           >
-            Hacer test →
+            Añadir preguntas →
           </button>
-          {tests.length > 1 && (
-            <button
-              onClick={() => onNavigate('exams')}
-              className={`w-full py-2 rounded-xl text-xs font-semibold transition-all ${
-                dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Ver todos mis planes →
-            </button>
-          )}
         </div>
       )}
 
       {/* REPASO SRS */}
       {dueCount > 0 && <SRSBanner count={dueCount} onNavigate={onNavigate} cx={cx} dm={dm} />}
+
+      {/* Cambiar plan */}
+      {tests.length > 1 && (
+        <button
+          onClick={() => onNavigate('exams')}
+          className={`w-full py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Cambiar plan de estudio →
+        </button>
+      )}
     </>
   );
 }
