@@ -30,11 +30,11 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
   const canStart = selectedThemes.length > 0 && totalAvailable > 0;
 
   const penaltyOptions = [
-    { value: 'none',    label: 'Sin penalización' },
-    { value: 'each4',   label: '4 incorrectas = -1 punto' },
-    { value: 'classic', label: '3 incorrectas = -1 punto' },
-    { value: 'each2',   label: '2 incorrectas = -1 punto' },
-    { value: 'each1',   label: '1 incorrecta = -1 punto' },
+    { value: 'none',    label: 'Sin penalización', desc: 'Los fallos no restan.' },
+    { value: 'each4',   label: '4 incorrectas quitan 1 acierto', desc: 'Por cada 4 fallos se resta 1 pregunta correcta.' },
+    { value: 'classic', label: '3 incorrectas quitan 1 acierto', desc: 'Por cada 3 fallos se resta 1 pregunta correcta. Sistema clásico de oposiciones.' },
+    { value: 'each2',   label: '2 incorrectas quitan 1 acierto', desc: 'Por cada 2 fallos se resta 1 pregunta correcta.' },
+    { value: 'each1',   label: '1 incorrecta quita 1 acierto',  desc: 'Cada fallo resta 1 pregunta correcta.' },
   ];
 
   const inputCls = `flex-1 text-center rounded-xl px-4 py-3 font-bold text-xl ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-slate-50 text-slate-800 border border-slate-200'}`;
@@ -162,6 +162,9 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
         {/* Penalización */}
         <div className={cardCls}>
           <label className={labelCls}>Penalización por fallo</label>
+          <p className={`text-xs mb-3 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
+            Las preguntas incorrectas restan de las correctas, igual que en los exámenes oficiales.
+          </p>
           <div className="grid grid-cols-1 gap-2">
             {penaltyOptions.map(opt => (
               <button
@@ -174,6 +177,9 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
                 }`}
               >
                 {opt.label}
+                {penaltySystem === opt.value && opt.desc && (
+                  <span className="block text-xs font-normal mt-0.5 text-blue-100">{opt.desc}</span>
+                )}
               </button>
             ))}
           </div>

@@ -419,10 +419,10 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
                 <p className={`text-xs ${cx.muted}`}>
                   {config.penaltySystem === 'none'
                     ? 'Sin penalización'
-                    : config.penaltySystem === 'each4' ? 'Penaliz.: 4 malas = −1'
-                    : config.penaltySystem === 'each2' ? 'Penaliz.: 2 malas = −1'
-                    : config.penaltySystem === 'each1' ? 'Penaliz.: 1 mala = −1'
-                    : 'Penaliz.: 3 malas = −1'}
+                    : config.penaltySystem === 'each4' ? '4 incorrectas quitan 1 acierto'
+                    : config.penaltySystem === 'each2' ? '2 incorrectas quitan 1 acierto'
+                    : config.penaltySystem === 'each1' ? 'Cada incorrecta quita 1 acierto'
+                    : '3 incorrectas quitan 1 acierto'}
                 </p>
               </div>
               <div className="text-right">
