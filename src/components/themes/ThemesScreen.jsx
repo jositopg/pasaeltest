@@ -288,26 +288,28 @@ function ThemesScreen({
               </p>
             )}
           </div>
-          {!selectionMode && !repoCleanMode && (
+          {!isClonedTest && !selectionMode && !repoCleanMode && (
             <button
               onClick={() => setSelectionMode(true)}
               className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${dm ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50'}`}
               title="Seleccionar temas en masa"
             >☑ <span className="hidden sm:inline text-xs">Selección</span></button>
           )}
-          <button
-            onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
-            className={`px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${dm ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-            title="Añadir un tema"
-          >
-            <Icons.Plus />
-          </button>
-          <button
-            onClick={() => setShowBulkImport(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-          >
-            <Icons.Plus /><span className="hidden sm:inline">Importar</span>
-          </button>
+          {!isClonedTest && <>
+            <button
+              onClick={async () => { if (!onAddTheme) return; const result = await onAddTheme(); if (result?.error) showToast(result.error, 'error'); }}
+              className={`px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${dm ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+              title="Añadir un tema"
+            >
+              <Icons.Plus />
+            </button>
+            <button
+              onClick={() => setShowBulkImport(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+            >
+              <Icons.Plus /><span className="hidden sm:inline">Importar</span>
+            </button>
+          </>}
         </div>
 
         {/* Header fila 2: acciones bulk (cambia según el modo activo) */}
@@ -364,7 +366,7 @@ function ThemesScreen({
               className={`px-3 py-2 rounded-xl text-xs font-semibold ${dm ? 'bg-white/5 text-white' : 'bg-slate-100 text-slate-700'}`}
             >Cancelar</button>
           </div>
-        ) : (
+        ) : isClonedTest ? null : (
           <div className="flex gap-2">
             <button
               onClick={() => setGenerateConfirm(true)}
@@ -646,8 +648,8 @@ function ThemesScreen({
                   </div>
 
                   <div className="flex items-start gap-1 shrink-0">
-                    {/* Botón ⚡ generar preguntas — visible para cualquier tema con nombre */}
-                    {!selectionMode && !isEditing && !isDefaultName && (
+                    {/* Botón ⚡ generar preguntas — oculto en planes clonados */}
+                    {!isClonedTest && !selectionMode && !isEditing && !isDefaultName && (
                       <button
                         onClick={(e) => { e.stopPropagation(); generateThemeInline(theme); }}
                         disabled={generatingQuestions[theme.number] === 'loading'}
