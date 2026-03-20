@@ -1,45 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
-import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { parseExcelQuestions, parsePDFQuestions } from '../utils/questionImporter';
-import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
-import { QUESTIONS_PER_BATCH } from '../utils/constants';
-import { parseCombinedResponse, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, buildDocumentContents } from '../utils/geminiHelpers';
-import { authHelpers } from '../supabaseClient';
+import { analyzeDocument } from '../utils/documentAnalyzer';
 import useDocumentManager from './useDocumentManager';
+import useQuestionGeneration from './useQuestionGeneration';
 
 export default function useThemeModal({ theme, onUpdate, showToast }) {
+  // ─── Generación IA (delegado a useQuestionGeneration) ────
+  const qGen = useQuestionGeneration({ theme, onUpdate, showToast });
+
+  // ─── Documentos (delegado a useDocumentManager) ──────────
+  const docManager = useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady: qGen.onQuestionsReady });
+
   // ─── Estado preguntas ────────────────────────────────────
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', options: ['', '', ''], correct: 0, difficulty: 'media' });
-  const [generationProgress, setGenerationProgress] = useState('');
-  const [generationPercent, setGenerationPercent] = useState(0);
 
-  // ─── Preview de preguntas generadas ──────────────────────
-  // Declarado antes de useDocumentManager para que handleRawQuestionsReady
-  // pueda cerrar sobre sus setters sin problema de orden.
-  const [pendingQuestions, setPendingQuestions] = useState(null);
-  const [pendingDuplicates, setPendingDuplicates] = useState(0);
-
-  // ─── Callback: preguntas generadas junto con el material ─
-  // baseTheme: tema base a usar (por defecto theme, pero puede ser uno actualizado localmente)
-  const handleRawQuestionsReady = (rawPreguntas, baseTheme = null) => {
-    const t = baseTheme || theme;
-    if (!Array.isArray(rawPreguntas) || rawPreguntas.length === 0) return 0;
-    const existingTexts = (Array.isArray(t.questions) ? t.questions : []).map(q => q.text.toLowerCase().trim());
-    const rawQuestions = mapRawQuestions(rawPreguntas, t.number);
-    const newQuestions = deduplicateQuestions(rawQuestions, existingTexts);
-    if (newQuestions.length > 0) {
-      onUpdate({ ...t, questions: [...(Array.isArray(t.questions) ? t.questions : []), ...newQuestions] });
-      if (showToast) showToast(`✅ ${newQuestions.length} pregunta${newQuestions.length !== 1 ? 's' : ''} guardada${newQuestions.length !== 1 ? 's' : ''}`, 'success');
-    }
-    return newQuestions.length;
-  };
-
-  // ─── Documentos (delegado a useDocumentManager) ──────────
-  const docManager = useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady: handleRawQuestionsReady });
+  // ─── Estado importación de archivo (separado de IA) ──────
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState('');
+  const [importPercent, setImportPercent] = useState(0);
 
   // ─── Estado nombre ────────────────────────────────────────
   const [editingName, setEditingName] = useState(theme.name);
@@ -78,203 +59,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
 
   const handleNameKeyPress = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); handleSaveName(); }
-  };
-
-  // ─── Llamada a la API de generación ──────────────────────
-  const callGenerationAPI = async (documentContents, existingTexts, coverageInstruction = null) => {
-    const existingQuestionsStr = existingTexts.join('\n');
-    const analysis = analyzeDocument(documentContents);
-    const significantSections = analysis.sections.filter(s => s.level === 'critical' || s.level === 'high');
-    const usePhase2 = significantSections.length >= 2 && !coverageInstruction;
-    let prompt;
-    if (usePhase2) {
-      const topSection = significantSections[0];
-      const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
-      const questionTypes = determineQuestionTypes(topSection);
-      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingQuestionsStr, questionTypes);
-    } else {
-      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingQuestionsStr, coverageInstruction);
-    }
-    const token = await authHelpers.getAccessToken();
-    const response = await fetch('/api/generate-gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error API (${response.status}): ${errorText.substring(0, 200)}`);
-    }
-    const data = await response.json();
-    if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida o vacía. Reintenta.');
-    let textContent = '';
-    for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
-    if (!textContent) throw new Error('La IA no devolvió contenido');
-    const parsed = parseQuestionsResponse(textContent);
-    if (!parsed.length) throw new Error('No se pudo extraer JSON o la IA no generó preguntas válidas');
-    const rawQuestions = mapRawQuestions(parsed, theme.number);
-    const newQuestions = deduplicateQuestions(rawQuestions, existingTexts);
-    return { newQuestions, duplicatesFound: rawQuestions.length - newQuestions.length };
-  };
-
-  // ─── Generación de preguntas ──────────────────────────────
-  const generateQuestionsFromDocuments = async (docsToUse = null) => {
-    const docs = Array.isArray(docsToUse) ? docsToUse : (Array.isArray(theme.documents) ? theme.documents : []);
-    if (docs.length === 0) {
-      // Sin material: llamada combinada directa (material + preguntas en 1 llamada)
-      if (!theme.name || theme.name === `Tema ${theme.number}`) {
-        if (showToast) showToast('Ponle nombre al tema primero para generar preguntas con IA', 'warning');
-        return;
-      }
-      setIsGeneratingQuestions(true);
-      setGenerationProgress('🤖 Generando material y preguntas con IA...');
-      setGenerationPercent(15);
-      try {
-        const token = await authHelpers.getAccessToken();
-        const response = await fetch('/api/generate-gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-          body: JSON.stringify({ prompt: COMBINED_AUTO_AND_QUESTIONS_PROMPT(theme.name), maxTokens: 12000, callType: 'repo', useCache: false }),
-        });
-        if (!response.ok) throw new Error(`Error API (${response.status})`);
-        const data = await response.json();
-        if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida');
-        let responseText = '';
-        for (const block of data.content) { if (block.type === 'text') responseText += block.text; }
-
-        setGenerationPercent(60);
-        setGenerationProgress('📝 Procesando respuesta...');
-
-        const { material, preguntas } = parseCombinedResponse(responseText);
-        const processedContent = material || responseText;
-
-        // Construir tema con el nuevo documento
-        const newDoc = processedContent.trim().length >= 100 ? {
-          type: 'ai-search', content: theme.name,
-          fileName: `Repositorio: ${theme.name}`,
-          addedAt: new Date().toISOString(),
-          searchResults: { query: theme.name, content: processedContent, processedContent },
-          processedContent,
-        } : null;
-        const themeWithDoc = newDoc
-          ? { ...theme, documents: [...(theme.documents || []), newDoc] }
-          : theme;
-
-        setGenerationPercent(80);
-
-        if (preguntas?.length) {
-          // Preguntas extraídas del combined response — guardar doc + preguntas juntos
-          const saved = handleRawQuestionsReady(preguntas, themeWithDoc);
-          if (!saved) onUpdate(themeWithDoc);  // guardar doc aunque no haya preguntas
-          setGenerationProgress(`✅ ${preguntas.length} preguntas guardadas`);
-          setGenerationPercent(100);
-          setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0);
-        } else {
-          // Fallback: segunda llamada solo para preguntas con el material generado
-          setGenerationProgress('🤖 Generando preguntas a partir del material...');
-          setGenerationPercent(85);
-          const existingTexts = (Array.isArray(themeWithDoc.questions) ? themeWithDoc.questions : []).map(q => q.text.toLowerCase().trim());
-          const { newQuestions, duplicatesFound } = await callGenerationAPI(processedContent, existingTexts);
-          if (newQuestions.length === 0) {
-            onUpdate(themeWithDoc);  // al menos guardar el documento
-            throw new Error('No se generaron preguntas válidas. Intenta de nuevo.');
-          }
-          onUpdate({ ...themeWithDoc, questions: [...(themeWithDoc.questions || []), ...newQuestions] });
-          setGenerationProgress(`✅ ${newQuestions.length} preguntas guardadas`);
-          setGenerationPercent(100);
-          if (duplicatesFound > 0 && showToast) showToast(`${duplicatesFound} duplicadas descartadas`, 'info');
-          setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0);
-        }
-      } catch (error) {
-        console.error('Error generando material+preguntas:', error);
-        setIsGeneratingQuestions(false);
-        setGenerationProgress('');
-        setGenerationPercent(0);
-        if (showToast) showToast(`❌ ${error.message}`, 'error');
-      }
-      return;
-    }
-    setIsGeneratingQuestions(true);
-    setGenerationProgress('📚 Recopilando contenido...');
-    setGenerationPercent(10);
-    try {
-      let documentContents = buildDocumentContents(docs);
-      if (documentContents.trim().length < 100 && docs.length > 0) {
-        setGenerationProgress('🔄 Repositorio insuficiente, regenerando...');
-        setGenerationPercent(15);
-        try {
-          const token = await authHelpers.getAccessToken();
-          const repoResp = await fetch('/api/generate-gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-            body: JSON.stringify({ prompt: OPTIMIZED_AUTO_GENERATE_PROMPT(theme.name), maxTokens: 8000, callType: 'repo' }),
-          });
-          if (repoResp.ok) {
-            const repoData = await repoResp.json();
-            if (Array.isArray(repoData.content)) {
-              let repoText = '';
-              for (const block of repoData.content) { if (block.type === 'text') repoText += block.text; }
-              if (repoText.trim().length > 100) {
-                const fixedDoc = {
-                  type: 'ai-search', content: theme.name,
-                  fileName: `Repositorio: ${theme.name}`,
-                  processedContent: repoText,
-                  searchResults: { query: theme.name, content: repoText, processedContent: repoText },
-                  addedAt: new Date().toISOString(),
-                };
-                onUpdate({ ...theme, documents: [fixedDoc, ...(Array.isArray(docs) ? docs : []).filter(d => d.processedContent?.trim().length > 100)] });
-                documentContents = repoText;
-              }
-            }
-          }
-        } catch { /* fall through */ }
-      }
-      if (documentContents.trim().length < 100) {
-        const docInfo = docs.map(d => `[${d.type}:pc=${d.processedContent?.length ?? 0}]`).join(', ');
-        throw new Error(`Sin contenido (${docs.length} doc${docs.length !== 1 ? 's' : ''}: ${docInfo}). Regenera el repositorio.`);
-      }
-      setGenerationProgress(`🤖 Generando ${QUESTIONS_PER_BATCH} preguntas...`);
-      setGenerationPercent(30);
-      const existingTexts = (Array.isArray(theme.questions) ? theme.questions : []).map(q => q.text.toLowerCase().trim());
-      const { newQuestions, duplicatesFound } = await callGenerationAPI(documentContents, existingTexts);
-      if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas eran duplicadas. Intenta de nuevo.');
-      onUpdate({ ...theme, questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...newQuestions] });
-      setGenerationProgress(`✅ ${newQuestions.length} preguntas guardadas`);
-      setGenerationPercent(100);
-      if (showToast) showToast(`✅ ${newQuestions.length} pregunta${newQuestions.length !== 1 ? 's' : ''} generada${newQuestions.length !== 1 ? 's' : ''}`, 'success');
-      if (duplicatesFound > 0 && showToast) showToast(`${duplicatesFound} duplicadas descartadas`, 'info');
-      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 600);
-    } catch (error) {
-      console.error('Error generando preguntas:', error);
-      setIsGeneratingQuestions(false);
-      setGenerationProgress('');
-      setGenerationPercent(0);
-      let errorMsg = error.message;
-      if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
-      else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta de nuevo.';
-      if (showToast) showToast(`❌ ${errorMsg}`, 'error');
-    }
-  };
-
-  // ─── Confirmar / descartar preguntas pendientes ──────────
-  const confirmPendingQuestions = (selectedIndices) => {
-    const toSave = selectedIndices !== null
-      ? pendingQuestions.filter((_, i) => selectedIndices.has(i))
-      : pendingQuestions;
-    onUpdate({
-      ...theme,
-      questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...toSave],
-      lastGenerated: new Date().toISOString(),
-    });
-    if (showToast) showToast(`✅ ${toSave.length} pregunta${toSave.length !== 1 ? 's' : ''} guardada${toSave.length !== 1 ? 's' : ''}`, 'success');
-    setPendingQuestions(null);
-    setPendingDuplicates(0);
-  };
-
-  const discardPendingQuestions = () => {
-    setPendingQuestions(null);
-    setPendingDuplicates(0);
-    if (showToast) showToast('Preguntas descartadas', 'info');
   };
 
   // ─── Preguntas — borrado ──────────────────────────────────
@@ -323,45 +107,50 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      setIsGeneratingQuestions(true);
-      setGenerationProgress('📥 Leyendo archivo...');
-      setGenerationPercent(10);
+      setIsImporting(true);
+      setImportProgress('📥 Leyendo archivo...');
+      setImportPercent(10);
       let questions;
       if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        setGenerationProgress('📊 Procesando Excel...');
-        setGenerationPercent(30);
+        setImportProgress('📊 Procesando Excel...');
+        setImportPercent(30);
         questions = await parseExcelQuestions(file);
       } else if (file.name.endsWith('.txt')) {
-        setGenerationProgress('📄 Procesando texto...');
-        setGenerationPercent(30);
+        setImportProgress('📄 Procesando texto...');
+        setImportPercent(30);
         const text = await file.text();
         questions = await parsePDFQuestions(text);
       } else {
         throw new Error('Formato no soportado. Usa .xlsx o .txt');
       }
       if (!questions || questions.length === 0) throw new Error('No se encontraron preguntas válidas en el archivo');
-      setGenerationProgress('✓ Validando preguntas...');
-      setGenerationPercent(70);
+      setImportProgress('✓ Validando preguntas...');
+      setImportPercent(70);
       const validQuestions = questions.filter(q => q.text && q.text.length > 10 && Array.isArray(q.options) && q.options.length === 3 && q.correct >= 0 && q.correct <= 2);
       if (validQuestions.length === 0) throw new Error('Ninguna pregunta pasó la validación. Revisa el formato.');
       if (validQuestions.length < questions.length && showToast) {
         showToast(`⚠️ ${questions.length - validQuestions.length} preguntas con formato incorrecto`, 'warning');
       }
-      setGenerationProgress('💾 Guardando preguntas...');
-      setGenerationPercent(90);
+      setImportProgress('💾 Guardando preguntas...');
+      setImportPercent(90);
       onUpdate({ ...theme, questions: [...(theme.questions || []), ...validQuestions] });
-      setGenerationProgress(`✅ ${validQuestions.length} preguntas importadas`);
-      setGenerationPercent(100);
+      setImportProgress(`✅ ${validQuestions.length} preguntas importadas`);
+      setImportPercent(100);
       if (showToast) showToast(`✅ ${validQuestions.length} pregunta${validQuestions.length > 1 ? 's' : ''} importada${validQuestions.length > 1 ? 's' : ''} exitosamente`, 'success');
-      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 2000);
+      setTimeout(() => { setIsImporting(false); setImportProgress(''); setImportPercent(0); }, 2000);
     } catch (error) {
       console.error('Error importando preguntas:', error);
-      setGenerationProgress(`❌ Error: ${error.message}`);
+      setImportProgress(`❌ Error: ${error.message}`);
       if (showToast) showToast(`❌ Error: ${error.message}`, 'error');
-      setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 3000);
+      setTimeout(() => { setIsImporting(false); setImportProgress(''); setImportPercent(0); }, 3000);
     }
     e.target.value = '';
   };
+
+  // Combinar estados de progreso: IA tiene prioridad sobre importación
+  const isGeneratingQuestions = qGen.isGeneratingQuestions || isImporting;
+  const qGenerationProgress = qGen.isGeneratingQuestions ? qGen.qGenerationProgress : importProgress;
+  const qGenerationPercent = qGen.isGeneratingQuestions ? qGen.qGenerationPercent : importPercent;
 
   return {
     // ── Documentos (desde useDocumentManager) ───────────────
@@ -377,15 +166,17 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     selectMode, setSelectMode,
     newQuestion, setNewQuestion,
     // Progress de generación de preguntas (separado del de docs)
-    qGenerationProgress: generationProgress,
-    qGenerationPercent: generationPercent,
-    // Preview
-    pendingQuestions, pendingDuplicates,
-    confirmPendingQuestions, discardPendingQuestions,
+    qGenerationProgress,
+    qGenerationPercent,
+    // Preview (desde useQuestionGeneration)
+    pendingQuestions: qGen.pendingQuestions,
+    pendingDuplicates: qGen.pendingDuplicates,
+    confirmPendingQuestions: qGen.confirmPendingQuestions,
+    discardPendingQuestions: qGen.discardPendingQuestions,
     // Confirmaciones
     deleteQuestionsConfirm,
     // Handlers
-    generateQuestionsFromDocuments,
+    generateQuestionsFromDocuments: qGen.generateQuestionsFromDocuments,
     handleDeleteSelected, handleDeleteAll, confirmDeleteQuestions,
     handleEditQuestion,
     handleManualQuestionAdd, handleImportFile,

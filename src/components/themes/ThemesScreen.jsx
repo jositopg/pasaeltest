@@ -9,6 +9,261 @@ import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../supabaseClient';
 
+// ─── ThemeListItem ────────────────────────────────────────────────────────────
+function ThemeListItem({
+  theme, selectionMode, repoCleanMode, isClonedTest,
+  isEditing, editingName, setEditingName,
+  isSelected, isRepoCleanSelected, estimated, generatingQuestions,
+  onCardClick, onToggleSelection, onToggleRepoClean, onGenerate,
+  onEditStart, onSaveName, onCancelEdit, onResetName,
+}) {
+  const { dm, cx } = useTheme();
+  const questionCount = theme.questions?.length || 0;
+  const coveragePct = estimated ? Math.min(100, Math.round((questionCount / estimated) * 100)) : null;
+  const progressPercent = estimated
+    ? Math.min((questionCount / estimated) * 100, 100)
+    : Math.min((questionCount / 50) * 100, 100);
+  const hasDocuments = theme.documents?.length > 0;
+  const isDefaultName = theme.name === `Tema ${theme.number}`;
+
+  return (
+    <div
+      onClick={onCardClick}
+      className={`rounded-xl p-4 cursor-pointer transition-all active:scale-[0.98] ${
+        dm
+          ? `bg-white/5 border ${isRepoCleanSelected ? 'border-red-500/50 bg-red-500/10' : isSelected ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 hover:bg-white/10'}`
+          : `bg-white border ${isRepoCleanSelected ? 'border-red-400 bg-red-50' : isSelected ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} shadow-sm`
+      }`}
+    >
+      <div className="flex items-start mb-3 gap-2">
+        {selectionMode && (
+          <div className="pt-0.5 shrink-0">
+            <input type="checkbox" checked={isSelected}
+              onChange={onToggleSelection}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 accent-blue-500 cursor-pointer" />
+          </div>
+        )}
+        {repoCleanMode && (
+          <div className="pt-0.5 shrink-0">
+            <input type="checkbox" checked={isRepoCleanSelected}
+              disabled={!hasDocuments}
+              onChange={() => hasDocuments && onToggleRepoClean()}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-4 h-4 cursor-pointer ${hasDocuments ? 'accent-red-500' : 'opacity-30'}`} />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <h3 className={`font-semibold text-sm sm:text-base ${cx.heading}`}>
+            Tema {theme.number}
+          </h3>
+          {isEditing ? (
+            <input
+              autoFocus
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSaveName(editingName);
+                if (e.key === 'Escape') onCancelEdit();
+                e.stopPropagation();
+              }}
+              onBlur={() => onSaveName(editingName)}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full mt-1 text-xs sm:text-sm rounded-lg px-2 py-1 border border-blue-500/50 outline-none ${
+                dm ? 'bg-white/10 text-white' : 'bg-blue-50 text-slate-800'
+              }`}
+            />
+          ) : (
+            <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${cx.body}`}>
+              {theme.name}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-start gap-1 shrink-0">
+          {!isClonedTest && !selectionMode && !isEditing && !isDefaultName && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onGenerate(); }}
+              disabled={generatingQuestions[theme.number] === 'loading'}
+              title="Generar preguntas con IA"
+              className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
+                generatingQuestions[theme.number] === 'loading'
+                  ? 'text-green-400 cursor-wait'
+                  : generatingQuestions[theme.number] === 'done'
+                    ? 'text-green-400'
+                    : dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'
+              }`}
+            >
+              {generatingQuestions[theme.number] === 'loading'
+                ? <span className="inline-block w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                : generatingQuestions[theme.number] === 'done' ? '✓' : '⚡'}
+            </button>
+          )}
+          {!selectionMode && !isEditing && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEditStart(); }}
+              title="Renombrar tema"
+              className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
+                dm ? 'text-slate-400 hover:bg-blue-500/15 hover:text-blue-300' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'
+              }`}
+            >
+              ✏
+            </button>
+          )}
+          {!selectionMode && !isEditing && !isDefaultName && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onResetName(); }}
+              title="Resetear a nombre por defecto"
+              className={`p-1.5 rounded-lg text-sm leading-none transition-colors ${
+                dm ? 'text-slate-400 hover:bg-red-500/15 hover:text-red-300' : 'text-slate-500 hover:bg-red-50 hover:text-red-500'
+              }`}
+            >
+              ↺
+            </button>
+          )}
+          <div className="flex flex-col gap-1.5 items-end ml-1">
+            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
+              (coveragePct ?? (questionCount >= 50 ? 100 : questionCount >= 25 ? 50 : questionCount > 0 ? 20 : 0)) >= 80
+                ? dm ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+                : (coveragePct ?? 0) >= 50
+                  ? dm ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+                  : questionCount > 0
+                    ? dm ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'
+                    : dm ? 'bg-gray-500/20 text-gray-400' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {estimated ? `${questionCount}/${estimated}` : `${questionCount} preg.`}
+              {coveragePct !== null && ` (${coveragePct}%)`}
+            </span>
+            {hasDocuments && (
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                dm ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+              }`}>
+                {theme.documents.length} doc{theme.documents.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            progressPercent >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' :
+            progressPercent >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+            progressPercent > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-400' :
+            dm ? 'bg-gray-600' : 'bg-slate-200'
+          }`}
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
+      {questionCount === 0 && !hasDocuments && (
+        <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-500'}`}>Sin contenido añadido</p>
+      )}
+    </div>
+  );
+}
+
+// ─── ShareModal ───────────────────────────────────────────────────────────────
+function ShareModal({ shareModal, shareForm, setShareForm, shareError, shareSubmitting, onClose, onPublish, onCopyLink }) {
+  const { dm } = useTheme();
+  if (!shareModal) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className={`w-full max-w-sm rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh] border ${dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
+
+        {shareModal.loading && (
+          <div className="flex justify-center py-6">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {shareModal.error && (
+          <>
+            <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Error al acceder</h3>
+            <p className="text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2">{shareModal.error}</p>
+            <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Si el error menciona columnas de base de datos, ejecuta las migraciones en el dashboard de Supabase.</p>
+            <button onClick={onClose} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
+              Cerrar
+            </button>
+          </>
+        )}
+
+        {shareModal.published && (
+          <>
+            <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Plan ya publicado ✅</h3>
+            <p className={`text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+              Slug: <code className={`text-green-500 text-xs px-1.5 rounded ${dm ? 'bg-white/5' : 'bg-slate-100'}`}>{shareModal.slug}</code>
+            </p>
+            <div className={`rounded-xl px-3 py-2 text-xs break-all ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+              {window.location.origin}/?join={shareModal.slug}
+            </div>
+            <button
+              onClick={() => onCopyLink(shareModal.slug)}
+              className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
+            >
+              🔗 Copiar enlace
+            </button>
+            <button onClick={onClose} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
+              Cerrar
+            </button>
+          </>
+        )}
+
+        {shareModal.form && (
+          <>
+            <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Compartir como plan oficial</h3>
+
+            <div>
+              <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Código del enlace (slug)</label>
+              <input
+                type="text"
+                value={shareForm.slug}
+                onChange={e => setShareForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                placeholder="guardia-civil-2025"
+                className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
+              />
+              {shareForm.slug && (
+                <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>{window.location.origin}/?join={shareForm.slug}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Descripción (opcional)</label>
+              <textarea
+                value={shareForm.description}
+                onChange={e => setShareForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Descripción breve..."
+                rows={2}
+                className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none resize-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
+              />
+            </div>
+
+            {shareError && <p className="text-red-400 text-xs">{shareError}</p>}
+
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className={`flex-1 py-3 rounded-xl text-sm font-medium ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={onPublish}
+                disabled={shareSubmitting}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+              >
+                {shareSubmitting ? 'Publicando...' : 'Publicar y copiar'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ThemesScreen({
   themes, tests = [], activeTestId,
   onUpdateTheme, onAddTheme, onAddThemesBatch, onCreateTest, onSwitchTest, onRenameTest, onDeleteTest,
@@ -568,176 +823,39 @@ function ThemesScreen({
         ) : (
         <div className="space-y-2">
           {filteredThemes.map(theme => {
-            const questionCount = theme.questions?.length || 0;
-            const estimated = themeEstimates[theme.number] || null;
-            const coveragePct = estimated ? Math.min(100, Math.round((questionCount / estimated) * 100)) : null;
-            const progressPercent = estimated
-              ? Math.min((questionCount / estimated) * 100, 100)
-              : Math.min((questionCount / 50) * 100, 100);
-            const hasDocuments = theme.documents?.length > 0;
             const isEditing = editingThemeNumber === theme.number;
-            const isSelected = selectedNumbers.has(theme.number);
-            const isRepoCleanSelected = repoCleanSelected.has(theme.number);
-            const isDefaultName = theme.name === `Tema ${theme.number}`;
-
+            const hasDocuments = theme.documents?.length > 0;
             return (
-              <div
+              <ThemeListItem
                 key={theme.number}
-                onClick={() => {
+                theme={theme}
+                selectionMode={selectionMode}
+                repoCleanMode={repoCleanMode}
+                isClonedTest={isClonedTest}
+                isEditing={isEditing}
+                editingName={editingName}
+                setEditingName={setEditingName}
+                isSelected={selectedNumbers.has(theme.number)}
+                isRepoCleanSelected={repoCleanSelected.has(theme.number)}
+                estimated={themeEstimates[theme.number] || null}
+                generatingQuestions={generatingQuestions}
+                onCardClick={() => {
                   if (selectionMode) {
-                    setSelectedNumbers(prev => {
-                      const next = new Set(prev);
-                      if (next.has(theme.number)) next.delete(theme.number);
-                      else next.add(theme.number);
-                      return next;
-                    });
+                    setSelectedNumbers(prev => { const next = new Set(prev); if (next.has(theme.number)) next.delete(theme.number); else next.add(theme.number); return next; });
                   } else if (repoCleanMode) {
                     if (hasDocuments) toggleRepoClean(theme.number);
                   } else if (!isEditing) {
                     setSelectedTheme(theme);
                   }
                 }}
-                className={`rounded-xl p-4 cursor-pointer transition-all active:scale-[0.98] ${
-                  dm
-                    ? `bg-white/5 border ${isRepoCleanSelected ? 'border-red-500/50 bg-red-500/10' : isSelected ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 hover:bg-white/10'}`
-                    : `bg-white border ${isRepoCleanSelected ? 'border-red-400 bg-red-50' : isSelected ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} shadow-sm`
-                }`}
-              >
-                <div className="flex items-start mb-3 gap-2">
-                  {selectionMode && (
-                    <div className="pt-0.5 shrink-0">
-                      <input type="checkbox" checked={isSelected}
-                        onChange={(e) => toggleSelection(e, theme.number)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 accent-blue-500 cursor-pointer" />
-                    </div>
-                  )}
-                  {repoCleanMode && (
-                    <div className="pt-0.5 shrink-0">
-                      <input type="checkbox" checked={isRepoCleanSelected}
-                        disabled={!hasDocuments}
-                        onChange={() => hasDocuments && toggleRepoClean(theme.number)}
-                        onClick={(e) => e.stopPropagation()}
-                        className={`w-4 h-4 cursor-pointer ${hasDocuments ? 'accent-red-500' : 'opacity-30'}`} />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`font-semibold text-sm sm:text-base ${cx.heading}`}>
-                      Tema {theme.number}
-                    </h3>
-                    {isEditing ? (
-                      <input
-                        autoFocus
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveName(theme, editingName);
-                          if (e.key === 'Escape') setEditingThemeNumber(null);
-                          e.stopPropagation();
-                        }}
-                        onBlur={() => handleSaveName(theme, editingName)}
-                        onClick={(e) => e.stopPropagation()}
-                        className={`w-full mt-1 text-xs sm:text-sm rounded-lg px-2 py-1 border border-blue-500/50 outline-none ${
-                          dm ? 'bg-white/10 text-white' : 'bg-blue-50 text-slate-800'
-                        }`}
-                      />
-                    ) : (
-                      <p className={`text-xs sm:text-sm mt-1 line-clamp-1 ${cx.body}`}>
-                        {theme.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-start gap-1 shrink-0">
-                    {/* Botón ⚡ generar preguntas — oculto en planes clonados */}
-                    {!isClonedTest && !selectionMode && !isEditing && !isDefaultName && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); generateThemeInline(theme); }}
-                        disabled={generatingQuestions[theme.number] === 'loading'}
-                        title="Generar preguntas con IA"
-                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
-                          generatingQuestions[theme.number] === 'loading'
-                            ? 'text-green-400 cursor-wait'
-                            : generatingQuestions[theme.number] === 'done'
-                              ? 'text-green-400'
-                              : dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'
-                        }`}
-                      >
-                        {generatingQuestions[theme.number] === 'loading'
-                          ? <span className="inline-block w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
-                          : generatingQuestions[theme.number] === 'done' ? '✓' : '⚡'}
-                      </button>
-                    )}
-                    {!selectionMode && !isEditing && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingThemeNumber(theme.number);
-                          setEditingName(theme.name);
-                        }}
-                        title="Renombrar tema"
-                        className={`p-1.5 rounded-lg text-base leading-none transition-colors ${
-                          dm ? 'text-slate-400 hover:bg-blue-500/15 hover:text-blue-300' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'
-                        }`}
-                      >
-                        ✏
-                      </button>
-                    )}
-                    {!selectionMode && !isEditing && !isDefaultName && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleResetName(theme);
-                        }}
-                        title="Resetear a nombre por defecto"
-                        className={`p-1.5 rounded-lg text-sm leading-none transition-colors ${
-                          dm ? 'text-slate-400 hover:bg-red-500/15 hover:text-red-300' : 'text-slate-500 hover:bg-red-50 hover:text-red-500'
-                        }`}
-                      >
-                        ↺
-                      </button>
-                    )}
-                    <div className="flex flex-col gap-1.5 items-end ml-1">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
-                        (coveragePct ?? (questionCount >= 50 ? 100 : questionCount >= 25 ? 50 : questionCount > 0 ? 20 : 0)) >= 80
-                          ? dm ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
-                          : (coveragePct ?? 0) >= 50
-                            ? dm ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
-                            : questionCount > 0
-                              ? dm ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'
-                              : dm ? 'bg-gray-500/20 text-gray-400' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {estimated ? `${questionCount}/${estimated}` : `${questionCount} preg.`}
-                        {coveragePct !== null && ` (${coveragePct}%)`}
-                      </span>
-                      {hasDocuments && (
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          dm ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
-                        }`}>
-                          {theme.documents.length} doc{theme.documents.length !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`w-full h-1.5 rounded-full overflow-hidden ${dm ? 'bg-white/10' : 'bg-slate-100'}`}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      progressPercent >= 80 ? 'bg-gradient-to-r from-green-500 to-green-400' :
-                      progressPercent >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
-                      progressPercent > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-400' :
-                      dm ? 'bg-gray-600' : 'bg-slate-200'
-                    }`}
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-
-                {questionCount === 0 && !hasDocuments && (
-                  <p className={`text-xs mt-2 ${dm ? 'text-gray-500' : 'text-slate-500'}`}>Sin contenido añadido</p>
-                )}
-              </div>
+                onToggleSelection={() => setSelectedNumbers(prev => { const next = new Set(prev); if (next.has(theme.number)) next.delete(theme.number); else next.add(theme.number); return next; })}
+                onToggleRepoClean={() => toggleRepoClean(theme.number)}
+                onGenerate={() => generateThemeInline(theme)}
+                onEditStart={() => { setEditingThemeNumber(theme.number); setEditingName(theme.name); }}
+                onSaveName={(name) => handleSaveName(theme, name)}
+                onCancelEdit={() => setEditingThemeNumber(null)}
+                onResetName={() => handleResetName(theme)}
+              />
             );
           })}
         </div>
@@ -802,99 +920,16 @@ function ThemesScreen({
         />
 
         {/* ─── Share Modal (admin) ─────────────────────────────── */}
-        {shareModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className={`w-full max-w-sm rounded-3xl p-6 space-y-4 overflow-y-auto max-h-[90vh] border ${dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
-
-              {shareModal.loading && (
-                <div className="flex justify-center py-6">
-                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-
-              {shareModal.error && (
-                <>
-                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Error al acceder</h3>
-                  <p className="text-red-400 text-sm bg-red-500/10 rounded-xl px-3 py-2">{shareModal.error}</p>
-                  <p className={`text-xs ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Si el error menciona columnas de base de datos, ejecuta las migraciones en el dashboard de Supabase.</p>
-                  <button onClick={() => setShareModal(null)} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-                    Cerrar
-                  </button>
-                </>
-              )}
-
-              {shareModal.published && (
-                <>
-                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Plan ya publicado ✅</h3>
-                  <p className={`text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-                    Slug: <code className={`text-green-500 text-xs px-1.5 rounded ${dm ? 'bg-white/5' : 'bg-slate-100'}`}>{shareModal.slug}</code>
-                  </p>
-                  <div className={`rounded-xl px-3 py-2 text-xs break-all ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                    {window.location.origin}/?join={shareModal.slug}
-                  </div>
-                  <button
-                    onClick={() => copyShareLink(shareModal.slug)}
-                    className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
-                  >
-                    🔗 Copiar enlace
-                  </button>
-                  <button onClick={() => setShareModal(null)} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
-                    Cerrar
-                  </button>
-                </>
-              )}
-
-              {shareModal.form && (
-                <>
-                  <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Compartir como plan oficial</h3>
-
-                  <div>
-                    <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Código del enlace (slug)</label>
-                    <input
-                      type="text"
-                      value={shareForm.slug}
-                      onChange={e => setShareForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-                      placeholder="guardia-civil-2025"
-                      className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
-                    />
-                    {shareForm.slug && (
-                      <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>{window.location.origin}/?join={shareForm.slug}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className={`text-xs mb-1 block ${dm ? 'text-gray-400' : 'text-slate-500'}`}>Descripción (opcional)</label>
-                    <textarea
-                      value={shareForm.description}
-                      onChange={e => setShareForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Descripción breve..."
-                      rows={2}
-                      className={`w-full rounded-xl px-3 py-2 text-sm focus:outline-none resize-none border ${dm ? 'bg-white/5 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
-                    />
-                  </div>
-
-                  {shareError && <p className="text-red-400 text-xs">{shareError}</p>}
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => { setShareModal(null); setShareError(''); }}
-                      className={`flex-1 py-3 rounded-xl text-sm font-medium ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-100 text-slate-600'}`}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handlePublishFromThemes}
-                      disabled={shareSubmitting}
-                      className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
-                    >
-                      {shareSubmitting ? 'Publicando...' : 'Publicar y copiar'}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        <ShareModal
+          shareModal={shareModal}
+          shareForm={shareForm}
+          setShareForm={setShareForm}
+          shareError={shareError}
+          shareSubmitting={shareSubmitting}
+          onClose={() => { setShareModal(null); setShareError(''); }}
+          onPublish={handlePublishFromThemes}
+          onCopyLink={copyShareLink}
+        />
 
         </div>
       </div>

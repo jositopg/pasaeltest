@@ -6,6 +6,7 @@ import useToast from './hooks/useToast';
 import useUserData from './hooks/useUserData';
 import useGenerationQueue from './hooks/useGenerationQueue';
 import useExamLifecycle from './hooks/useExamLifecycle';
+import useSRSNotifications from './hooks/useSRSNotifications';
 
 // Context
 import { ThemeProvider } from './context/ThemeContext';
@@ -69,23 +70,10 @@ export default function App() {
   const srsStats = useMemo(() => getSRSStats(userData.themes), [userData.themes]);
 
   // ─── SRS notifications ─────────────────────────────────────
-  useEffect(() => {
-    if (!userData.profile?.notifications) return;
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-    const due = srsStats.dueQuestions?.length;
-    if (!due) return;
-    const lastRaw = localStorage.getItem('lastSRSNotification');
-    const last = lastRaw ? parseInt(lastRaw) : 0;
-    if (Date.now() - last < 4 * 60 * 60 * 1000) return;
-    try {
-      new Notification('PasaElTest — Repaso pendiente 🧠', {
-        body: `Tienes ${due} pregunta${due !== 1 ? 's' : ''} por repasar hoy.`,
-        icon: '/pwa-192x192.png',
-        tag: 'srs-reminder',
-      });
-      localStorage.setItem('lastSRSNotification', Date.now().toString());
-    } catch {}
-  }, [srsStats.dueQuestions?.length, userData.profile?.notifications]);
+  useSRSNotifications({
+    dueCount: srsStats.dueQuestions?.length,
+    notificationsEnabled: userData.profile?.notifications,
+  });
 
   // ─── Current user with role ─────────────────────────────────
   const currentUserWithRole = auth.currentUser
