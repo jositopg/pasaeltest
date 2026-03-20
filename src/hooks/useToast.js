@@ -13,7 +13,7 @@ const useToast = () => {
   }, []);
 
   const showToast = useCallback((message, type = 'info') => {
-    const id = Date.now() + Math.random();
+    const id = crypto.randomUUID();
     setToasts(prev => [...prev, { id, message, type, removing: false }]);
     timers.current[id] = setTimeout(() => removeToast(id), 3000);
   }, [removeToast]);

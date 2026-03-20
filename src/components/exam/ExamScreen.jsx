@@ -80,6 +80,8 @@ function buildQuestions(config, themes) {
     .filter(t => config.selectedThemes.includes(t.number))
     .flatMap(t => (t.questions || []).map(q => ({ ...q, themeNumber: t.number })));
 
+  if (allQ.length === 0) return [];
+
   const failedRatio = config.failedRatio || 0;
   const numQ = config.numQuestions;
 
@@ -552,6 +554,16 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
   const userAnswer = answers[current];
   const isAnswered = answeredQuestions.has(current);
   const timerWarning = timeLeft !== null && timeLeft <= 60;
+
+  if (questions.length === 0) {
+    return (
+      <div className={`min-h-full ${cx.screen} flex flex-col items-center justify-center gap-4 p-8 text-center`}>
+        <p className={`text-xl font-semibold ${cx.heading}`}>No hay preguntas disponibles</p>
+        <p className={cx.muted}>Los temas seleccionados no tienen preguntas. Genera preguntas antes de iniciar el examen.</p>
+        <button onClick={() => onNavigate('home')} className="mt-2 px-5 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Volver al inicio</button>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-full ${cx.screen} p-3 sm:p-4 transition-colors`} style={{ paddingTop: 'var(--pt-header)', paddingBottom: 'var(--pb-screen)' }}>

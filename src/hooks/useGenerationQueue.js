@@ -208,7 +208,6 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
   return {
     generatingQuestions,
     generatingAll,
-    isRunning: isRunningRef.current,
     queueProgress,
     generateThemeInline,
     generateQuestionsInline,

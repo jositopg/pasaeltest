@@ -293,8 +293,8 @@ const useUserData = (isAuthenticated, currentUser) => {
         return;
       }
 
-      // Get old theme for comparison
-      const oldTheme = themes.find(t => t.number === theme.number) || {};
+      // Usar previousTheme (capturado antes del update optimista) para comparación correcta
+      const oldTheme = previousTheme || {};
       const oldQuestions = oldTheme.questions || [];
       const newQuestions = theme.questions || [];
       const oldDocs = oldTheme.documents || [];

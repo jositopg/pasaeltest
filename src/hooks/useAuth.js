@@ -80,7 +80,7 @@ const useAuth = () => {
     // Limpiar estado local inmediatamente — la UI responde sin esperar la red
     setCurrentUser(null);
     setIsAuthenticated(false);
-    authHelpers.signOut().catch(() => {});
+    authHelpers.signOut().catch((err) => console.error('signOut error:', err));
   };
 
   const handleOnboardingComplete = (newProfile, updatedUser) => {

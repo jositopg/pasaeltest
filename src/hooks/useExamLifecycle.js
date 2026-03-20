@@ -37,7 +37,7 @@ export default function useExamLifecycle({ saveExamResult, setScreen }) {
                 explanation: question.explanation,
               },
             }),
-          }).catch(() => {});
+          }).catch((err) => console.error('Error reporting question:', err));
         });
       }
     }
