@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { parseExcelQuestions, parsePDFQuestions } from '../utils/questionImporter';
 import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
@@ -51,7 +51,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   useEffect(() => { setEditingName(theme.name); }, [theme.name]);
 
   // ─── Cobertura (sin API) ──────────────────────────────────
-  const estimatedTotal = (() => {
+  const estimatedTotal = useMemo(() => {
     if (!theme.documents?.length) return null;
     let content = '';
     for (const doc of theme.documents) {
@@ -64,7 +64,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
       const { report } = analyzeDocument(content.substring(0, 60000));
       return report.totalQuestions;
     } catch { return null; }
-  })();
+  }, [theme.documents]);
   const questionCount = theme.questions?.length || 0;
   const coveragePercent = estimatedTotal ? Math.min(100, Math.round((questionCount / estimatedTotal) * 100)) : null;
 

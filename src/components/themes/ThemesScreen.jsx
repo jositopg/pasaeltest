@@ -156,10 +156,12 @@ function ThemesScreen({
     }
   }, [themes]);
 
-  const filteredThemes = themes.filter(t =>
-    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.number.toString().includes(searchTerm)
-  );
+  const filteredThemes = useMemo(() =>
+    themes.filter(t =>
+      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.number.toString().includes(searchTerm)
+    ),
+  [themes, searchTerm]);
 
   const handleBulkImport = async (bulkText) => {
     const lines = bulkText.trim().split('\n').filter(l => l.trim());

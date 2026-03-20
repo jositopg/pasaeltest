@@ -75,6 +75,15 @@ function hashConfig(config) {
   });
 }
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function buildQuestions(config, themes) {
   const allQ = themes
     .filter(t => config.selectedThemes.includes(t.number))
@@ -86,24 +95,19 @@ function buildQuestions(config, themes) {
   const numQ = config.numQuestions;
 
   if (failedRatio === 0) {
-    return allQ.sort(() => Math.random() - 0.5).slice(0, Math.min(numQ, allQ.length));
+    return shuffle(allQ).slice(0, Math.min(numQ, allQ.length));
   }
 
-  const failedPool = allQ
-    .filter(q => q.errors_count > 0)
-    .sort(() => Math.random() - 0.5);
+  const failedPool = shuffle(allQ.filter(q => q.errors_count > 0));
 
   const targetFailed = Math.min(Math.round((failedRatio / 100) * numQ), failedPool.length);
   const pickedFailed = failedPool.slice(0, targetFailed);
   const usedIds = new Set(pickedFailed.map(q => q.id));
 
-  const regularPool = allQ
-    .filter(q => !usedIds.has(q.id))
-    .sort(() => Math.random() - 0.5)
+  const regularPool = shuffle(allQ.filter(q => !usedIds.has(q.id)))
     .slice(0, numQ - pickedFailed.length);
 
-  return [...pickedFailed, ...regularPool]
-    .sort(() => Math.random() - 0.5)
+  return shuffle([...pickedFailed, ...regularPool])
     .slice(0, Math.min(numQ, allQ.length));
 }
 

@@ -145,6 +145,25 @@ export const dbHelpers = {
     return { data, error }
   },
 
+  async batchUpdateSRS(questions) {
+    if (!questions?.length) return { error: null };
+    const { error } = await supabase
+      .from('questions')
+      .upsert(
+        questions.map(q => ({
+          id: q.id,
+          stability: q.stability,
+          srs_difficulty: q.srs_difficulty,
+          next_review: q.next_review,
+          last_review: q.last_review,
+          attempts: q.attempts,
+          errors_count: q.errors_count,
+        })),
+        { onConflict: 'id' }
+      );
+    return { error };
+  },
+
   async deleteQuestions(questionIds) {
     const { error } = await supabase
       .from('questions')

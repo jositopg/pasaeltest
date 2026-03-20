@@ -338,17 +338,10 @@ const useUserData = (isAuthenticated, currentUser, showToast) => {
         if (error) console.error('Error deleting questions:', error);
       }
 
-      // Update SRS data
-      for (const q of srsUpdates) {
-        const { error } = await dbHelpers.updateQuestion(q.id, {
-          stability: q.stability,
-          srs_difficulty: q.srs_difficulty,
-          next_review: q.next_review,
-          last_review: q.last_review,
-          attempts: q.attempts,
-          errors_count: q.errors_count,
-        });
-        if (error) console.error('Error updating SRS for question:', q.id, error);
+      // Update SRS data — 1 llamada batch en lugar de N llamadas secuenciales
+      if (srsUpdates.length > 0) {
+        const { error } = await dbHelpers.batchUpdateSRS(srsUpdates);
+        if (error) console.error('Error updating SRS batch:', error);
       }
 
       // 3. Documents persistence
