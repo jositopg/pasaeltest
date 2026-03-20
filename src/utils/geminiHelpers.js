@@ -90,7 +90,10 @@ export function parseCombinedResponse(text) {
     const raw = questionsMatch[1].trim().replace(/```json\s*/g, '').replace(/```\s*/g, '');
     const arrMatch = raw.match(/\[[\s\S]*\]/);
     if (arrMatch) {
-      try { preguntas = JSON.parse(arrMatch[0]); } catch { /* fallback: no questions extracted */ }
+      try { preguntas = JSON.parse(arrMatch[0]); }
+      catch {
+        try { preguntas = JSON.parse(jsonrepair(arrMatch[0])); } catch { /* no questions extracted */ }
+      }
     }
   }
   return { material, preguntas };

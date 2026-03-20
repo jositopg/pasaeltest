@@ -56,6 +56,29 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         newQuestions = deduplicateQuestions(raw, existingTexts);
       }
 
+      // Fallback: si no se parsearon preguntas, hacer segunda llamada con el material como contexto
+      if (newQuestions.length === 0) {
+        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent.substring(0, 15000), '');
+        const fallbackToken = await authHelpers.getAccessToken();
+        const fallbackRes = await fetch('/api/generate-gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(fallbackToken && { 'Authorization': `Bearer ${fallbackToken}` }) },
+          body: JSON.stringify({ prompt: fallbackPrompt, maxTokens: 8000, callType: 'questions' }),
+        });
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          if (Array.isArray(fallbackData.content)) {
+            let fallbackText = '';
+            for (const block of fallbackData.content) { if (block.type === 'text') fallbackText += block.text; }
+            const fallbackParsed = parseQuestionsResponse(fallbackText);
+            if (fallbackParsed.length) {
+              const raw = mapRawQuestions(fallbackParsed, theme.number);
+              newQuestions = deduplicateQuestions(raw, existingTexts);
+            }
+          }
+        }
+      }
+
       onUpdateTheme({
         ...latestTheme,
         documents: [...(latestTheme.documents || []), newDoc],
@@ -67,7 +90,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       if (newQuestions.length > 0) {
         showToast?.(`✅ ${newQuestions.length} preguntas generadas para "${theme.name}"`, 'success');
       } else {
-        showToast?.(`✅ Material generado para "${theme.name}"`, 'success');
+        showToast?.(`✅ Material generado para "${theme.name}" (sin preguntas)`, 'warning');
       }
       return null;
     } catch (e) {
