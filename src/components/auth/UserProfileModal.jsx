@@ -94,7 +94,7 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
                     type="text"
                     value={formData.oposicion}
                     onChange={(e) => setFormData({ ...formData, oposicion: e.target.value })}
-                    placeholder="Ej: Guardia Civil, Selectividad, Medicina..."
+                    placeholder="Ej: Inglés B2, Historia, Anatomía..."
                     className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 outline-none placeholder-gray-600"
                   />
                 ) : (

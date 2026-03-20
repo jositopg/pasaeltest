@@ -1,7 +1,7 @@
 {
   "name": "PasaElTest - Asistente de Exámenes con IA",
   "short_name": "PasaElTest",
-  "description": "Tu asistente inteligente para preparar oposiciones y exámenes con generación de preguntas por IA",
+  "description": "Tu asistente inteligente para estudiar y preparar cualquier examen con generación de preguntas por IA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -83,7 +83,7 @@ Extenso y detallado.`;
  * AHORRO: 72%
  */
 
-export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Eres un experto en preparación de exámenes y oposiciones en España. Genera un repositorio de estudio COMPLETO y EXTENSO sobre el tema: "${themeName}".
+export const OPTIMIZED_AUTO_GENERATE_PROMPT = (themeName) => `Eres un experto en preparación de exámenes. Genera un repositorio de estudio COMPLETO y EXTENSO sobre el tema: "${themeName}".
 
 REQUISITOS OBLIGATORIOS:
 - Mínimo 1500 palabras de contenido real (no contando encabezados)

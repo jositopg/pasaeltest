@@ -32,7 +32,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
   const penaltyOptions = [
     { value: 'none',    label: 'Sin penalización', desc: 'Los fallos no restan.' },
     { value: 'each4',   label: '4 incorrectas quitan 1 acierto', desc: 'Por cada 4 fallos se resta 1 pregunta correcta.' },
-    { value: 'classic', label: '3 incorrectas quitan 1 acierto', desc: 'Por cada 3 fallos se resta 1 pregunta correcta. Sistema clásico de oposiciones.' },
+    { value: 'classic', label: '3 incorrectas quitan 1 acierto', desc: 'Por cada 3 fallos se resta 1 pregunta correcta.' },
     { value: 'each2',   label: '2 incorrectas quitan 1 acierto', desc: 'Por cada 2 fallos se resta 1 pregunta correcta.' },
     { value: 'each1',   label: '1 incorrecta quita 1 acierto',  desc: 'Cada fallo resta 1 pregunta correcta.' },
   ];
@@ -163,7 +163,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
         <div className={cardCls}>
           <label className={labelCls}>Penalización por fallo</label>
           <p className={`text-xs mb-3 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            Las preguntas incorrectas restan de las correctas, igual que en los exámenes oficiales.
+            Las respuestas incorrectas restan aciertos según la opción que elijas.
           </p>
           <div className="grid grid-cols-1 gap-2">
             {penaltyOptions.map(opt => (
