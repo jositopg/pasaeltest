@@ -10,12 +10,16 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTe
   const totalThemes = themes.filter(t => t.questions?.length > 0).length;
 
   const copyShareLink = (test) => {
-    navigator.clipboard.writeText(`${window.location.origin}/?join=${test.invite_slug}`)
+    const url = `${window.location.origin}/?join=${test.invite_slug}`;
+    navigator.clipboard.writeText(url)
       .then(() => {
         setCopiedId(test.id);
         setTimeout(() => setCopiedId(null), 2000);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCopiedId(`err-${test.id}`);
+        setTimeout(() => setCopiedId(null), 2500);
+      });
   };
 
   const handleShare = (test) => {
@@ -102,7 +106,7 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTe
                     }`}
                     title={isPublished ? 'Copiar enlace de invitación' : 'Publicar y compartir'}
                   >
-                    {isCopied ? '✓ Copiado' : isPublished ? '🔗' : 'Compartir'}
+                    {isCopied ? '✓ Copiado' : copiedId === `err-${test.id}` ? '✗ Error' : isPublished ? '🔗' : 'Compartir'}
                   </button>
                   <button
                     onClick={() => { if (!isActive) onSwitchTest(test.id); onNavigate('themes'); }}

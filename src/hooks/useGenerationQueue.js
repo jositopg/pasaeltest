@@ -195,7 +195,6 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
             : prev.errors;
           return { ...prev, done: i + 1, errors };
         });
-        if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1200));
       }
     } finally {
       isRunningRef.current = false;

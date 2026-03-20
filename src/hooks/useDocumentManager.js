@@ -33,6 +33,9 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
       }
       const trimmed = textContent.substring(0, 50000);
       if (trimmed.trim().length < 100) throw new Error('El archivo tiene muy poco contenido de texto');
+      if (textContent.length > 35000) {
+        showToast?.(`Archivo truncado a 35.000 caracteres (era ${Math.round(textContent.length / 1000)}k)`, 'warning');
+      }
       setProgress('💾 Guardando documento...');
       const newDoc = { type: 'pdf', fileName: file.name, content: trimmed.substring(0, 35000), processedContent: trimmed.substring(0, 35000), addedAt: new Date().toISOString() };
       onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
@@ -40,15 +43,15 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
       setTimeout(() => { setIsSearching(false); setProgress(''); setShowAddDoc(false); }, 1500);
     } catch (error) {
       setIsSearching(false); setProgress('');
-      alert(`Error: ${error.message}\n\nSugerencia: Usa "Buscar con IA" para mejores resultados.`);
+      showToast?.(`Error: ${error.message}`, 'error');
     }
   };
 
   const handleAddDocument = async () => {
     if (docType === 'pdf') return;
-    if (!docContent.trim()) { alert('Introduce una URL o contenido'); return; }
+    if (!docContent.trim()) { showToast?.('Introduce una URL o contenido', 'warning'); return; }
     if (docType === 'url') {
-      try { new URL(docContent); } catch { alert('❌ URL inválida. Debe empezar con http:// o https://'); return; }
+      try { new URL(docContent); } catch { showToast?.('URL inválida. Debe empezar con http:// o https://', 'error'); return; }
       setIsSearching(true);
       setProgress('🌐 Obteniendo contenido de la web...');
       setPercent(20);
@@ -72,7 +75,7 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
         setTimeout(() => { setDocContent(''); setShowAddDoc(false); setIsSearching(false); setProgress(''); setPercent(0); }, 1500);
       } catch (error) {
         setIsSearching(false); setProgress(''); setPercent(0);
-        alert(`❌ No se pudo procesar la URL\n\n${error.message}\n\n💡 Alternativas:\n• Usa "Buscar con IA"\n• Copia y pega el texto en "Pegar Texto Directamente"`);
+        showToast?.(`No se pudo procesar la URL: ${error.message}`, 'error');
       }
     } else {
       const newDoc = { type: 'text', content: docContent, processedContent: docContent, addedAt: new Date().toISOString() };

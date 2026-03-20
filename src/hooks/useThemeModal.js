@@ -168,7 +168,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
           if (!saved) onUpdate(themeWithDoc);  // guardar doc aunque no haya preguntas
           setGenerationProgress(`✅ ${preguntas.length} preguntas guardadas`);
           setGenerationPercent(100);
-          setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 600);
+          setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0);
         } else {
           // Fallback: segunda llamada solo para preguntas con el material generado
           setGenerationProgress('🤖 Generando preguntas a partir del material...');
@@ -183,7 +183,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
           setGenerationProgress(`✅ ${newQuestions.length} preguntas guardadas`);
           setGenerationPercent(100);
           if (duplicatesFound > 0 && showToast) showToast(`${duplicatesFound} duplicadas descartadas`, 'info');
-          setTimeout(() => { setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0); }, 600);
+          setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0);
         }
       } catch (error) {
         console.error('Error generando material+preguntas:', error);

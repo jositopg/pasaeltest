@@ -58,7 +58,7 @@ export default function App() {
   // ─── Core hooks ────────────────────────────────────────────
   const { toasts, showToast, removeToast } = useToast();
   const auth = useAuth();
-  const userData = useUserData(auth.isAuthenticated, auth.currentUser);
+  const userData = useUserData(auth.isAuthenticated, auth.currentUser, showToast);
 
   // ─── Generation queue ──────────────────────────────────────
   const themesRef = useRef(userData.themes);

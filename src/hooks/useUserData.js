@@ -8,7 +8,7 @@ const isRealId = (id) => id && UUID_REGEX.test(id);
 /**
  * Hook para gestionar datos del usuario (temas, exámenes, perfil)
  */
-const useUserData = (isAuthenticated, currentUser) => {
+const useUserData = (isAuthenticated, currentUser, showToast) => {
   const [themes, setThemes] = useState([]);
   const [examHistory, setExamHistory] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -152,6 +152,7 @@ const useUserData = (isAuthenticated, currentUser) => {
     } catch (error) {
       console.error('Error loading user data:', error);
       setThemes(createInitialThemes());
+      showToast?.('Error cargando tus datos. Comprueba tu conexión.', 'error');
     }
 
     setLoading(false);
