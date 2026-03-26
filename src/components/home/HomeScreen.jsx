@@ -171,55 +171,54 @@ function StudentHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
           </p>
           <p className={`font-bold text-xl mt-0.5 ${dm ? 'text-slate-100' : 'text-slate-800'}`}
             style={{ fontFamily: 'Sora, system-ui' }}>
-            ¿Tienes un enlace de tu academia?
+            ¿Cómo quieres empezar?
           </p>
         </div>
 
-        {/* UNIRSE CON CÓDIGO */}
-        <div className={`rounded-2xl p-5 space-y-4 animate-fade-in-up stagger-2 ${cx.cardAlt}`}>
-          <div className="text-center">
-            <div className="text-4xl mb-2">🔗</div>
-            <p className={`text-sm font-semibold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>
-              Únete al plan de tu academia
+        {/* CTA crear plan propio — opción principal */}
+        <button
+          onClick={() => onNavigate('exams')}
+          className="w-full rounded-2xl overflow-hidden transition-all active:scale-[0.98] text-left animate-fade-in-up stagger-2"
+          style={{
+            background: 'linear-gradient(145deg, #1d4ed8 0%, #6d28d9 60%, #4f46e5 100%)',
+            boxShadow: '0 8px 28px rgba(37,99,235,0.4)',
+          }}
+        >
+          <div className="px-5 py-5">
+            <div className="text-3xl mb-3">✏️</div>
+            <p className="text-white font-bold text-base leading-snug" style={{ fontFamily: 'Sora, system-ui' }}>
+              Crear mi plan de estudio
             </p>
-            <p className={`text-xs mt-1 ${cx.muted}`}>
-              Pide el enlace o código a tu academia o profesor
+            <p className="text-white/60 text-xs mt-1">
+              Añade temas, sube apuntes y genera preguntas con IA
             </p>
           </div>
-          <form onSubmit={handleCodeSubmit} className="space-y-3">
-            <input
-              type="text"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              placeholder="Ej: guardia-civil-2025"
-              className={`w-full rounded-xl px-4 py-3 text-sm outline-none transition-all text-center font-mono tracking-wide ${cx.input}`}
-            />
-            <button
-              type="submit"
-              disabled={!code.trim()}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-40 transition-all active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
-            >
-              Unirme →
-            </button>
-          </form>
-        </div>
+        </button>
 
         <div className="flex items-center gap-3">
           <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
-          <span className={`text-xs ${cx.muted}`}>o</span>
+          <span className={`text-xs ${cx.muted}`}>o tengo un enlace de academia</span>
           <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
         </div>
 
-        {/* CTA crear plan propio */}
-        <button
-          onClick={() => onNavigate('exams')}
-          className={`w-full py-3.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.98] border ${
-            dm ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm'
-          }`}
-        >
-          Crear mi propio plan de estudio →
-        </button>
+        {/* UNIRSE CON CÓDIGO */}
+        <form onSubmit={handleCodeSubmit} className="flex gap-2 animate-fade-in-up stagger-3">
+          <input
+            type="text"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            placeholder="Código de tu academia"
+            className={`flex-1 rounded-xl px-4 py-3 text-sm outline-none transition-all ${cx.input}`}
+          />
+          <button
+            type="submit"
+            disabled={!code.trim()}
+            className="px-4 py-3 rounded-xl text-white font-bold text-sm disabled:opacity-40 transition-all active:scale-[0.98] shrink-0"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
+          >
+            Unirme
+          </button>
+        </form>
       </>
     );
   }

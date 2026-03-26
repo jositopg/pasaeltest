@@ -45,11 +45,9 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 isAcademy
                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                  : user?.subscription === 'premium'
-                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    : 'bg-gray-500/20 text-gray-400'
+                  : 'bg-gray-500/20 text-gray-400'
               }`}>
-                {isAcademy ? '🎓 Academia' : user?.subscription === 'premium' ? '👑 Premium' : 'Estudiante'}
+                {isAcademy ? '🎓 Academia' : 'Estudiante'}
               </span>
             </div>
           </div>

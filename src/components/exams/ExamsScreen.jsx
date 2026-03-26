@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../supabaseClient';
-import UpgradeModal from '../common/UpgradeModal';
-
 const EMOJI_OPTIONS = [
   '📋','📚','📖','📝','🎓','🏫','⚖️','🚔','🏥','✈️',
   '🔬','💉','🌍','🇪🇸','📐','🧮','💻','🎯','🏆','⭐',
@@ -45,12 +43,8 @@ function ExamsScreen({
   showToast,
 }) {
   const { dm, cx } = useTheme();
-  const isSuperAdmin = currentUser?.role === 'super_admin';
   const isAcademy = currentUser?.role === 'academy' || currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
-  // Students can create plans only if they have a paid subscription
-  const canCreateOwnPlan = isAcademy || currentUser?.subscription === 'student' || currentUser?.subscription === 'academy';
 
-  const [showUpgrade, setShowUpgrade] = useState(false);
   const [creating, setCreating] = useState(false);
   const [plansStats, setPlansStats] = useState({}); // testId → { clones, totalQuestions }
 
@@ -191,7 +185,7 @@ function ExamsScreen({
             Mis Planes
           </h1>
           <button
-            onClick={() => canCreateOwnPlan ? setCreating(true) : setShowUpgrade(true)}
+            onClick={() => setCreating(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-sm"
           >
             <Icons.Plus />
@@ -444,10 +438,6 @@ function ExamsScreen({
         </div>
       )}
 
-      {/* Upgrade modal */}
-      {showUpgrade && (
-        <UpgradeModal reason="plan" onClose={() => setShowUpgrade(false)} />
-      )}
     </div>
   );
 }

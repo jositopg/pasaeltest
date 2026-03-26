@@ -32,26 +32,26 @@ const STEPS_STUDENT = [
   {
     icon: '👋',
     title: '¡Bienvenido a PasaElTest!',
-    description: 'La app de práctica con preguntas tipo test. Estudia a tu ritmo, tanto si te prepara una academia como si lo haces por tu cuenta.',
-  },
-  {
-    icon: '📚',
-    title: 'Accede a tu contenido',
-    description: 'Puedes unirte al plan de tu academia con su enlace de invitación, o crear tus propios planes de estudio.',
-    points: [
-      '🔗 Enlace de tu academia → acceso directo a su temario',
-      '✏️ O crea tu propio plan con tus apuntes',
-      '🤖 La IA genera preguntas por ti en segundos',
-    ],
+    description: 'La forma más rápida de preparar exámenes. Crea tu plan, genera preguntas con IA y practica hasta aprobar.',
   },
   {
     icon: '🎯',
+    title: 'Estudia a tu manera',
+    description: 'Tienes dos opciones: unirte al plan de tu academia o crear el tuyo propio con tus apuntes.',
+    points: [
+      '🔗 Enlace de academia → acceso directo al temario',
+      '✏️ O crea tu propio plan desde cero',
+      '🤖 La IA genera preguntas en segundos',
+    ],
+  },
+  {
+    icon: '📈',
     title: 'Practica y mejora',
-    description: 'Haz tests, repasa los fallos y sigue tu progreso. Cuanto más practiques, más subirá tu nota.',
+    description: 'Haz tests, repasa los fallos y sigue tu progreso. El sistema de repaso inteligente te ayuda a memorizar más rápido.',
     points: [
       '📝 Tests con las preguntas de tu temario',
       '🧠 Repaso inteligente de lo que más fallas',
-      '📊 Ve tu evolución en cada tema',
+      '📊 Estadísticas de tu evolución',
     ],
   },
 ];
