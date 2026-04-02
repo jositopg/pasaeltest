@@ -147,8 +147,10 @@ function AuthScreen({ onLogin }) {
       {/* Logo */}
       <div className="text-center mb-8 animate-fade-in">
         <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 8px 32px rgba(37,99,235,0.4)' }}>
-          <span className="text-white text-3xl font-black" style={{ fontFamily: 'Sora, system-ui' }}>P</span>
+          style={{ background: 'linear-gradient(135deg, #1d4ed8, #6d28d9)', boxShadow: '0 8px 32px rgba(37,99,235,0.4)' }}>
+          <svg viewBox="0 0 512 512" className="w-9 h-9" fill="white">
+            <path d="M 295 72 L 172 265 L 245 265 L 172 440 L 348 248 L 272 248 Z" />
+          </svg>
         </div>
         <h1 className="text-4xl font-black" style={{ fontFamily: 'Sora, system-ui', background: 'linear-gradient(135deg, #60A5FA, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           PasaElTest
