@@ -72,7 +72,16 @@ const useAuth = () => {
 
   const handleLogin = (user) => {
     const isFirstLogin = user?.isFirstLogin || false;
-    // onAuthStateChange SIGNED_IN gestiona el estado de autenticación
+
+    // Modo invitado: no hay sesión Supabase, gestionar estado directamente
+    if (user?.isGuest) {
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      if (isFirstLogin) setShowOnboarding(true);
+      return;
+    }
+
+    // Auth real: onAuthStateChange SIGNED_IN gestiona el estado de autenticación
     if (isFirstLogin) setShowOnboarding(true);
   };
 
