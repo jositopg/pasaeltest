@@ -31,18 +31,24 @@ import UserProfileModal from './components/auth/UserProfileModal';
 
 // Plans
 import JoinPlanScreen from './components/plans/JoinPlanScreen';
+import PublicExamScreen from './components/exam/PublicExamScreen';
 
 export default function App() {
   // ─── Navigation ────────────────────────────────────────────
   const [screen, setScreen] = useState('home');
   const [showUserProfile, setShowUserProfile] = useState(false);
 
+  // ─── Public exam via ?exam=slug (sin login requerido) ─────────
+  const [examSlug] = useState(() =>
+    new URLSearchParams(window.location.search).get('exam') || null
+  );
+
   // ─── Join plan via ?join=slug OR manual code from HomeScreen ──
   const [joinSlug, setJoinSlug] = useState(() =>
     new URLSearchParams(window.location.search).get('join') || null
   );
   useEffect(() => {
-    if (joinSlug) window.history.replaceState({}, '', '/');
+    if (joinSlug || examSlug) window.history.replaceState({}, '', '/');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleJoinWithCode = (slug) => setJoinSlug(slug);
@@ -113,6 +119,14 @@ export default function App() {
     if (activeTestIsCloned) { showToast('No puedes importar preguntas en un plan oficial compartido.', 'error'); return { importedThemes: 0, importedQuestions: 0 }; }
     return importData(file, userData.themes, userData.updateTheme);
   };
+
+  // ─── Examen público — sin login, antes de cualquier auth gate ─
+  if (examSlug) return (
+    <>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <PublicExamScreen slug={examSlug} />
+    </>
+  );
 
   // ─── Loading / Auth gates ──────────────────────────────────
   if (auth.authLoading) return <AuthLoadingScreen darkMode={darkMode} />;

@@ -77,6 +77,7 @@ function ExamsScreen({
   const [shareForm, setShareForm] = useState({ slug: '', description: '' });
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareError, setShareError] = useState('');
+  const [copiedExamId, setCopiedExamId] = useState(null);
 
   const activeThemeCount = themes.filter(t => t.questions?.length > 0).length;
   const activeQuestionCount = themes.reduce((acc, t) => acc + (t.questions?.length || 0), 0);
@@ -172,6 +173,16 @@ function ExamsScreen({
   function copyShareLink(slug) {
     navigator.clipboard.writeText(`${window.location.origin}/?join=${slug}`)
       .then(() => showToast('🔗 Enlace copiado', 'success'));
+  }
+
+  function copyExamLink(test) {
+    if (!test.invite_slug) return;
+    navigator.clipboard.writeText(`${window.location.origin}/?exam=${test.invite_slug}`)
+      .then(() => {
+        setCopiedExamId(test.id);
+        setTimeout(() => setCopiedExamId(null), 2000);
+        showToast('📝 Enlace de examen copiado', 'success');
+      });
   }
 
   return (
@@ -306,8 +317,20 @@ function ExamsScreen({
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
                         className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
-                        title="Compartir este plan"
+                        title="Compartir este plan (los alumnos se unen)"
                       >🔗</button>
+                    )}
+                    {/* Examen público — solo si el plan ya está publicado */}
+                    {test.invite_slug && (
+                      <button
+                        onClick={e => { e.stopPropagation(); copyExamLink(test); }}
+                        className={`p-2 rounded-lg text-sm transition-colors ${
+                          copiedExamId === test.id
+                            ? dm ? 'text-green-400' : 'text-green-600'
+                            : dm ? 'text-slate-400 hover:bg-purple-500/15 hover:text-purple-300' : 'text-slate-500 hover:bg-purple-50 hover:text-purple-600'
+                        }`}
+                        title="Copiar enlace de examen público (sin registro)"
+                      >{copiedExamId === test.id ? '✓' : '📝'}</button>
                     )}
                     {(test.cloned_from || tests.length > 1) && (
                       <button
