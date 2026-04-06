@@ -5,30 +5,8 @@ import GlobalSearch from './GlobalSearch';
 
 // ─── Vista Academia ────────────────────────────────────────────────────────────
 function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTest, srsStats, cx, dm }) {
-  const [copiedId, setCopiedId] = useState(null); // testId → 'join' | 'exam' | 'err'
   const totalQuestions = themes.reduce((a, t) => a + (t.questions?.length || 0), 0);
   const totalThemes = themes.filter(t => t.questions?.length > 0).length;
-
-  const copyLink = (url, id, type) => {
-    navigator.clipboard.writeText(url)
-      .then(() => {
-        setCopiedId(`${type}-${id}`);
-        setTimeout(() => setCopiedId(null), 2000);
-      })
-      .catch(() => {
-        setCopiedId(`err-${id}`);
-        setTimeout(() => setCopiedId(null), 2500);
-      });
-  };
-
-  const handleShare = (test) => {
-    if (test.invite_slug) {
-      copyLink(`${window.location.origin}/?join=${test.invite_slug}`, test.id, 'join');
-    } else {
-      if (test.id !== activeTestId) onSwitchTest(test.id);
-      onNavigate('exams');
-    }
-  };
 
   return (
     <>
@@ -91,33 +69,15 @@ function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTe
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Examen público — solo si está publicado */}
-                  {isPublished && (
-                    <button
-                      onClick={() => copyLink(`${window.location.origin}/?exam=${test.invite_slug}`, test.id, 'exam')}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        copiedId === `exam-${test.id}`
-                          ? 'bg-purple-500/20 text-purple-300'
-                          : dm ? 'text-slate-400 hover:bg-purple-500/15 hover:text-purple-300' : 'text-slate-400 hover:bg-purple-50 hover:text-purple-600'
-                      }`}
-                      title="Copiar enlace de examen público (sin registro)"
-                    >
-                      {copiedId === `exam-${test.id}` ? '✓' : '📝'}
-                    </button>
-                  )}
-                  {/* Compartir (unirse al plan) */}
                   <button
-                    onClick={() => handleShare(test)}
+                    onClick={() => { if (test.id !== activeTestId) onSwitchTest(test.id); onNavigate('exams'); }}
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      copiedId === `join-${test.id}`
-                        ? 'bg-green-500/20 text-green-400'
-                        : isPublished
-                        ? dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-400 hover:bg-green-50 hover:text-green-600'
+                      isPublished
+                        ? dm ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100'
                         : dm ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
                     }`}
-                    title={isPublished ? 'Copiar enlace de invitación (los alumnos se unen)' : 'Publicar y compartir'}
                   >
-                    {copiedId === `join-${test.id}` ? '✓ Copiado' : copiedId === `err-${test.id}` ? '✗ Error' : isPublished ? '🔗' : 'Compartir'}
+                    {isPublished ? 'Compartir' : 'Publicar'}
                   </button>
                   <button
                     onClick={() => { if (!isActive) onSwitchTest(test.id); onNavigate('themes'); }}

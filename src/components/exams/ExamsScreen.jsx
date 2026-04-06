@@ -77,7 +77,6 @@ function ExamsScreen({
   const [shareForm, setShareForm] = useState({ slug: '', description: '' });
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareError, setShareError] = useState('');
-  const [copiedExamId, setCopiedExamId] = useState(null);
 
   const activeThemeCount = themes.filter(t => t.questions?.length > 0).length;
   const activeQuestionCount = themes.reduce((acc, t) => acc + (t.questions?.length || 0), 0);
@@ -175,17 +174,7 @@ function ExamsScreen({
       .then(() => showToast('🔗 Enlace copiado', 'success'));
   }
 
-  function copyExamLink(test) {
-    if (!test.invite_slug) return;
-    navigator.clipboard.writeText(`${window.location.origin}/?exam=${test.invite_slug}`)
-      .then(() => {
-        setCopiedExamId(test.id);
-        setTimeout(() => setCopiedExamId(null), 2000);
-        showToast('📝 Enlace de examen copiado', 'success');
-      });
-  }
-
-  return (
+return (
     <div className={`min-h-full ${cx.screen} transition-colors`}
       style={{ paddingBottom: 'var(--pb-screen)' }}>
 
@@ -316,21 +305,8 @@ function ExamsScreen({
                     {!test.cloned_from && (
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
-                        className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
-                        title="Compartir este plan (los alumnos se unen)"
-                      >🔗</button>
-                    )}
-                    {/* Examen público — solo si el plan ya está publicado */}
-                    {test.invite_slug && (
-                      <button
-                        onClick={e => { e.stopPropagation(); copyExamLink(test); }}
-                        className={`p-2 rounded-lg text-sm transition-colors ${
-                          copiedExamId === test.id
-                            ? dm ? 'text-green-400' : 'text-green-600'
-                            : dm ? 'text-slate-400 hover:bg-purple-500/15 hover:text-purple-300' : 'text-slate-500 hover:bg-purple-50 hover:text-purple-600'
-                        }`}
-                        title="Copiar enlace de examen público (sin registro)"
-                      >{copiedExamId === test.id ? '✓' : '📝'}</button>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
+                      >Compartir</button>
                     )}
                     {(test.cloned_from || tests.length > 1) && (
                       <button
@@ -398,17 +374,40 @@ function ExamsScreen({
 
             {shareModal.published && (
               <>
-                <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Plan publicado ✅</h3>
-                <p className={`text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-                  Slug: <code className={`text-green-500 px-1.5 rounded text-xs ${dm ? 'bg-white/5' : 'bg-slate-100'}`}>{shareModal.slug}</code>
-                </p>
-                <div className={`rounded-xl px-3 py-2 text-xs break-all ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                  {window.location.origin}/?join={shareModal.slug}
+                <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Compartir plan</h3>
+
+                {/* Opción 1: Examen directo */}
+                <div className={`rounded-2xl p-4 space-y-3 border ${dm ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                  <div>
+                    <p className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>📝 Examen directo</p>
+                    <p className={`text-xs mt-0.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Abre el examen al momento, sin cuenta ni registro. Ideal para mandar a cualquier persona.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/?exam=${shareModal.slug}`)
+                        .then(() => showToast('📝 Enlace de examen copiado', 'success'));
+                    }}
+                    className="w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-all active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #7C3AED, #6d28d9)' }}
+                  >Copiar enlace de examen</button>
                 </div>
-                <button
-                  onClick={() => copyShareLink(shareModal.slug)}
-                  className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
-                >🔗 Copiar enlace</button>
+
+                {/* Opción 2: Unirse al plan */}
+                <div className={`rounded-2xl p-4 space-y-3 border ${dm ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                  <div>
+                    <p className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>🔗 Unirse al plan completo</p>
+                    <p className={`text-xs mt-0.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                      El alumno se registra y accede al plan completo con repaso, estadísticas y todo el contenido.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => copyShareLink(shareModal.slug)}
+                    className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] ${dm ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'}`}
+                  >Copiar enlace de acceso</button>
+                </div>
+
                 <button onClick={() => setShareModal(null)} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>Cerrar</button>
               </>
             )}
