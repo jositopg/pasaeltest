@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import { PENALTY_SYSTEMS } from '../../utils/constants';
 
 function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeTestId, onSwitchTest }) {
   const { dm, cx } = useTheme();
@@ -29,13 +30,6 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
   const effectiveNum = Math.min(numQuestions, totalAvailable);
   const canStart = selectedThemes.length > 0 && totalAvailable > 0;
 
-  const penaltyOptions = [
-    { value: 'none',    label: 'Sin penalización', desc: 'Los fallos no restan.' },
-    { value: 'each4',   label: '4 incorrectas quitan 1 acierto', desc: 'Por cada 4 fallos se resta 1 pregunta correcta.' },
-    { value: 'classic', label: '3 incorrectas quitan 1 acierto', desc: 'Por cada 3 fallos se resta 1 pregunta correcta.' },
-    { value: 'each2',   label: '2 incorrectas quitan 1 acierto', desc: 'Por cada 2 fallos se resta 1 pregunta correcta.' },
-    { value: 'each1',   label: '1 incorrecta quita 1 acierto',  desc: 'Cada fallo resta 1 pregunta correcta.' },
-  ];
 
   const inputCls = `flex-1 text-center rounded-xl px-4 py-3 font-bold text-xl ${dm ? 'bg-white/5 text-white border border-white/10' : 'bg-slate-50 text-slate-800 border border-slate-200'}`;
   const btnCls = `w-10 h-10 rounded-xl font-bold text-lg flex items-center justify-center ${dm ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`;
@@ -166,7 +160,7 @@ function ExamConfigScreen({ themes, onStartExam, onNavigate, tests = [], activeT
             Las respuestas incorrectas restan aciertos según la opción que elijas.
           </p>
           <div className="grid grid-cols-1 gap-2">
-            {penaltyOptions.map(opt => (
+            {PENALTY_SYSTEMS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setPenaltySystem(opt.value)}

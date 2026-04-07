@@ -7,7 +7,8 @@ import { ThemesScreenSkeleton } from '../common/Skeleton';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
-import { supabase } from '../../supabaseClient';
+import { authFetch } from '../../supabaseClient';
+import { toSlug } from '../../utils/constants';
 
 // ─── ThemeListItem ────────────────────────────────────────────────────────────
 function ThemeListItem({
@@ -317,28 +318,14 @@ function ThemesScreen({
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareError, setShareError] = useState('');
 
-  function toSlug(str) {
-    return str.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
   async function openShareModal() {
     if (!activeTestId) return;
     setShareModal({ loading: true });
     setShareError('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa. Vuelve a iniciar sesión.');
-      const res = await fetch('/api/manage-plans', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await authFetch('/api/manage-plans');
       const data = await res.json();
-      if (!res.ok) {
-        setShareModal({ error: data.error || `Error ${res.status}` });
-        return;
-      }
+      if (!res.ok) { setShareModal({ error: data.error || `Error ${res.status}` }); return; }
       const existing = (data.plans || []).find(p => p.id === activeTestId);
       if (existing) {
         setShareModal({ published: true, slug: existing.invite_slug, plan: existing });
@@ -357,18 +344,14 @@ function ThemesScreen({
     if (!shareForm.slug) { setShareError('Escribe un slug para el enlace.'); return; }
     setShareSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/manage-plans', {
+      const res = await authFetch('/api/manage-plans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ testId: activeTestId, cover_emoji: '📋', ...shareForm }),
       });
       const data = await res.json();
       if (!res.ok) { setShareError(data.error || `Error ${res.status}`); return; }
       setShareModal({ published: true, slug: shareForm.slug });
-      // Copiar automáticamente
-      const url = `${window.location.origin}/?join=${shareForm.slug}`;
-      navigator.clipboard.writeText(url).catch(() => {});
+      navigator.clipboard.writeText(`${window.location.origin}/?join=${shareForm.slug}`).catch(() => {});
       showToast('✅ Plan publicado y enlace copiado', 'success');
     } catch (e) {
       setShareError(e.message);

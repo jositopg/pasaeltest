@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icons from '../common/Icons';
 import { supabase } from '../../supabaseClient';
+import { toSlug } from '../../utils/constants';
 
 // ─── Sub-components ───────────────────────────────────────────
 
@@ -271,13 +272,6 @@ function PlansSection({ token, adminTests }) {
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
-  function toSlug(str) {
-    return str.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
   function handleTestSelect(testId) {
     const test = adminTests.find(t => t.id === testId);
     const slug = test ? toSlug(test.name) : '';
@@ -468,10 +462,6 @@ function OrgManagementSection({ token }) {
   const [orgError, setOrgError] = useState('');
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [roleChanges, setRoleChanges] = useState({}); // userId -> { role, organization_id }
-
-  function toSlug(str) {
-    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  }
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

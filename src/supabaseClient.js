@@ -5,6 +5,23 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+/**
+ * authFetch — fetch autenticado con el token de sesión de Supabase.
+ * Lanza un Error si no hay sesión activa.
+ */
+export async function authFetch(url, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('No hay sesión activa. Vuelve a iniciar sesión.');
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+}
+
 // Auth helpers
 export const authHelpers = {
   async signUp(email, password, userData) {

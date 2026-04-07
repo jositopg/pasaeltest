@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { calculateNextReview } from '../../utils/srs';
 import { useTheme } from '../../context/ThemeContext';
+import { PENALTY_SYSTEMS, getPenaltyValue } from '../../utils/constants';
 
 // ─── Donut chart SVG (sin librerías externas) ─────────────────────────────
 // Truco: r=15.915 → circumference≈100 → dasharray values = percentages directamente
@@ -49,15 +50,6 @@ function DonutChart({ correct, incorrect, unanswered, total, dm }) {
 
 const EXAM_STATE_KEY = 'exam_paused_state';
 
-function getPenaltyValue(incorrect, system) {
-  switch (system) {
-    case 'none':    return 0;
-    case 'each4':   return Math.floor(incorrect / 4);
-    case 'each2':   return Math.floor(incorrect / 2);
-    case 'each1':   return incorrect;
-    default:        return Math.floor(incorrect / 3); // classic
-  }
-}
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -423,12 +415,7 @@ function ExamScreen({ config, themes, onFinish, onNavigate, onUpdateThemes, exam
               <div>
                 <p className={`text-xs font-semibold uppercase tracking-widest mb-0.5 ${cx.muted}`}>Nota del examen</p>
                 <p className={`text-xs ${cx.muted}`}>
-                  {config.penaltySystem === 'none'
-                    ? 'Sin penalización'
-                    : config.penaltySystem === 'each4' ? '4 incorrectas quitan 1 acierto'
-                    : config.penaltySystem === 'each2' ? '2 incorrectas quitan 1 acierto'
-                    : config.penaltySystem === 'each1' ? 'Cada incorrecta quita 1 acierto'
-                    : '3 incorrectas quitan 1 acierto'}
+                  {PENALTY_SYSTEMS.find(p => p.value === config.penaltySystem)?.label ?? '3 incorrectas quitan 1 acierto'}
                 </p>
               </div>
               <div className="text-right">

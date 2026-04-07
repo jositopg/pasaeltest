@@ -17,11 +17,30 @@ export const DEFAULT_PROFILE = {
   notifications: false
 };
 
-export const PENALTY_SYSTEMS = {
-  classic: { label: 'Clásico (3 mal = -1 bien)', factor: 1/3 },
-  half: { label: 'Medio (2 mal = -1 bien)', factor: 1/2 },
-  none: { label: 'Sin penalización', factor: 0 },
-};
+export const PENALTY_SYSTEMS = [
+  { value: 'none',    label: 'Sin penalización',               desc: 'Los fallos no restan.',                           factor: 0   },
+  { value: 'each4',   label: '4 incorrectas quitan 1 acierto', desc: 'Por cada 4 fallos se resta 1 pregunta correcta.', factor: 1/4 },
+  { value: 'classic', label: '3 incorrectas quitan 1 acierto', desc: 'Por cada 3 fallos se resta 1 pregunta correcta.', factor: 1/3 },
+  { value: 'each2',   label: '2 incorrectas quitan 1 acierto', desc: 'Por cada 2 fallos se resta 1 pregunta correcta.', factor: 1/2 },
+  { value: 'each1',   label: '1 incorrecta quita 1 acierto',   desc: 'Cada fallo resta 1 pregunta correcta.',           factor: 1   },
+];
+
+export function getPenaltyValue(incorrect, system) {
+  switch (system) {
+    case 'none':  return 0;
+    case 'each4': return Math.floor(incorrect / 4);
+    case 'each2': return Math.floor(incorrect / 2);
+    case 'each1': return incorrect;
+    default:      return Math.floor(incorrect / 3); // classic
+  }
+}
+
+export function toSlug(str) {
+  return String(str).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 // Para mostrar en la UI (con tildes). Para guardar en DB usar normalizeDifficulty() (sin tildes).
 export const DIFFICULTY_LEVELS = ['fácil', 'media', 'difícil'];

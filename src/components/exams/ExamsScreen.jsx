@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
-import { supabase } from '../../supabaseClient';
+import { authFetch } from '../../supabaseClient';
+import { toSlug } from '../../utils/constants';
 const EMOJI_OPTIONS = [
   '📋','📚','📖','📝','🎓','🏫','⚖️','🚔','🏥','✈️',
   '🔬','💉','🌍','🇪🇸','📐','🧮','💻','🎯','🏆','⭐',
@@ -53,11 +54,7 @@ function ExamsScreen({
     if (!isAcademy) return;
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        const res = await fetch('/api/manage-plans', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const res = await authFetch('/api/manage-plans');
         if (!res.ok) return;
         const data = await res.json();
         const map = {};
@@ -80,13 +77,6 @@ function ExamsScreen({
 
   const activeThemeCount = themes.filter(t => t.questions?.length > 0).length;
   const activeQuestionCount = themes.reduce((acc, t) => acc + (t.questions?.length || 0), 0);
-
-  function toSlug(str) {
-    return str.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -127,11 +117,7 @@ function ExamsScreen({
     setShareModal({ loading: true });
     setShareError('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa.');
-      const res = await fetch('/api/manage-plans', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await authFetch('/api/manage-plans');
       const data = await res.json();
       if (!res.ok) { setShareModal({ error: data.error || `Error ${res.status}` }); return; }
       const existing = (data.plans || []).find(p => p.id === test.id);
@@ -151,10 +137,8 @@ function ExamsScreen({
     if (!shareForm.slug) { setShareError('Escribe un slug para el enlace.'); return; }
     setShareSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/manage-plans', {
+      const res = await authFetch('/api/manage-plans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ testId: shareModal.testId, cover_emoji: '📋', ...shareForm }),
       });
       const data = await res.json();
