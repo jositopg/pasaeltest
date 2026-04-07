@@ -204,7 +204,7 @@ export default function App() {
         />
 
         <GenerationBanner progress={genQueue.queueProgress} />
-        <BottomNav current={screen} onNavigate={setScreen} isAcademy={isAcademy} />
+        <BottomNav current={screen} onNavigate={setScreen} isAcademy={isAcademy} examPaused={!!examConfig && screen !== 'exam-active'} />
       </div>
     </ThemeProvider>
   );

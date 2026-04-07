@@ -2,7 +2,7 @@ import React from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function BottomNav({ current, onNavigate, isAcademy }) {
+function BottomNav({ current, onNavigate, isAcademy, examPaused = false }) {
   const { dm } = useTheme();
 
   const academyItems = [
@@ -74,26 +74,32 @@ function BottomNav({ current, onNavigate, isAcademy }) {
 
         {/* CENTER — prominent Test button, always with gradient, floats above nav */}
         <div className="flex-1 flex items-center justify-center" style={{ paddingBottom: '2px' }}>
-          <button
-            onClick={() => onNavigate('exam')}
-            className="flex flex-col items-center justify-center gap-0.5 rounded-2xl text-white transition-all duration-200 active:scale-90"
-            style={{
-              background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
-              boxShadow: isTestActive
-                ? '0 8px 24px rgba(37,99,235,0.65)'
-                : '0 4px 18px rgba(37,99,235,0.45)',
-              width: '60px',
-              height: '54px',
-              transform: 'translateY(-10px)',
-              border: isTestActive ? '2px solid rgba(255,255,255,0.35)' : '2px solid transparent',
-            }}
-          >
-            {/* Lightning bolt icon */}
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="text-[10px] font-bold tracking-wide leading-none">Test</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => onNavigate('exam')}
+              className="flex flex-col items-center justify-center gap-0.5 rounded-2xl text-white transition-all duration-200 active:scale-90"
+              style={{
+                background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+                boxShadow: isTestActive
+                  ? '0 8px 24px rgba(37,99,235,0.65)'
+                  : '0 4px 18px rgba(37,99,235,0.45)',
+                width: '60px',
+                height: '54px',
+                transform: 'translateY(-10px)',
+                border: isTestActive ? '2px solid rgba(255,255,255,0.35)' : '2px solid transparent',
+              }}
+            >
+              {/* Lightning bolt icon */}
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span className="text-[10px] font-bold tracking-wide leading-none">Test</span>
+            </button>
+            {examPaused && (
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white animate-pulse"
+                style={{ transform: 'translateY(-10px)' }} />
+            )}
+          </div>
         </div>
 
         {/* Right tabs */}

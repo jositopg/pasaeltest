@@ -306,13 +306,13 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
           </button>
           <div className="flex-1">
             <h1 className={`font-bold text-lg ${cx.heading}`}>
-              {isExamFails ? '🔁 Repasando Fallos' : 'Repaso Inteligente'}
+              {isExamFails ? '🔁 Repasando Fallos' : '🧠 Repaso Inteligente'}
             </h1>
             <p className={`text-xs ${cx.muted}`}>
               {current + 1} / {sessionQuestions.length}
               {isExamFails
                 ? ' · Del último examen'
-                : ` · Tema ${q.themeNumber}${totalDue > SESSION_LIMIT ? ` · ${totalDue} pendientes total` : ''}`
+                : ` · La app decide qué repasar según tu historial`
               }
             </p>
           </div>
@@ -341,7 +341,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
         {/* Options */}
         <div className="space-y-2 sm:space-y-3">
-          {(q.options || q.opciones || []).map((opt, i) => {
+          {(q.options || []).map((opt, i) => {
             const isCorrect = i === q.correct;
             const isSelected = selectedAnswer === i;
             const wasWrong = isAnswered && isSelected && !isCorrect;
