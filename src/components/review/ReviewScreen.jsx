@@ -16,7 +16,7 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
 
   // sessionQuestions puede cambiar si el usuario hace "Repetir falladas"
   const [sessionQuestions, setSessionQuestions] = useState(() =>
-    cappedQuestions.map(q => ({ ...q, text: q.text || q.pregunta || 'Pregunta sin texto' }))
+    cappedQuestions.map(q => ({ ...q, text: q.text || 'Pregunta sin texto' }))
   );
   const [current, setCurrent] = useState(0);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -386,17 +386,17 @@ function ReviewScreen({ dueQuestions, themes, onUpdateTheme, onNavigate, showToa
               <div>
                 <p className={`font-semibold mb-1 ${dm ? 'text-green-400' : 'text-green-600'}`}>✓ ¡Correcto!</p>
                 <p className={`text-sm ${cx.body}`}>
-                  Respuesta: <span className={`font-semibold ${cx.heading}`}>{(q.options || q.opciones)[q.correct]}</span>
+                  Respuesta: <span className={`font-semibold ${cx.heading}`}>{q.options[q.correct]}</span>
                 </p>
               </div>
             ) : (
               <div>
                 <p className={`font-semibold mb-1 ${dm ? 'text-red-400' : 'text-red-600'}`}>✗ Incorrecto</p>
                 <p className={`text-sm ${cx.body}`}>
-                  Tu respuesta: <span className="font-semibold text-red-500">{(q.options || q.opciones)[selectedAnswer]}</span>
+                  Tu respuesta: <span className="font-semibold text-red-500">{q.options[selectedAnswer]}</span>
                 </p>
                 <p className={`text-sm mt-1 ${cx.body}`}>
-                  La correcta: <span className="font-semibold text-green-500">{(q.options || q.opciones)[q.correct]}</span>
+                  La correcta: <span className="font-semibold text-green-500">{q.options[q.correct]}</span>
                 </p>
               </div>
             )}

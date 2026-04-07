@@ -192,19 +192,36 @@ function ShareModal({ shareModal, shareForm, setShareForm, shareError, shareSubm
 
         {shareModal.published && (
           <>
-            <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Plan ya publicado ✅</h3>
-            <p className={`text-sm ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
-              Slug: <code className={`text-green-500 text-xs px-1.5 rounded ${dm ? 'bg-white/5' : 'bg-slate-100'}`}>{shareModal.slug}</code>
-            </p>
-            <div className={`rounded-xl px-3 py-2 text-xs break-all ${dm ? 'bg-white/5 text-gray-400' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-              {window.location.origin}/?join={shareModal.slug}
+            <h3 className={`font-bold text-lg ${dm ? 'text-white' : 'text-slate-800'}`}>Compartir plan</h3>
+
+            {/* Examen directo */}
+            <div className={`rounded-2xl p-4 space-y-3 border ${dm ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <p className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>📝 Examen directo</p>
+              <p className={`text-xs ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+                El alumno abre el examen al momento, sin cuenta ni registro. Ideal para compartir en grupos.
+              </p>
+              <button
+                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/?exam=${shareModal.slug}`).then(() => onClose()); }}
+                className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold"
+              >
+                Copiar enlace de examen
+              </button>
             </div>
-            <button
-              onClick={() => onCopyLink(shareModal.slug)}
-              className="w-full py-3 rounded-2xl bg-blue-600 text-white font-semibold"
-            >
-              🔗 Copiar enlace
-            </button>
+
+            {/* Unirse al plan completo */}
+            <div className={`rounded-2xl p-4 space-y-3 border ${dm ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <p className={`font-semibold text-sm ${dm ? 'text-white' : 'text-slate-800'}`}>🔗 Unirse al plan completo</p>
+              <p className={`text-xs ${dm ? 'text-gray-400' : 'text-slate-500'}`}>
+                El alumno se registra y accede al plan completo con SRS, estadísticas y repasos.
+              </p>
+              <button
+                onClick={() => onCopyLink(shareModal.slug)}
+                className={`w-full py-2.5 rounded-xl text-sm font-semibold border ${dm ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-white text-slate-700 border-slate-300'}`}
+              >
+                Copiar enlace de acceso
+              </button>
+            </div>
+
             <button onClick={onClose} className={`w-full py-2 text-sm ${dm ? 'text-gray-500' : 'text-slate-400'}`}>
               Cerrar
             </button>
@@ -538,7 +555,14 @@ function ThemesScreen({
             <Icons.ChevronLeft />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className={`font-bold text-xl leading-tight ${cx.heading}`}>Temas</h1>
+            <div className="flex items-center gap-2">
+              <h1 className={`font-bold text-xl leading-tight ${cx.heading}`}>Temas</h1>
+              {isClonedTest && (
+                <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${dm ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                  Solo lectura
+                </span>
+              )}
+            </div>
             {tests.length > 0 && (
               <p className={`text-xs truncate ${dm ? 'text-blue-400/80' : 'text-blue-600'}`}>
                 {tests.find(t => t.id === activeTestId)?.name || 'Mi Plan'}

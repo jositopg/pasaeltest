@@ -71,7 +71,6 @@ const useUserData = (isAuthenticated, currentUser, showToast) => {
   });
 
   const loadGuestData = () => {
-    setLoading(true);
     setProfile({
       ...DEFAULT_PROFILE,
       name: currentUser.name,
