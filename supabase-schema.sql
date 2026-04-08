@@ -547,5 +547,51 @@ END;
 $$;
 
 -- ============================================================================
+-- TABLA: organizations
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.organizations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  slug text UNIQUE,
+  cover_emoji text DEFAULT '🏫',
+  owner_id uuid REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Owner can manage org" ON public.organizations
+  FOR ALL USING (auth.uid() = owner_id) WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Authenticated users can read orgs" ON public.organizations
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- ============================================================================
+-- TABLA: question_reports
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.question_reports (
+  id             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  question_id    uuid REFERENCES public.questions(id) ON DELETE CASCADE NOT NULL,
+  user_id        uuid REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  user_comment   text NOT NULL,
+  question_snapshot jsonb,
+  ai_review      text,
+  ai_suggested_fix jsonb,
+  status         text DEFAULT 'pending',
+  created_at     timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.question_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert own reports" ON public.question_reports
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own reports" ON public.question_reports
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS question_reports_status_idx ON public.question_reports(status);
+CREATE INDEX IF NOT EXISTS question_reports_question_id_idx ON public.question_reports(question_id);
+
+-- ============================================================================
 -- FIN DEL SCHEMA
 -- ============================================================================
