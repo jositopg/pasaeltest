@@ -1,18 +1,29 @@
-import React from 'react';
+import { Suspense, lazy } from 'react';
 import { ScreenErrorBoundary } from '../common/ErrorBoundary';
 
+// Critical path — loaded eagerly
 import HomeScreen from '../home/HomeScreen';
-import ExamsScreen from '../exams/ExamsScreen';
-import ThemesScreen from '../themes/ThemesScreen';
-import ExamConfigScreen from '../exam/ExamConfigScreen';
-import ExamScreen from '../exam/ExamScreen';
-import ReviewScreen from '../review/ReviewScreen';
-import AcademyStudentsScreen from '../academy/AcademyStudentsScreen';
-import StatsScreen from '../stats/StatsScreen';
-import QuestionsScreen from '../questions/QuestionsScreen';
-import HeatmapScreen from '../stats/HeatmapScreen';
-import SettingsScreen from '../settings/SettingsScreen';
-import AdminScreen from '../admin/AdminScreen';
+
+// Non-critical — loaded on demand
+const ExamsScreen           = lazy(() => import('../exams/ExamsScreen'));
+const ThemesScreen          = lazy(() => import('../themes/ThemesScreen'));
+const ExamConfigScreen      = lazy(() => import('../exam/ExamConfigScreen'));
+const ExamScreen            = lazy(() => import('../exam/ExamScreen'));
+const ReviewScreen          = lazy(() => import('../review/ReviewScreen'));
+const AcademyStudentsScreen = lazy(() => import('../academy/AcademyStudentsScreen'));
+const StatsScreen           = lazy(() => import('../stats/StatsScreen'));
+const QuestionsScreen       = lazy(() => import('../questions/QuestionsScreen'));
+const HeatmapScreen         = lazy(() => import('../stats/HeatmapScreen'));
+const SettingsScreen        = lazy(() => import('../settings/SettingsScreen'));
+const AdminScreen           = lazy(() => import('../admin/AdminScreen'));
+
+function ScreenFallback({ darkMode }) {
+  return (
+    <div className={`flex items-center justify-center min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 // Helper to wrap each screen in its own ScreenErrorBoundary
 function Screen({ name, onNavigate, children }) {
@@ -46,8 +57,10 @@ export default function AppScreens({
   darkMode,
   srsStats,
 }) {
+  const fallback = <ScreenFallback darkMode={darkMode} />;
+
   return (
-    <>
+    <Suspense fallback={fallback}>
       {screen === 'home' && (
         <Screen name="home" onNavigate={setScreen}>
           <HomeScreen
@@ -206,6 +219,6 @@ export default function AppScreens({
           <AdminScreen onNavigate={setScreen} />
         </Screen>
       )}
-    </>
+    </Suspense>
   );
 }
