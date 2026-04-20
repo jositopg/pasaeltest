@@ -85,7 +85,7 @@ export default function App() {
   const currentUserWithRole = auth.currentUser
     ? { ...auth.currentUser, role: auth.currentUser.role || auth.currentUser.user_metadata?.role }
     : null;
-  const isAcademy = currentUserWithRole?.role === 'academy';
+  const isAcademy = ['academy', 'org_admin', 'super_admin'].includes(currentUserWithRole?.role);
 
   // ─── Auth handlers ─────────────────────────────────────────
   const handleOnboardingComplete = (newProfile, updatedUser) => {
