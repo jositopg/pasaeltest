@@ -138,20 +138,35 @@ export default async function handler(req, res) {
       }
     };
 
-    // 8. Llamar a Gemini API con AbortController para respetar el límite de Vercel
-    const controller = new AbortController();
-    const geminiTimeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    // 8. Llamar a Gemini con reintentos ante sobrecarga (503/429)
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS = [2000, 5000, 10000]; // ms entre reintentos
 
     let geminiResponse;
-    try {
-      geminiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(geminiTimeout);
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const geminiTimeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+      try {
+        geminiResponse = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(geminiTimeout);
+      }
+
+      // Reintento solo en 503 (sobrecarga) y 429 (rate limit)
+      if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[attempt];
+        console.warn(`⚠️ Gemini ${geminiResponse.status} — reintento ${attempt + 1}/${MAX_RETRIES} en ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      break; // Éxito o error no recuperable
     }
 
     // 9. Verificar respuesta
