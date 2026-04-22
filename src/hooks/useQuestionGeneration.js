@@ -8,6 +8,8 @@ import { authHelpers } from '../supabaseClient';
 // Preguntas por chunk cuando hay múltiples partes (para no generar demasiadas)
 const QUESTIONS_PER_CHUNK = 15;
 
+const CLIENT_RETRY_DELAYS = [20, 40]; // segundos entre reintentos del cliente
+
 export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
@@ -27,6 +29,14 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
       if (showToast) showToast(`✅ ${newQuestions.length} pregunta${newQuestions.length !== 1 ? 's' : ''} guardada${newQuestions.length !== 1 ? 's' : ''}`, 'success');
     }
     return newQuestions.length;
+  };
+
+  // ─── Countdown mientras espera reintento ──────────────────
+  const waitWithCountdown = async (seconds, attempt) => {
+    for (let s = seconds; s > 0; s--) {
+      setGenerationProgress(`⏳ Gemini ocupado (intento ${attempt + 1}/${CLIENT_RETRY_DELAYS.length}) — reintentando en ${s}s...`);
+      await new Promise(r => setTimeout(r, 1000));
+    }
   };
 
   // ─── Llamada individual a la API para un chunk de contenido ──
@@ -191,18 +201,29 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
         setGenerationProgress(`🤖 Analizando parte ${i + 1} de ${chunks.length}...`);
         setGenerationPercent(20 + Math.round(((i) / chunks.length) * 70));
 
-        try {
-          const rawQuestions = await callChunkAPI(chunks[i], numQuestions, accumulatedTexts);
-          const newForChunk = deduplicateQuestions(rawQuestions, accumulatedTexts);
-          allNewQuestions = [...allNewQuestions, ...newForChunk];
-          // Acumular textos ya generados para evitar duplicados entre chunks
-          accumulatedTexts = [...accumulatedTexts, ...newForChunk.map(q => q.text.toLowerCase().trim())];
-          totalDuplicates += rawQuestions.length - newForChunk.length;
-        } catch (chunkErr) {
-          // Si falla un chunk no-crítico, continúa con el siguiente
-          console.warn(`Chunk ${i + 1} falló:`, chunkErr.message);
-          if (chunks.length === 1) throw chunkErr;
+        let chunkDone = false;
+        for (let clientRetry = 0; clientRetry <= CLIENT_RETRY_DELAYS.length; clientRetry++) {
+          try {
+            const rawQuestions = await callChunkAPI(chunks[i], numQuestions, accumulatedTexts);
+            const newForChunk = deduplicateQuestions(rawQuestions, accumulatedTexts);
+            allNewQuestions = [...allNewQuestions, ...newForChunk];
+            accumulatedTexts = [...accumulatedTexts, ...newForChunk.map(q => q.text.toLowerCase().trim())];
+            totalDuplicates += rawQuestions.length - newForChunk.length;
+            chunkDone = true;
+            break;
+          } catch (chunkErr) {
+            const is503 = chunkErr.message.includes('503');
+            if (is503 && clientRetry < CLIENT_RETRY_DELAYS.length) {
+              await waitWithCountdown(CLIENT_RETRY_DELAYS[clientRetry], clientRetry);
+              setGenerationProgress(`🤖 Analizando parte ${i + 1} de ${chunks.length}...`);
+              continue;
+            }
+            console.warn(`Chunk ${i + 1} falló:`, chunkErr.message);
+            if (chunks.length === 1) throw chunkErr;
+            break;
+          }
         }
+        if (!chunkDone && chunks.length === 1) throw new Error('Gemini no disponible tras varios intentos. Prueba en unos minutos.');
       }
 
       if (allNewQuestions.length === 0) throw new Error('No se generaron preguntas válidas. Intenta de nuevo.');
