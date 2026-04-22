@@ -187,9 +187,10 @@ function AuthScreen({ onLogin }) {
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">
                 Nombre
               </label>
-              <input type="text" required value={formData.name}
+              <input id="name" name="name" type="text" required value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Tu nombre o nombre de la academia"
+                autoComplete="name"
                 className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
             </div>
           )}
@@ -228,17 +229,19 @@ function AuthScreen({ onLogin }) {
 
           <div>
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Email</label>
-            <input type="email" required value={formData.email}
+            <input id="email" name="email" type="email" required value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               placeholder="tu@email.com"
+              autoComplete="email"
               className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Contraseña</label>
-            <input type="password" required value={formData.password}
+            <input id="password" name="password" type="password" required value={formData.password}
               onChange={e => setFormData({ ...formData, password: e.target.value })}
               placeholder="••••••••"
+              autoComplete="current-password"
               className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
           </div>
 

@@ -59,7 +59,10 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
               <label className="block text-gray-400 text-xs mb-1">Nombre</label>
               {editing ? (
                 <input
+                  id="profile-name"
+                  name="name"
                   type="text"
+                  autoComplete="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 outline-none"
@@ -89,7 +92,10 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
                 <label className="block text-gray-400 text-xs mb-1">¿Qué estudias?</label>
                 {editing ? (
                   <input
+                    id="profile-oposicion"
+                    name="oposicion"
                     type="text"
+                    autoComplete="off"
                     value={formData.oposicion}
                     onChange={(e) => setFormData({ ...formData, oposicion: e.target.value })}
                     placeholder="Ej: Inglés B2, Historia, Anatomía..."
