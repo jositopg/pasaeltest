@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT, OPTIMIZED_AUTO_GENERATE_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { analyzeDocument, determineQuestionTypes } from '../utils/documentAnalyzer';
-import { QUESTIONS_PER_BATCH } from '../utils/constants';
+import { QUESTIONS_PER_BATCH, MAX_PROMPT_CHARS } from '../utils/constants';
 import { parseCombinedResponse, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, buildDocumentContents } from '../utils/geminiHelpers';
 import { authHelpers } from '../supabaseClient';
 
@@ -44,9 +44,9 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
       const topSection = significantSections[0];
       const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
       const questionTypes = determineQuestionTypes(topSection);
-      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents, existingQuestionsStr, questionTypes);
+      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, MAX_PROMPT_CHARS), existingQuestionsStr, questionTypes);
     } else {
-      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents, existingQuestionsStr, coverageInstruction);
+      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, MAX_PROMPT_CHARS), existingQuestionsStr, coverageInstruction);
     }
     const token = await authHelpers.getAccessToken();
     const response = await fetch('/api/generate-gemini', {

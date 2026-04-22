@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { OPTIMIZED_QUESTION_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
-import { QUESTIONS_PER_BATCH } from '../utils/constants';
+import { QUESTIONS_PER_BATCH, MAX_PROMPT_CHARS } from '../utils/constants';
 import { buildContent, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, parseCombinedResponse } from '../utils/geminiHelpers';
 import { authHelpers } from '../supabaseClient';
 
@@ -58,7 +58,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
 
       // Fallback: si no se parsearon preguntas, hacer segunda llamada con el material como contexto
       if (newQuestions.length === 0) {
-        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent, '');
+        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent.substring(0, MAX_PROMPT_CHARS), '');
         const fallbackToken = await authHelpers.getAccessToken();
         const fallbackRes = await fetch('/api/generate-gemini', {
           method: 'POST',
@@ -128,7 +128,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       }
 
       const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents, existingTexts.join('\n'));
+      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, MAX_PROMPT_CHARS), existingTexts.join('\n'));
 
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',

@@ -60,7 +60,8 @@ export const GRADIENT_STYLE = {
 
 export const GRADIENT_BG = 'linear-gradient(135deg, #2563EB, #7C3AED)';
 
-export const MAX_CHARS = 200000;
+export const MAX_CHARS = 200000;       // Límite de almacenamiento por documento
+export const MAX_PROMPT_CHARS = 80000; // Límite del contexto enviado a Gemini (~20k tokens)
 export const QUESTIONS_PER_BATCH = 25;
 
 export const TIMEOUTS = {
