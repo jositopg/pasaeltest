@@ -119,57 +119,63 @@ export default async function handler(req, res) {
       console.log('❌ No encontrado en caché, llamando a Gemini...');
     }
 
-    console.log('🤖 Llamando a Gemini 2.5 Flash...');
+    console.log('🤖 Llamando a Gemini...');
     console.log(`📝 Prompt (primeros 100 chars): ${prompt.substring(0, 100)}...`);
     console.log(`📊 Max Tokens: ${maxTokens}`);
 
-    // 7. Preparar petición a Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
     const requestBody = {
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: maxTokens,
-      }
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: maxTokens },
     };
 
-    // 8. Llamar a Gemini con reintentos ante sobrecarga (503/429)
-    const MAX_RETRIES = 3;
-    const RETRY_DELAYS = [2000, 5000, 10000]; // ms entre reintentos
+    // 7. Intentar con modelos en orden: 2.5 Flash → 1.5 Flash
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const MAX_RETRIES_PER_MODEL = 2;
+    const RETRY_DELAYS = [2000, 5000]; // ms entre reintentos del mismo modelo
 
     let geminiResponse;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const controller = new AbortController();
-      const geminiTimeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    let modelUsed;
 
-      try {
-        geminiResponse = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(geminiTimeout);
+    for (const model of MODELS) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      let modelFailed = false;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES_PER_MODEL; attempt++) {
+        const controller = new AbortController();
+        const geminiTimeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+        try {
+          geminiResponse = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(geminiTimeout);
+        }
+
+        if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < MAX_RETRIES_PER_MODEL) {
+          const delay = RETRY_DELAYS[attempt];
+          console.warn(`⚠️ ${model} ${geminiResponse.status} — reintento ${attempt + 1}/${MAX_RETRIES_PER_MODEL} en ${delay}ms`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        if (geminiResponse.status === 503 || geminiResponse.status === 429) {
+          console.warn(`⚠️ ${model} agotado tras ${MAX_RETRIES_PER_MODEL + 1} intentos — probando modelo alternativo`);
+          modelFailed = true;
+        }
+        break;
       }
 
-      // Reintento solo en 503 (sobrecarga) y 429 (rate limit)
-      if ((geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < MAX_RETRIES) {
-        const delay = RETRY_DELAYS[attempt];
-        console.warn(`⚠️ Gemini ${geminiResponse.status} — reintento ${attempt + 1}/${MAX_RETRIES} en ${delay}ms`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
+      if (!modelFailed) {
+        modelUsed = model;
+        break;
       }
-
-      break; // Éxito o error no recuperable
     }
 
-    // 9. Verificar respuesta
+    // 8. Verificar respuesta final
     if (!geminiResponse.ok) {
       const errorData = await geminiResponse.json();
       console.error('❌ Error de Gemini API:', errorData);
@@ -180,6 +186,8 @@ export default async function handler(req, res) {
         details: errorData
       });
     }
+
+    console.log(`✅ Respuesta de ${modelUsed}`);
 
     // 10. Parsear respuesta
     const data = await geminiResponse.json();
@@ -206,7 +214,7 @@ export default async function handler(req, res) {
         prompt_hash: promptHash,
         prompt: prompt.substring(0, 1000),
         response: claudeFormatResponse,
-        model: 'gemini-2.5-flash',
+        model: modelUsed,
         used_count: 1,
         last_used_at: new Date().toISOString()
       }).then(() => console.log('✅ Guardado en caché')).catch(e => console.warn('⚠️ Cache write failed:', e.message));
@@ -216,7 +224,7 @@ export default async function handler(req, res) {
     const tokensIn  = data.usageMetadata?.promptTokenCount     || 0;
     const tokensOut = data.usageMetadata?.candidatesTokenCount || 0;
     supabase.from('api_usage').insert({
-      call_type: callType, tokens_in: tokensIn, tokens_out: tokensOut, cached: false, model: 'gemini-2.5-flash',
+      call_type: callType, tokens_in: tokensIn, tokens_out: tokensOut, cached: false, model: modelUsed,
     }).then(() => {}).catch(() => {});
 
     console.log(`✅ Respuesta lista | tokens in: ${tokensIn} out: ${tokensOut}`);
