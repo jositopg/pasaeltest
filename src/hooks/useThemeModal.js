@@ -155,9 +155,9 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   return {
     // ── Documentos (desde useDocumentManager) ───────────────
     ...docManager,
-    // Alias para compatibilidad con DocumentSection (espera generationProgress/Percent)
-    generationProgress: docManager.docProgress,
-    generationPercent: docManager.docPercent,
+    // Alias para DocumentSection: doc processing tiene prioridad, si no hay usa el de generación de preguntas
+    generationProgress: docManager.docProgress || qGen.qGenerationProgress,
+    generationPercent: docManager.docPercent || qGen.qGenerationPercent,
 
     // ── Preguntas ────────────────────────────────────────────
     isGeneratingQuestions,

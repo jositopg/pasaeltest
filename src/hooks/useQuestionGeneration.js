@@ -8,7 +8,7 @@ import { authHelpers } from '../supabaseClient';
 // Preguntas por chunk cuando hay múltiples partes (para no generar demasiadas)
 const QUESTIONS_PER_CHUNK = 15;
 
-const CLIENT_RETRY_DELAYS = [20, 40]; // segundos entre reintentos del cliente
+const CLIENT_RETRY_DELAYS = [8, 15]; // segundos entre reintentos del cliente
 
 export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
@@ -238,7 +238,8 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
       console.error('Error generando preguntas:', error);
       setIsGeneratingQuestions(false); setGenerationProgress(''); setGenerationPercent(0);
       let errorMsg = error.message;
-      if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
+      if (errorMsg.includes('503')) errorMsg = 'Gemini saturado en este momento. Espera unos minutos e inténtalo de nuevo.';
+      else if (errorMsg.includes('fetch')) errorMsg = 'Error de conexión. Verifica tu internet.';
       else if (errorMsg.includes('JSON')) errorMsg = 'Error procesando respuesta. Intenta de nuevo.';
       if (showToast) showToast(`❌ ${errorMsg}`, 'error');
     }

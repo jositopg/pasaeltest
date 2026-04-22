@@ -139,6 +139,24 @@ export default function DocumentSection({
         </div>
       )}
 
+      {/* Progreso de generación de preguntas — visible aunque el panel de añadir doc esté cerrado */}
+      {isGeneratingQuestions && generationProgress && (
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 space-y-2 mb-3">
+          <div className="flex items-center justify-between">
+            <p className="text-blue-400 text-sm font-medium">{generationProgress}</p>
+            <span className="text-blue-300 text-sm font-bold tabular-nums">
+              {generationPercent > 0 ? `${generationPercent}%` : '…'}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${Math.max(generationPercent, 3)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Lista de documentos */}
       <div className="space-y-2">
         {theme.documents?.length > 0 ? (
@@ -177,9 +195,11 @@ export default function DocumentSection({
                     onClick={() => onGenerateFromDoc([doc])}
                     disabled={isGeneratingQuestions}
                     title="Generar preguntas solo desde este material"
-                    className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                    className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center w-8 h-8"
                   >
-                    ⚡
+                    {isGeneratingQuestions
+                      ? <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                      : '⚡'}
                   </button>
                   <button
                     onClick={() => onDeleteDoc(idx, doc)}
