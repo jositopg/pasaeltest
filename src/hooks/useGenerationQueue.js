@@ -58,7 +58,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
 
       // Fallback: si no se parsearon preguntas, hacer segunda llamada con el material como contexto
       if (newQuestions.length === 0) {
-        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent.substring(0, 15000), '');
+        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent, '');
         const fallbackToken = await authHelpers.getAccessToken();
         const fallbackRes = await fetch('/api/generate-gemini', {
           method: 'POST',
@@ -128,7 +128,7 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       }
 
       const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingTexts.join('\n'));
+      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents, existingTexts.join('\n'));
 
       const response = await fetch('/api/generate-gemini', {
         method: 'POST',

@@ -44,15 +44,15 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
       const topSection = significantSections[0];
       const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
       const questionTypes = determineQuestionTypes(topSection);
-      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, 50000), existingQuestionsStr, questionTypes);
+      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents, existingQuestionsStr, questionTypes);
     } else {
-      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 50000), existingQuestionsStr, coverageInstruction);
+      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents, existingQuestionsStr, coverageInstruction);
     }
     const token = await authHelpers.getAccessToken();
     const response = await fetch('/api/generate-gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' }),
+      body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 12000, callType: 'questions' }),
     });
     if (!response.ok) {
       const errorText = await response.text();
