@@ -129,6 +129,32 @@ export function buildDocumentContents(docs) {
 }
 
 /**
+ * Divide texto largo en chunks de chunkSize chars, intentando cortar en párrafos.
+ * Si el texto cabe en un chunk, devuelve un array de un solo elemento.
+ */
+export function splitIntoChunks(text, chunkSize) {
+  if (text.length <= chunkSize) return [text];
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + chunkSize, text.length);
+    if (end < text.length) {
+      const lastPara = text.lastIndexOf('\n\n', end);
+      if (lastPara > start + chunkSize * 0.7) {
+        end = lastPara;
+      } else {
+        const lastLine = text.lastIndexOf('\n', end);
+        if (lastLine > start + chunkSize * 0.8) end = lastLine;
+      }
+    }
+    const chunk = text.substring(start, end).trim();
+    if (chunk.length > 0) chunks.push(chunk);
+    start = end;
+  }
+  return chunks;
+}
+
+/**
  * Filtra preguntas duplicadas respecto a un array de textos existentes.
  * Usa comparación exacta + similitud de palabras (>80%).
  */

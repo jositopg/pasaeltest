@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { OPTIMIZED_QUESTION_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
 import { QUESTIONS_PER_BATCH, MAX_PROMPT_CHARS } from '../utils/constants';
-import { buildContent, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, parseCombinedResponse } from '../utils/geminiHelpers';
+import { buildContent, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, parseCombinedResponse, splitIntoChunks } from '../utils/geminiHelpers';
 import { authHelpers } from '../supabaseClient';
 
 /**
@@ -127,25 +127,36 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
         throw new Error(reason);
       }
 
-      const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, MAX_PROMPT_CHARS), existingTexts.join('\n'));
+      const chunks = splitIntoChunks(documentContents, MAX_PROMPT_CHARS);
+      const numQPerChunk = chunks.length === 1 ? QUESTIONS_PER_BATCH : 15;
 
-      const response = await fetch('/api/generate-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
-        body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 8000, callType: 'questions' }),
-      });
-      if (!response.ok) throw new Error(`API ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let textContent = '';
-      for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
+      let accumulatedTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
+      let allNewQuestions = [];
 
-      const parsed = parseQuestionsResponse(textContent);
-      if (!parsed.length) throw new Error('La IA no devolvió JSON válido');
+      for (let i = 0; i < chunks.length; i++) {
+        const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, numQPerChunk, chunks[i], accumulatedTexts.join('\n'));
+        const response = await fetch('/api/generate-gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeader },
+          body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 12000, callType: 'questions' }),
+        });
+        if (!response.ok) {
+          if (chunks.length === 1) throw new Error(`API ${response.status}`);
+          continue; // chunk no crítico: sigue con el siguiente
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.content)) continue;
+        let textContent = '';
+        for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
+        const parsed = parseQuestionsResponse(textContent);
+        if (!parsed.length) continue;
+        const raw = mapRawQuestions(parsed, theme.number);
+        const newForChunk = deduplicateQuestions(raw, accumulatedTexts);
+        allNewQuestions = [...allNewQuestions, ...newForChunk];
+        accumulatedTexts = [...accumulatedTexts, ...newForChunk.map(q => q.text.toLowerCase().trim())];
+      }
 
-      const rawQuestions = mapRawQuestions(parsed, theme.number);
-      const newQuestions = deduplicateQuestions(rawQuestions, existingTexts);
+      const newQuestions = allNewQuestions;
       if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas son duplicadas');
 
       const finalTheme = themesRef.current.find(t => t.number === theme.number) || latestTheme;
