@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { extractPDFText } from '../utils/questionImporter';
 import { authHelpers } from '../supabaseClient';
+import { MAX_CHARS } from '../utils/constants';
 
 export default function useDocumentManager({ theme, onUpdate, showToast }) {
   const [showAddDoc, setShowAddDoc] = useState(false);
@@ -31,13 +32,10 @@ export default function useDocumentManager({ theme, onUpdate, showToast }) {
           reader.readAsText(file);
         });
       }
-      const trimmed = textContent.substring(0, 50000);
+      const trimmed = textContent.substring(0, MAX_CHARS);
       if (trimmed.trim().length < 100) throw new Error('El archivo tiene muy poco contenido de texto');
-      if (textContent.length > 35000) {
-        showToast?.(`Archivo truncado a 35.000 caracteres (era ${Math.round(textContent.length / 1000)}k)`, 'warning');
-      }
       setProgress('💾 Guardando documento...');
-      const newDoc = { type: 'pdf', fileName: file.name, content: trimmed.substring(0, 35000), processedContent: trimmed.substring(0, 35000), addedAt: new Date().toISOString() };
+      const newDoc = { type: 'pdf', fileName: file.name, content: trimmed, processedContent: trimmed, addedAt: new Date().toISOString() };
       onUpdate({ ...theme, documents: [...(theme.documents || []), newDoc] });
       setProgress('✅ ¡Archivo guardado!');
       setTimeout(() => { setIsSearching(false); setProgress(''); setShowAddDoc(false); }, 1500);
