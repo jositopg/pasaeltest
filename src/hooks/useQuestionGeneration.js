@@ -44,9 +44,9 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
       const topSection = significantSections[0];
       const sectionMeta = { index: 0, total: significantSections.length, title: topSection.title, type: topSection.type, level: topSection.level };
       const questionTypes = determineQuestionTypes(topSection);
-      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingQuestionsStr, questionTypes);
+      prompt = OPTIMIZED_PHASE2_PROMPT(theme.name, sectionMeta, QUESTIONS_PER_BATCH, documentContents.substring(0, 50000), existingQuestionsStr, questionTypes);
     } else {
-      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 15000), existingQuestionsStr, coverageInstruction);
+      prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, documentContents.substring(0, 50000), existingQuestionsStr, coverageInstruction);
     }
     const token = await authHelpers.getAccessToken();
     const response = await fetch('/api/generate-gemini', {

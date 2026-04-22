@@ -60,7 +60,7 @@ export const GRADIENT_STYLE = {
 
 export const GRADIENT_BG = 'linear-gradient(135deg, #2563EB, #7C3AED)';
 
-export const MAX_CHARS = 100000;
+export const MAX_CHARS = 200000;
 export const QUESTIONS_PER_BATCH = 25;
 
 export const TIMEOUTS = {
