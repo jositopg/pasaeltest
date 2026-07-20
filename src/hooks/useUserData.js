@@ -424,28 +424,15 @@ const useUserData = (isAuthenticated, currentUser, showToast) => {
     setLoading(false);
   };
 
-  const stats = {
-    totalExams: examHistory.length,
-    totalQuestions: examHistory.reduce((s, e) => s + (e.numQuestions || 0), 0),
-    avgScore: examHistory.length > 0
-      ? Math.round(examHistory.reduce((s, e) => s + parseFloat(e.percentage), 0) / examHistory.length)
-      : 0,
-    themesCompleted: themes.filter(t => t.questions?.length > 0).length
-  };
-
   return {
     themes,
-    setThemes,
     examHistory,
-    setExamHistory,
     profile,
     setProfile,
     loading,
-    setLoading,
     updateTheme,
     saveExamResult,
     resetData,
-    stats,
     tests,
     activeTestId,
     createTest,

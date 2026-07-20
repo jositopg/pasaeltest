@@ -168,11 +168,6 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
     // Progress de generación de preguntas (separado del de docs)
     qGenerationProgress,
     qGenerationPercent,
-    // Preview (desde useQuestionGeneration)
-    pendingQuestions: qGen.pendingQuestions,
-    pendingDuplicates: qGen.pendingDuplicates,
-    confirmPendingQuestions: qGen.confirmPendingQuestions,
-    discardPendingQuestions: qGen.discardPendingQuestions,
     // Confirmaciones
     deleteQuestionsConfirm,
     // Handlers

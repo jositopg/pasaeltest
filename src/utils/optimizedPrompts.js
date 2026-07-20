@@ -62,22 +62,6 @@ JSON (exactamente ${numQuestions} elementos):
 [{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"1 frase breve"}]`;
 
 /**
- * PROMPT DE BÚSQUEDA ORIGINAL: ~800 tokens
- * PROMPT OPTIMIZADO: ~200 tokens
- * AHORRO: 75%
- */
-
-export const OPTIMIZED_SEARCH_PROMPT = (query, themeName) => `Proporciona información completa sobre: "${query}" relacionado con "${themeName}".
-
-Formato estructurado con:
-- Conceptos clave
-- Definiciones
-- Artículos relevantes
-- Datos importantes
-
-Extenso y detallado.`;
-
-/**
  * PROMPT AUTO-GENERACIÓN ORIGINAL: ~900 tokens
  * PROMPT OPTIMIZADO: ~250 tokens
  * AHORRO: 72%
@@ -128,28 +112,6 @@ Desarrolla cada sección con información real, precisa y verificable. El objeti
  * Este formato evita problemas de escape en JSON anidado.
  */
 
-export const COMBINED_SEARCH_AND_QUESTIONS_PROMPT = (query, themeName, numQuestions = 25) => `Sobre "${query}" en el contexto de "${themeName}":
-
-PARTE 1 — Material de estudio extenso (mínimo 800 palabras):
-- Conceptos clave y definiciones
-- Artículos de ley, fechas y datos exactos relevantes
-- Procedimientos y plazos
-- Datos y cifras concretas
-
-PARTE 2 — ${numQuestions} preguntas tipo test basadas en ese material:
-- Datos exactos del contenido (artículos, fechas, números)
-- Opciones plausibles, no absurdas
-- 30% fácil, 50% media, 20% difícil
-- Explicación breve por pregunta
-
-Responde con este formato EXACTO (sin texto antes ni después):
-MATERIAL_START
-[material de estudio aquí]
-MATERIAL_END
-QUESTIONS_START
-[{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"frase breve"}]
-QUESTIONS_END`;
-
 export const COMBINED_AUTO_AND_QUESTIONS_PROMPT = (themeName, numQuestions = 25) => `Eres experto en preparación de exámenes en España. Para el tema "${themeName}":
 
 PARTE 1 — Repositorio de estudio COMPLETO (mínimo 1500 palabras). Desarrolla con al menos 200 palabras cada sección:
@@ -171,46 +133,3 @@ QUESTIONS_START
 [{"pregunta":"...","opciones":["A","B","C"],"correcta":0,"dificultad":"media","explicacion":"frase breve"}]
 QUESTIONS_END`;
 
-/**
- * COMPARACIÓN DE AHORRO
- */
-
-export const TOKEN_SAVINGS = {
-  questionGeneration: {
-    before: 2500,
-    after: 800,
-    savings: '68%'
-  },
-  phase2Generation: {
-    before: 3000,
-    after: 900,
-    savings: '70%'
-  },
-  search: {
-    before: 800,
-    after: 200,
-    savings: '75%'
-  },
-  autoGenerate: {
-    before: 900,
-    after: 250,
-    savings: '72%'
-  },
-  total: {
-    averageSavings: '71%',
-    dailyCapacityIncrease: '~2,500 búsquedas adicionales'
-  }
-};
-
-/**
- * INSTRUCCIONES DE USO:
- * 
- * 1. Importar en App.jsx:
- *    import { OPTIMIZED_QUESTION_PROMPT, OPTIMIZED_PHASE2_PROMPT } from './utils/optimizedPrompts';
- * 
- * 2. Reemplazar prompts largos por funciones optimizadas
- * 
- * 3. Mantener maxTokens en 8000 para respuestas (no cambiar)
- * 
- * 4. La IA generará la MISMA calidad con menos tokens de entrada
- */

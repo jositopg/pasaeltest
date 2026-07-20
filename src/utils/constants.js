@@ -48,19 +48,6 @@ export function toSlug(str) {
 // Para mostrar en la UI (con tildes). Para guardar en DB usar normalizeDifficulty() (sin tildes).
 export const DIFFICULTY_LEVELS = ['fácil', 'media', 'difícil'];
 
-export const DOC_TYPES = [
-  { value: 'url', label: '🔗 URL / Enlace web' },
-  { value: 'paste-text', label: '📋 Pegar texto' },
-  { value: 'upload-file', label: '📎 Subir archivo (PDF/Word)' },
-  { value: 'ai-search', label: '🤖 Búsqueda con IA' },
-];
-
-export const GRADIENT_STYLE = {
-  background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-};
-
 export const GRADIENT_BG = 'linear-gradient(135deg, #2563EB, #7C3AED)';
 
 export const MAX_CHARS = 200000;       // Límite de almacenamiento por documento

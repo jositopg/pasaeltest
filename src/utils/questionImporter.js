@@ -217,38 +217,6 @@ export const extractPDFText = async (file) => {
 };
 
 /**
- * Validar formato de pregunta
- */
-export const validateQuestion = (question) => {
-  const errors = [];
-  
-  if (!question.text || question.text.trim().length < 10) {
-    errors.push('La pregunta debe tener al menos 10 caracteres');
-  }
-  
-  if (!question.options || question.options.length !== 3) {
-    errors.push('Deben haber exactamente 3 opciones');
-  }
-  
-  if (question.options) {
-    question.options.forEach((opt, i) => {
-      if (!opt || opt.trim().length < 2) {
-        errors.push(`Opción ${String.fromCharCode(65 + i)} demasiado corta`);
-      }
-    });
-  }
-  
-  if (question.correct === undefined || question.correct < 0 || question.correct > 2) {
-    errors.push('Respuesta correcta debe ser 0, 1 o 2');
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-};
-
-/**
  * Generar plantilla de Excel
  */
 export const generateExcelTemplate = () => {

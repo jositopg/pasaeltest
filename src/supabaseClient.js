@@ -48,11 +48,6 @@ export const authHelpers = {
     return { error }
   },
 
-  async getUser() {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    return { user, error }
-  },
-
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange(callback)
   },
@@ -66,35 +61,6 @@ export const authHelpers = {
 // Database helpers
 export const dbHelpers = {
   // Temas
-  async getThemes(userId) {
-    const { data, error } = await supabase
-      .from('themes')
-      .select('*, documents(*), questions(*)')
-      .eq('user_id', userId)
-      .order('number', { ascending: true })
-    return { data, error }
-  },
-
-  async createTheme(userId, themeData) {
-    const { data, error } = await supabase
-      .from('themes')
-      .insert({
-        user_id: userId,
-        ...themeData
-      })
-      .select()
-      .single()
-    return { data, error }
-  },
-
-  async createThemesBatch(userId, themesData) {
-    const { data, error } = await supabase
-      .from('themes')
-      .insert(themesData.map(t => ({ user_id: userId, number: t.number, name: t.name })))
-      .select()
-    return { data, error }
-  },
-
   async updateTheme(themeId, updates) {
     const { data, error } = await supabase
       .from('themes')
@@ -103,14 +69,6 @@ export const dbHelpers = {
       .select()
       .single()
     return { data, error }
-  },
-
-  async deleteTheme(themeId) {
-    const { error } = await supabase
-      .from('themes')
-      .delete()
-      .eq('id', themeId)
-    return { error }
   },
 
   // Documentos
@@ -149,16 +107,6 @@ export const dbHelpers = {
         }))
       )
       .select()
-    return { data, error }
-  },
-
-  async updateQuestion(questionId, updates) {
-    const { data, error } = await supabase
-      .from('questions')
-      .update(updates)
-      .eq('id', questionId)
-      .select()
-      .single()
     return { data, error }
   },
 

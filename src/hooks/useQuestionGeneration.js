@@ -14,8 +14,6 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
   const [generationPercent, setGenerationPercent] = useState(0);
-  const [pendingQuestions, setPendingQuestions] = useState(null);
-  const [pendingDuplicates, setPendingDuplicates] = useState(0);
 
   // ─── Normalizar y deduplicar preguntas crudas ──────────────
   const onQuestionsReady = (rawPreguntas, baseTheme = null) => {
@@ -245,34 +243,11 @@ export default function useQuestionGeneration({ theme, onUpdate, showToast }) {
     }
   };
 
-  // ─── Confirmar / descartar preguntas pendientes ──────────
-  const confirmPendingQuestions = (selectedIndices) => {
-    const toSave = selectedIndices !== null
-      ? pendingQuestions.filter((_, i) => selectedIndices.has(i))
-      : pendingQuestions;
-    onUpdate({
-      ...theme,
-      questions: [...(Array.isArray(theme.questions) ? theme.questions : []), ...toSave],
-      lastGenerated: new Date().toISOString(),
-    });
-    if (showToast) showToast(`✅ ${toSave.length} pregunta${toSave.length !== 1 ? 's' : ''} guardada${toSave.length !== 1 ? 's' : ''}`, 'success');
-    setPendingQuestions(null);
-    setPendingDuplicates(0);
-  };
-
-  const discardPendingQuestions = () => {
-    setPendingQuestions(null);
-    setPendingDuplicates(0);
-    if (showToast) showToast('Preguntas descartadas', 'info');
-  };
-
   return {
     isGeneratingQuestions,
     qGenerationProgress: generationProgress,
     qGenerationPercent: generationPercent,
-    pendingQuestions, pendingDuplicates,
     onQuestionsReady,
     generateQuestionsFromDocuments,
-    confirmPendingQuestions, discardPendingQuestions,
   };
 }
