@@ -9,8 +9,6 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
     oposicion: user?.oposicion || profile?.examName || '',
   });
 
-  const isAcademy = user?.role === 'academy';
-
   const handleSave = async () => {
     const updatedProfile = { ...profile, name: formData.name, examName: formData.oposicion };
     onUpdateProfile(updatedProfile);
@@ -39,15 +37,11 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
           {/* Avatar + rol */}
           <div className="flex flex-col items-center gap-2">
             <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-3xl font-bold text-white">
-              {isAcademy ? '🎓' : user?.name?.charAt(0).toUpperCase()}
+              {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                isAcademy
-                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                  : 'bg-gray-500/20 text-gray-400'
-              }`}>
-                {isAcademy ? '🎓 Academia' : 'Estudiante'}
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-500/20 text-gray-400">
+                Estudiante
               </span>
             </div>
           </div>
@@ -78,34 +72,24 @@ function UserProfileModal({ user, profile, onClose, onLogout, onUpdateProfile })
               <p className="text-white font-medium">{user?.email}</p>
             </div>
 
-            {/* Campo específico por rol */}
-            {isAcademy ? (
-              <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-3">
-                <p className="text-blue-300 text-xs font-semibold uppercase tracking-wide mb-0.5">Tipo de cuenta</p>
-                <p className="text-blue-100 text-sm">Academia / Centro formativo</p>
-                <p className="text-blue-400/70 text-xs mt-1">
-                  Puedes crear planes de estudio y compartirlos con tus alumnos
-                </p>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-gray-400 text-xs mb-1">¿Qué estudias?</label>
-                {editing ? (
-                  <input
-                    id="profile-oposicion"
-                    name="oposicion"
-                    type="text"
-                    autoComplete="off"
-                    value={formData.oposicion}
-                    onChange={(e) => setFormData({ ...formData, oposicion: e.target.value })}
-                    placeholder="Ej: Inglés B2, Historia, Anatomía..."
-                    className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 outline-none placeholder-gray-600"
-                  />
-                ) : (
-                  <p className="text-white font-medium">{user?.oposicion || profile?.examName || '—'}</p>
-                )}
-              </div>
-            )}
+            {/* ¿Qué estudias? */}
+            <div>
+              <label className="block text-gray-400 text-xs mb-1">¿Qué estudias?</label>
+              {editing ? (
+                <input
+                  id="profile-oposicion"
+                  name="oposicion"
+                  type="text"
+                  autoComplete="off"
+                  value={formData.oposicion}
+                  onChange={(e) => setFormData({ ...formData, oposicion: e.target.value })}
+                  placeholder="Ej: Inglés B2, Historia, Anatomía..."
+                  className="w-full bg-white/5 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-blue-500 outline-none placeholder-gray-600"
+                />
+              ) : (
+                <p className="text-white font-medium">{user?.oposicion || profile?.examName || '—'}</p>
+              )}
+            </div>
 
             {/* Miembro desde */}
             <div>

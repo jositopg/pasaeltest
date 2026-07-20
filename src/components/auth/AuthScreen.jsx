@@ -3,7 +3,7 @@ import { authHelpers } from '../../supabaseClient';
 
 function AuthScreen({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ email: '', password: '', name: '', role: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', name: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pendingEmail, setPendingEmail] = useState(null); // email confirmation state
@@ -23,12 +23,6 @@ function AuthScreen({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (!isLogin && !formData.role) {
-      setError('Selecciona si eres academia/profesor o alumno.');
-      return;
-    }
-
     setLoading(true);
     const timeout = setTimeout(() => {
       setLoading(false);
@@ -66,7 +60,7 @@ function AuthScreen({ onLogin }) {
         const { data, error } = await authHelpers.signUp(
           formData.email,
           formData.password,
-          { name: formData.name, role: formData.role }
+          { name: formData.name }
         );
         clearTimeout(timeout);
 
@@ -91,7 +85,6 @@ function AuthScreen({ onLogin }) {
           id: data.user.id,
           email: data.user.email,
           name: formData.name,
-          role: formData.role,
           createdAt: data.user.created_at,
           subscription: 'free',
           isGuest: false,
@@ -192,38 +185,6 @@ function AuthScreen({ onLogin }) {
                 placeholder="Tu nombre o nombre de la academia"
                 autoComplete="name"
                 className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
-            </div>
-          )}
-
-          {/* Selector de rol (solo registro) */}
-          {!isLogin && (
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 block">
-                ¿Cómo vas a usar PasaElTest?
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'academy', icon: '🎓', title: 'Academia', subtitle: 'o Profesor' },
-                  { value: 'student', icon: '📖', title: 'Estudiante', subtitle: 'Por mi cuenta o con academia' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: opt.value })}
-                    className={`flex flex-col items-center gap-1.5 py-4 rounded-xl border text-center transition-all ${
-                      formData.role === opt.value
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-[#334155] bg-[#1E293B] hover:border-slate-500'
-                    }`}
-                  >
-                    <span className="text-2xl">{opt.icon}</span>
-                    <span className={`text-sm font-bold ${formData.role === opt.value ? 'text-blue-400' : 'text-slate-300'}`}>
-                      {opt.title}
-                    </span>
-                    <span className="text-[10px] text-slate-500">{opt.subtitle}</span>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 

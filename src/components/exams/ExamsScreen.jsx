@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { authFetch } from '../../supabaseClient';
-import { toSlug } from '../../utils/constants';
+import { toSlug, SHARING_ENABLED } from '../../utils/constants';
 const EMOJI_OPTIONS = [
   '📋','📚','📖','📝','🎓','🏫','⚖️','🚔','🏥','✈️',
   '🔬','💉','🌍','🇪🇸','📐','🧮','💻','🎯','🏆','⭐',
@@ -44,7 +44,7 @@ function ExamsScreen({
   showToast,
 }) {
   const { dm, cx } = useTheme();
-  const isAcademy = currentUser?.role === 'academy' || currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin';
+  const isAcademy = SHARING_ENABLED && (currentUser?.role === 'academy' || currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin');
 
   const [creating, setCreating] = useState(false);
   const [plansStats, setPlansStats] = useState({}); // testId → { clones, totalQuestions }
@@ -285,8 +285,8 @@ return (
                       className={`p-2 rounded-lg text-sm transition-colors ${dm ? 'text-slate-400 hover:bg-blue-500/15 hover:text-blue-300' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
                       title="Renombrar"
                     >✏</button>
-                    {/* Compartir: visible para todos salvo en tests clonados de otro */}
-                    {!test.cloned_from && (
+                    {/* Compartir: solo si SHARING_ENABLED, y no en tests clonados de otro */}
+                    {SHARING_ENABLED && !test.cloned_from && (
                       <button
                         onClick={e => { e.stopPropagation(); openShareModal(test); }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${dm ? 'text-slate-400 hover:bg-green-500/15 hover:text-green-300' : 'text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
@@ -325,7 +325,7 @@ return (
             <p className={`text-xs mt-1 ${dm ? 'text-gray-600' : 'text-slate-400'}`}>
               {isAcademy
                 ? 'Añade temas, genera preguntas con IA y compártelo con tus alumnos'
-                : 'Crea un plan propio o únete al de tu academia con un enlace'}
+                : 'Crea un plan, sube tus apuntes y genera preguntas con IA'}
             </p>
           </div>
         )}
@@ -338,7 +338,7 @@ return (
         <div className="fixed inset-0 z-10" onClick={() => setEmojiPickerForId(null)} />
       )}
 
-      {shareModal && (
+      {SHARING_ENABLED && shareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-sm rounded-3xl p-6 space-y-4 border ${dm ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-200 shadow-2xl'}`}>
 

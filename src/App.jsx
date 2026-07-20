@@ -14,6 +14,7 @@ import { ThemeProvider } from './context/ThemeContext';
 // Utils
 import { getSRSStats } from './utils/srs';
 import { exportData, importData } from './utils/exportImport';
+import { SHARING_ENABLED } from './utils/constants';
 
 // Common components
 import ToastContainer from './components/common/ToastContainer';
@@ -40,12 +41,12 @@ export default function App() {
 
   // ─── Public exam via ?exam=slug (sin login requerido) ─────────
   const [examSlug] = useState(() =>
-    new URLSearchParams(window.location.search).get('exam') || null
+    SHARING_ENABLED ? (new URLSearchParams(window.location.search).get('exam') || null) : null
   );
 
   // ─── Join plan via ?join=slug OR manual code from HomeScreen ──
   const [joinSlug, setJoinSlug] = useState(() =>
-    new URLSearchParams(window.location.search).get('join') || null
+    SHARING_ENABLED ? (new URLSearchParams(window.location.search).get('join') || null) : null
   );
   useEffect(() => {
     if (joinSlug || examSlug) window.history.replaceState({}, '', '/');
@@ -85,7 +86,7 @@ export default function App() {
   const currentUserWithRole = auth.currentUser
     ? { ...auth.currentUser, role: auth.currentUser.role || auth.currentUser.user_metadata?.role }
     : null;
-  const isAcademy = ['academy', 'org_admin', 'super_admin'].includes(currentUserWithRole?.role);
+  const isAcademy = SHARING_ENABLED && ['academy', 'org_admin', 'super_admin'].includes(currentUserWithRole?.role);
 
   // ─── Auth handlers ─────────────────────────────────────────
   const handleOnboardingComplete = (newProfile, updatedUser) => {

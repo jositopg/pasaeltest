@@ -9,6 +9,9 @@ export const DEBUG = false;
 
 export const APP_NAME = 'PasaElTest';
 
+// Uso personal por ahora — pon a true para reactivar academias/planes públicos/compartir
+export const SHARING_ENABLED = false;
+
 export const DEFAULT_PROFILE = {
   name: 'Usuario',
   examName: 'Mi Plan',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
 import GlobalSearch from './GlobalSearch';
+import { SHARING_ENABLED } from '../../utils/constants';
 
 // ─── Vista Academia ────────────────────────────────────────────────────────────
 function AcademyHome({ user, tests, themes, activeTestId, onNavigate, onSwitchTest, srsStats, cx, dm }) {
@@ -166,30 +167,34 @@ function StudentHome({ user, tests, themes, activeTestId, onNavigate, onShowProf
           </div>
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
-          <span className={`text-xs ${cx.muted}`}>o tengo un enlace de academia</span>
-          <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
-        </div>
+        {SHARING_ENABLED && (
+          <>
+            <div className="flex items-center gap-3">
+              <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
+              <span className={`text-xs ${cx.muted}`}>o tengo un enlace de academia</span>
+              <div className={`flex-1 h-px ${dm ? 'bg-white/10' : 'bg-slate-200'}`} />
+            </div>
 
-        {/* UNIRSE CON CÓDIGO */}
-        <form onSubmit={handleCodeSubmit} className="flex gap-2 animate-fade-in-up stagger-3">
-          <input
-            type="text"
-            value={code}
-            onChange={e => setCode(e.target.value)}
-            placeholder="Código de tu academia"
-            className={`flex-1 rounded-xl px-4 py-3 text-sm outline-none transition-all ${cx.input}`}
-          />
-          <button
-            type="submit"
-            disabled={!code.trim()}
-            className="px-4 py-3 rounded-xl text-white font-bold text-sm disabled:opacity-40 transition-all active:scale-[0.98] shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
-          >
-            Unirme
-          </button>
-        </form>
+            {/* UNIRSE CON CÓDIGO */}
+            <form onSubmit={handleCodeSubmit} className="flex gap-2 animate-fade-in-up stagger-3">
+              <input
+                type="text"
+                value={code}
+                onChange={e => setCode(e.target.value)}
+                placeholder="Código de tu academia"
+                className={`flex-1 rounded-xl px-4 py-3 text-sm outline-none transition-all ${cx.input}`}
+              />
+              <button
+                type="submit"
+                disabled={!code.trim()}
+                className="px-4 py-3 rounded-xl text-white font-bold text-sm disabled:opacity-40 transition-all active:scale-[0.98] shrink-0"
+                style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }}
+              >
+                Unirme
+              </button>
+            </form>
+          </>
+        )}
       </>
     );
   }
@@ -343,7 +348,7 @@ function HomeScreen({
   onJoinWithCode,
 }) {
   const { dm, cx } = useTheme();
-  const isAcademy = user?.role === 'academy';
+  const isAcademy = SHARING_ENABLED && user?.role === 'academy';
   const [showSearch, setShowSearch] = useState(false);
 
   return (

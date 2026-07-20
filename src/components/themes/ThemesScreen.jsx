@@ -8,7 +8,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { analyzeDocument } from '../../utils/documentAnalyzer';
 import { useTheme } from '../../context/ThemeContext';
 import { authFetch } from '../../supabaseClient';
-import { toSlug } from '../../utils/constants';
+import { toSlug, SHARING_ENABLED } from '../../utils/constants';
 
 // ─── ThemeListItem ────────────────────────────────────────────────────────────
 function ThemeListItem({
@@ -310,7 +310,7 @@ function ThemesScreen({
   // Confirmación bulk generation
   const [generateConfirm, setGenerateConfirm] = useState(false);
 
-  const isAdmin = currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'academy';
+  const isAdmin = SHARING_ENABLED && (currentUser?.role === 'org_admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'academy');
 
   // ─── Share modal (admin only) ──────────────────────────────
   const [shareModal, setShareModal] = useState(null); // null | { loading } | { published, slug } | { form } | { error }

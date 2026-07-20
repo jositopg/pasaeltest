@@ -1,33 +1,5 @@
 import React, { useState } from 'react';
 
-const STEPS_ACADEMY = [
-  {
-    icon: '🎓',
-    title: '¡Bienvenido, academia!',
-    description: 'Con PasaElTest puedes crear planes de estudio con preguntas tipo test y compartirlos con tus alumnos en segundos.',
-  },
-  {
-    icon: '📋',
-    title: 'Crea tu plan de estudio',
-    description: 'Un plan agrupa todos los temas de tu curso. La IA genera preguntas a partir de tus apuntes, PDFs o enlaces.',
-    points: [
-      '📄 Sube PDFs, pega texto o añade URLs',
-      '🤖 La IA crea las preguntas por ti',
-      '♾️ Tantos temas como necesites',
-    ],
-  },
-  {
-    icon: '🔗',
-    title: 'Comparte con tus alumnos',
-    description: 'Genera un enlace de invitación para tu plan. Tus alumnos se registran y acceden directamente a tu contenido.',
-    points: [
-      '📨 Un enlace único por plan',
-      '👥 Tus alumnos lo usan desde su móvil',
-      '🔒 Solo acceden al contenido que tú creas',
-    ],
-  },
-];
-
 const STEPS_STUDENT = [
   {
     icon: '👋',
@@ -37,9 +9,9 @@ const STEPS_STUDENT = [
   {
     icon: '🎯',
     title: 'Estudia a tu manera',
-    description: 'Tienes dos opciones: unirte al plan de tu academia o crear el tuyo propio con tus apuntes.',
+    description: 'Crea tu plan de estudio con tus propios apuntes.',
     points: [
-      '🔗 Enlace de academia → acceso directo al temario',
+      '📄 Sube PDFs, pega texto o añade URLs',
       '✏️ O crea tu propio plan desde cero',
       '🤖 La IA genera preguntas en segundos',
     ],
@@ -59,8 +31,7 @@ const STEPS_STUDENT = [
 function OnboardingScreen({ user, onComplete }) {
   const [step, setStep] = useState(0);
 
-  const isAcademy = user?.role === 'academy' || user?.user_metadata?.role === 'academy';
-  const steps = isAcademy ? STEPS_ACADEMY : STEPS_STUDENT;
+  const steps = STEPS_STUDENT;
 
   const handleComplete = () => {
     onComplete({

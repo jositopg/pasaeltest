@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icons from '../common/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import { SHARING_ENABLED } from '../../utils/constants';
 
 function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpdateProfile, user, onExportData, onImportData, isClonedTest }) {
   const { dm, cx } = useTheme();
@@ -281,7 +282,7 @@ function SettingsScreen({ onNavigate, onToggleDark, profile: profileProp, onUpda
         </div>
 
         {/* ADMIN (solo visible para el administrador) */}
-        {(user?.role === 'org_admin' || user?.role === 'super_admin') && (
+        {SHARING_ENABLED && (user?.role === 'org_admin' || user?.role === 'super_admin') && (
           <button
             onClick={() => onNavigate('admin')}
             className={`w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all
