@@ -9,7 +9,7 @@ export default function useThemeModal({ theme, onUpdate, showToast }) {
   const qGen = useQuestionGeneration({ theme, onUpdate, showToast });
 
   // ─── Documentos (delegado a useDocumentManager) ──────────
-  const docManager = useDocumentManager({ theme, onUpdate, showToast, onQuestionsReady: qGen.onQuestionsReady });
+  const docManager = useDocumentManager({ theme, onUpdate, showToast });
 
   // ─── Estado preguntas ────────────────────────────────────
   const [showAddQuestion, setShowAddQuestion] = useState(false);

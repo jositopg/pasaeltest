@@ -1,11 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
-import { OPTIMIZED_QUESTION_PROMPT, COMBINED_AUTO_AND_QUESTIONS_PROMPT } from '../utils/optimizedPrompts';
-import { QUESTIONS_PER_BATCH, MAX_PROMPT_CHARS } from '../utils/constants';
-import { buildContent, parseQuestionsResponse, mapRawQuestions, deduplicateQuestions, parseCombinedResponse, splitIntoChunks } from '../utils/geminiHelpers';
-import { authHelpers } from '../supabaseClient';
+import { generateCombined, generateFromDocuments } from '../utils/questionGenerator';
 
 /**
  * Persistent generation queue — lives in App.jsx so navigation doesn't kill ongoing jobs.
+ * Delega la generación real a utils/questionGenerator.js (compartido con useQuestionGeneration).
  */
 export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast }) {
   const [generatingQuestions, setGeneratingQuestions] = useState({});
@@ -24,60 +22,8 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
     setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'loading' }));
 
     try {
-      const token = await authHelpers.getAccessToken();
-      const response = await fetch('/api/generate-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) },
-        body: JSON.stringify({ prompt: COMBINED_AUTO_AND_QUESTIONS_PROMPT(theme.name, QUESTIONS_PER_BATCH), maxTokens: 12000, callType: 'repo', useCache: false }),
-      });
-      if (!response.ok) throw new Error(`API ${response.status}`);
-      const data = await response.json();
-      if (!Array.isArray(data.content)) throw new Error('Respuesta de la IA inválida. Reintenta.');
-      let responseText = '';
-      for (const block of data.content) { if (block.type === 'text') responseText += block.text; }
-
-      const { material, preguntas: rawPreguntas } = parseCombinedResponse(responseText);
-      const processedContent = material || responseText;
-      if (processedContent.trim().length < 100) throw new Error('Contenido insuficiente de la IA');
-
-      const newDoc = {
-        type: 'ai-search', content: theme.name,
-        fileName: `Material: ${theme.name}`,
-        addedAt: new Date().toISOString(),
-        searchResults: { query: theme.name, content: processedContent, processedContent },
-        processedContent,
-      };
-
       const latestTheme = themesRef.current.find(t => t.number === theme.number) || theme;
-      const existingTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      let newQuestions = [];
-      if (rawPreguntas?.length) {
-        const raw = mapRawQuestions(rawPreguntas, theme.number);
-        newQuestions = deduplicateQuestions(raw, existingTexts);
-      }
-
-      // Fallback: si no se parsearon preguntas, hacer segunda llamada con el material como contexto
-      if (newQuestions.length === 0) {
-        const fallbackPrompt = OPTIMIZED_QUESTION_PROMPT(theme.name, QUESTIONS_PER_BATCH, processedContent.substring(0, MAX_PROMPT_CHARS), '');
-        const fallbackToken = await authHelpers.getAccessToken();
-        const fallbackRes = await fetch('/api/generate-gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(fallbackToken && { 'Authorization': `Bearer ${fallbackToken}` }) },
-          body: JSON.stringify({ prompt: fallbackPrompt, maxTokens: 8000, callType: 'questions' }),
-        });
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          if (Array.isArray(fallbackData.content)) {
-            let fallbackText = '';
-            for (const block of fallbackData.content) { if (block.type === 'text') fallbackText += block.text; }
-            const fallbackParsed = parseQuestionsResponse(fallbackText);
-            if (fallbackParsed.length) {
-              const raw = mapRawQuestions(fallbackParsed, theme.number);
-              newQuestions = deduplicateQuestions(raw, existingTexts);
-            }
-          }
-        }
-      }
+      const { newDoc, newQuestions } = await generateCombined(latestTheme);
 
       onUpdateTheme({
         ...latestTheme,
@@ -115,52 +61,13 @@ export default function useGenerationQueue({ themesRef, onUpdateTheme, showToast
       const latestTheme = themesRef.current.find(t => t.number === theme.number) || theme;
       if (!latestTheme.documents?.length) throw new Error('El tema no tiene documentos');
 
-      const { text: documentContents, docsUsed, docsSkipped } = buildContent(latestTheme.documents);
-
-      const token = await authHelpers.getAccessToken();
-      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-      if (documentContents.trim().length < 100) {
-        const reason = docsSkipped > 0 && docsUsed === 0
-          ? `${docsSkipped} doc${docsSkipped > 1 ? 's' : ''} sin contenido extraído`
-          : 'Contenido insuficiente para generar preguntas';
-        throw new Error(reason);
-      }
-
-      const chunks = splitIntoChunks(documentContents, MAX_PROMPT_CHARS);
-      const numQPerChunk = chunks.length === 1 ? QUESTIONS_PER_BATCH : 15;
-
-      let accumulatedTexts = (latestTheme.questions || []).map(q => q.text.toLowerCase().trim());
-      let allNewQuestions = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        const prompt = OPTIMIZED_QUESTION_PROMPT(theme.name, numQPerChunk, chunks[i], accumulatedTexts.join('\n'));
-        const response = await fetch('/api/generate-gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeader },
-          body: JSON.stringify({ prompt, useWebSearch: false, maxTokens: 12000, callType: 'questions' }),
-        });
-        if (!response.ok) {
-          if (chunks.length === 1) throw new Error(`API ${response.status}`);
-          continue; // chunk no crítico: sigue con el siguiente
-        }
-        const data = await response.json();
-        if (!Array.isArray(data.content)) continue;
-        let textContent = '';
-        for (const block of data.content) { if (block.type === 'text') textContent += block.text; }
-        const parsed = parseQuestionsResponse(textContent);
-        if (!parsed.length) continue;
-        const raw = mapRawQuestions(parsed, theme.number);
-        const newForChunk = deduplicateQuestions(raw, accumulatedTexts);
-        allNewQuestions = [...allNewQuestions, ...newForChunk];
-        accumulatedTexts = [...accumulatedTexts, ...newForChunk.map(q => q.text.toLowerCase().trim())];
-      }
-
-      const newQuestions = allNewQuestions;
-      if (newQuestions.length === 0) throw new Error('Todas las preguntas generadas son duplicadas');
+      const { newQuestions, regeneratedDoc } = await generateFromDocuments(latestTheme, latestTheme.documents);
 
       const finalTheme = themesRef.current.find(t => t.number === theme.number) || latestTheme;
-      onUpdateTheme({ ...finalTheme, questions: [...(finalTheme.questions || []), ...newQuestions] });
+      const documents = regeneratedDoc
+        ? [regeneratedDoc, ...(finalTheme.documents || []).filter(d => d.processedContent?.trim().length > 100)]
+        : finalTheme.documents;
+      onUpdateTheme({ ...finalTheme, documents, questions: [...(finalTheme.questions || []), ...newQuestions] });
 
       inProgressRef.current.delete(key);
       setGeneratingQuestions(prev => ({ ...prev, [theme.number]: 'done' }));

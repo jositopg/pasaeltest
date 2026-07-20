@@ -1,6 +1,6 @@
 /**
  * Utilidades compartidas para llamadas a la API de Gemini y procesamiento de respuestas.
- * Usadas por useGenerationQueue y ThemeDetailModal (vía useThemeModal).
+ * Usadas por utils/questionGenerator.js (generación de preguntas).
  */
 import { jsonrepair } from 'jsonrepair';
 import { MAX_CHARS, normalizeDifficulty } from './constants';
@@ -17,27 +17,18 @@ export function extractDocContent(doc) {
   return '';
 }
 
-/**
- * Concatena el contenido de los documentos de un tema respetando MAX_CHARS.
- * Devuelve { text, docsUsed, docsSkipped }
- */
-export function buildContent(documents) {
-  if (!Array.isArray(documents) || documents.length === 0) return { text: '', docsUsed: 0, docsSkipped: 0 };
-  let text = '';
-  let charCount = 0;
-  let docsUsed = 0;
-  let docsSkipped = 0;
-  for (const doc of documents) {
-    if (charCount >= MAX_CHARS) break;
-    const extracted = extractDocContent(doc);
-    if (!extracted) { docsSkipped++; continue; }
-    const chunk = `\n${extracted}\n`;
-    const remaining = MAX_CHARS - charCount;
-    text += chunk.substring(0, remaining);
-    charCount += Math.min(chunk.length, remaining);
-    docsUsed++;
+// Cabecera de sección para el modo enriquecido de buildDocumentContents.
+function headeredChunk(doc, extracted) {
+  if (doc.processedContent) {
+    return `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || (doc.content || '').substring(0, 100)}\n\n${extracted}\n`;
   }
-  return { text, docsUsed, docsSkipped };
+  if (doc.searchResults?.processedContent) {
+    return `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${extracted}\n`;
+  }
+  if (doc.searchResults?.content) {
+    return `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${extracted}\n`;
+  }
+  return `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${extracted}\n`;
 }
 
 /**
@@ -100,32 +91,28 @@ export function parseCombinedResponse(text) {
 }
 
 /**
- * Concatena el contenido de los documentos con cabeceras de sección para prompts de IA.
- * Versión enriquecida (con headers de sección) para uso en ThemeDetailModal.
- * Complementa a buildContent (versión simple usada en useGenerationQueue).
- * Devuelve string con el contenido concatenado.
+ * Concatena el contenido de los documentos de un tema respetando MAX_CHARS.
+ * Con `includeHeaders: true` añade cabeceras de sección (para prompts de IA
+ * con más contexto); sin ellas, concatenación simple.
+ * Devuelve { text, docsUsed, docsSkipped }.
  */
-export function buildDocumentContents(docs) {
-  if (!Array.isArray(docs) || docs.length === 0) return '';
-  let documentContents = '';
+export function buildDocumentContents(docs, { includeHeaders = false } = {}) {
+  if (!Array.isArray(docs) || docs.length === 0) return { text: '', docsUsed: 0, docsSkipped: 0 };
+  let text = '';
   let charCount = 0;
+  let docsUsed = 0;
+  let docsSkipped = 0;
   for (const doc of docs) {
     if (charCount >= MAX_CHARS) break;
-    let docText = '';
-    if (doc.processedContent) {
-      docText = `\n═══ FUENTE OPTIMIZADA ═══\n${doc.fileName || (doc.content || '').substring(0, 100)}\n\n${doc.processedContent}\n`;
-    } else if (doc.searchResults?.processedContent) {
-      docText = `\n═══ BÚSQUEDA IA OPTIMIZADA ═══\n${doc.content}\n\n${doc.searchResults.processedContent}\n`;
-    } else if (doc.searchResults?.content) {
-      docText = `\n═══ BÚSQUEDA WEB ═══\n${doc.content}\n\n${doc.searchResults.content}\n`;
-    } else if (doc.type !== 'url' && doc.content) {
-      docText = `\n═══ DOCUMENTO ═══\n${doc.fileName || 'Texto pegado'}\n\n${doc.content}\n`;
-    }
+    const extracted = extractDocContent(doc);
+    if (!extracted) { docsSkipped++; continue; }
+    const chunk = includeHeaders ? headeredChunk(doc, extracted) : `\n${extracted}\n`;
     const remaining = MAX_CHARS - charCount;
-    documentContents += docText.substring(0, remaining);
-    charCount += Math.min(docText.length, remaining);
+    text += chunk.substring(0, remaining);
+    charCount += Math.min(chunk.length, remaining);
+    docsUsed++;
   }
-  return documentContents;
+  return { text, docsUsed, docsSkipped };
 }
 
 /**
