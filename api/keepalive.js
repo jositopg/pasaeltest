@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey  = process.env.SERVICE_ROLE_KEY_SUPABASE;
 
   if (!supabaseUrl || !serviceKey) {
     return res.status(500).json({ error: 'Missing env vars' });
