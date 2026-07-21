@@ -2,23 +2,9 @@ import React, { useState } from 'react';
 import { authHelpers } from '../../supabaseClient';
 
 function AuthScreen({ onLogin }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [pendingEmail, setPendingEmail] = useState(null); // email confirmation state
-
-  const handleGuestMode = () => {
-    onLogin({
-      id: `guest-${Date.now()}`,
-      email: 'guest@temp.com',
-      name: 'Invitado',
-      createdAt: new Date().toISOString(),
-      subscription: 'free',
-      isGuest: true,
-      isFirstLogin: true,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,68 +16,30 @@ function AuthScreen({ onLogin }) {
     }, 10000);
 
     try {
-      if (isLogin) {
-        const { data, error } = await authHelpers.signIn(formData.email, formData.password);
-        clearTimeout(timeout);
+      const { data, error } = await authHelpers.signIn(formData.email, formData.password);
+      clearTimeout(timeout);
 
-        if (error) {
-          setError(
-            error.message === 'Invalid login credentials'
-              ? 'Email o contraseña incorrectos'
-              : error.message?.toLowerCase().includes('email not confirmed')
-              ? 'Confirma tu email antes de entrar. Revisa tu bandeja de entrada.'
-              : error.message || 'Error al iniciar sesión'
-          );
-          setLoading(false);
-          return;
-        }
-
-        onLogin({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.user_metadata?.name || 'Usuario',
-          createdAt: data.user.created_at,
-          subscription: 'free',
-          isGuest: false,
-          isFirstLogin: false,
-        });
-
-      } else {
-        const { data, error } = await authHelpers.signUp(
-          formData.email,
-          formData.password,
-          { name: formData.name }
+      if (error) {
+        setError(
+          error.message === 'Invalid login credentials'
+            ? 'Email o contraseña incorrectos'
+            : error.message?.toLowerCase().includes('email not confirmed')
+            ? 'Confirma tu email antes de entrar. Revisa tu bandeja de entrada.'
+            : error.message || 'Error al iniciar sesión'
         );
-        clearTimeout(timeout);
-
-        if (error) {
-          setError(
-            error.message === 'User already registered'
-              ? 'Este email ya está registrado'
-              : 'Error al crear la cuenta'
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Si Supabase requiere confirmación de email, data.session es null
-        if (!data.session) {
-          setPendingEmail(formData.email);
-          setLoading(false);
-          return;
-        }
-
-        onLogin({
-          id: data.user.id,
-          email: data.user.email,
-          name: formData.name,
-          createdAt: data.user.created_at,
-          subscription: 'free',
-          isGuest: false,
-          isFirstLogin: true,
-        });
+        setLoading(false);
+        return;
       }
 
+      onLogin({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.name || 'Usuario',
+        createdAt: data.user.created_at,
+        subscription: 'free',
+        isGuest: false,
+        isFirstLogin: false,
+      });
       setLoading(false);
     } catch (err) {
       clearTimeout(timeout);
@@ -99,39 +47,6 @@ function AuthScreen({ onLogin }) {
       setLoading(false);
     }
   };
-
-  // ── Pantalla de confirmación de email ──────────────────────────
-  if (pendingEmail) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-5"
-        style={{ background: 'radial-gradient(ellipse at top, #0F1F3D 0%, #080C14 60%)' }}>
-        <div className="w-full max-w-sm bg-[#0F172A] border border-[#1E293B] rounded-3xl p-8 shadow-2xl text-center space-y-5 animate-fade-in-up">
-          <div className="text-6xl">📬</div>
-          <div>
-            <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Sora, system-ui' }}>
-              Revisa tu email
-            </h2>
-            <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-              Hemos enviado un enlace de confirmación a{' '}
-              <span className="text-blue-400 font-semibold">{pendingEmail}</span>
-            </p>
-            <p className="text-slate-500 text-xs mt-3">
-              Haz clic en el enlace del email para activar tu cuenta y entrar.
-            </p>
-          </div>
-          <div className="space-y-2 pt-2">
-            <p className="text-slate-600 text-xs">¿No has recibido nada? Revisa la carpeta de spam.</p>
-            <button
-              onClick={() => setPendingEmail(null)}
-              className="text-slate-500 text-sm hover:text-slate-300 transition-colors underline underline-offset-2"
-            >
-              Volver al inicio de sesión
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-5"
@@ -153,44 +68,10 @@ function AuthScreen({ onLogin }) {
 
       {/* Card */}
       <div className="w-full max-w-sm bg-[#0F172A] border border-[#1E293B] rounded-3xl p-6 shadow-2xl animate-fade-in-up">
-
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 p-1 rounded-2xl bg-[#080C14]">
-          {[['login', 'Entrar'], ['register', 'Registrarse']].map(([mode, label]) => (
-            <button key={mode}
-              onClick={() => { setIsLogin(mode === 'login'); setError(''); }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
-                ${(mode === 'login') === isLogin
-                  ? 'text-white shadow-lg'
-                  : 'text-slate-500 hover:text-slate-300'}`}
-              style={(mode === 'login') === isLogin
-                ? { background: 'linear-gradient(135deg, #2563EB, #7C3AED)' }
-                : {}}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-3">
-
-          {/* Nombre (solo registro) */}
-          {!isLogin && (
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">
-                Nombre
-              </label>
-              <input id="name" name="name" type="text" required value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Tu nombre o nombre de la academia"
-                autoComplete="name"
-                className="w-full bg-[#1E293B] border border-[#334155] text-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
-            </div>
-          )}
-
           <div>
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Email</label>
-            <input id="email" name="email" type="email" required value={formData.email}
+            <input id="email" name="email" type="email" required autoFocus value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               placeholder="tu@email.com"
               autoComplete="email"
@@ -215,24 +96,9 @@ function AuthScreen({ onLogin }) {
           <button type="submit" disabled={loading}
             className="w-full py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-50 transition-all active:scale-[0.98] mt-1"
             style={{ background: 'linear-gradient(135deg, #2563EB, #7C3AED)', boxShadow: '0 4px 20px rgba(37,99,235,0.3)', fontFamily: 'Sora, system-ui' }}>
-            {loading ? '⏳ Procesando...' : (isLogin ? 'Entrar →' : 'Crear cuenta →')}
+            {loading ? '⏳ Entrando...' : 'Entrar →'}
           </button>
         </form>
-
-        <div className="flex items-center gap-3 my-4">
-          <div className="flex-1 h-px bg-[#1E293B]" />
-          <span className="text-xs text-slate-600">o</span>
-          <div className="flex-1 h-px bg-[#1E293B]" />
-        </div>
-
-        <button onClick={handleGuestMode}
-          className="w-full py-3 rounded-xl border border-[#334155] text-slate-400 text-sm font-semibold hover:border-slate-500 hover:text-slate-300 transition-all active:scale-[0.98]">
-          👤 Probar sin registrarme
-        </button>
-
-        <p className="text-slate-700 text-xs text-center mt-4">
-          Modo demo: los datos no se guardan
-        </p>
       </div>
     </div>
   );

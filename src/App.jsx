@@ -34,9 +34,21 @@ import UserProfileModal from './components/auth/UserProfileModal';
 import JoinPlanScreen from './components/plans/JoinPlanScreen';
 import PublicExamScreen from './components/exam/PublicExamScreen';
 
+// Pantallas seguras para restaurar al reabrir la app — se excluyen las que
+// dependen de estado transitorio no persistido (examen en curso, admin/academia).
+const RESTORABLE_SCREENS = ['home', 'themes', 'exams', 'exam', 'review', 'stats', 'questions', 'heatmap', 'settings'];
+
 export default function App() {
-  // ─── Navigation ────────────────────────────────────────────
-  const [screen, setScreen] = useState('home');
+  // ─── Navigation — recuerda la última pantalla al reabrir ───
+  const [screen, setScreen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lastScreen');
+      return RESTORABLE_SCREENS.includes(saved) ? saved : 'home';
+    } catch { return 'home'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('lastScreen', screen); } catch {}
+  }, [screen]);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
   // ─── Public exam via ?exam=slug (sin login requerido) ─────────
